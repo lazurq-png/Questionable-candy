@@ -29,3 +29,6 @@ yarn-error.log*
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Personal daily learning log — local only
+/learning-notes/
