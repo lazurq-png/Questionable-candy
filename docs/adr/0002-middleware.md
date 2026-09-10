@@ -1,6 +1,6 @@
 ---
 status: "proposed"
-date: "2026-09-08"
+date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
 
@@ -12,6 +12,7 @@ Between incoming requests and the Django views sits the middleware stack respons
 
 ## Decision Drivers
 
+- Test what Django provides out of the box before adding dependencies
 - Fast and simple for phone users
 - Secure
 
@@ -24,14 +25,7 @@ Between incoming requests and the Django views sits the middleware stack respons
 
 ## Decision Outcome
 
-Chosen option: "Social/federated login via django-allauth", because it seems like the simplest one for customers and does not require a secondary account or similar. Also is very easy to log in via google account on a phone.
-
-### Consequences
-
-- Good, because it removes the friction of typing a password on a mobile keyboard by letting customers sign in with an existing Google/Facebook/Apple account
-- Good, because it handles email verification and password-reset flows out of the box
-- Bad, because it introduces a dependency on third-party identity providers, which can fail or change their APIs independently of this project
-- Bad, because some customers may be hesitant to link a social account for a candy-ordering site, reducing signup conversion
+Chosen option: "Django built-in session-based authentication (SessionMiddleware + AuthenticationMiddleware)", because it is what Django ships with and it gives working auth, admin and CSRF protection with no third-party dependency. django-allauth extends `django.contrib.auth` rather than replacing it, so it can be added later without redoing this.
 
 ### Confirmation
 
@@ -45,6 +39,7 @@ Nothing enforces it currently, but there could be a use for adding CI jobs to en
 - Good, because sessions work naturally with a server-rendered, template-based frontend
 - Neutral, because it assumes cookie support, which is standard on mobile browsers but requires care if a native mobile app is added later
 - Bad, because it does not natively support stateless API clients (e.g. a future mobile app) without additional token-based auth alongside it
+- Bad, because it leaves customers typing a password on a mobile keyboard
 
 ### Token-based authentication with djangorestframework-simplejwt
 
@@ -69,5 +64,4 @@ Nothing enforces it currently, but there could be a use for adding CI jobs to en
 
 ## More Information
 
-{Supporting links: docs, the blog post or commit where the decision played out,
-related ADRs. Note here when the decision should be revisited.}
+django-allauth is deferred, not rejected — it is the likely addition if password entry on mobile proves to be a problem.

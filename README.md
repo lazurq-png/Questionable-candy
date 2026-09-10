@@ -9,12 +9,12 @@ No application code has been written yet.
 
 ## Planned stack
 
-| Layer | Choice |
-| --- | --- |
-| Frontend | Django Templates + Tailwind CSS + HTMX + Alpine.js |
-| Backend | Django + Django REST Framework |
-| Auth | django-allauth (Google / federated login) |
-| Database | PostgreSQL |
+| Layer    | Choice                                 |
+| -------- | -------------------------------------- |
+| Frontend | Django Templates + hand-written CSS    |
+| Backend  | Django monolith with server-rendered   |
+| Auth     | Django built-in session authentication |
+| Database | PostgreSQL                             |
 
 ## Documentation
 

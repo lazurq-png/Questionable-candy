@@ -28,12 +28,6 @@ scope of the decision is unambiguous. Phrasing it as a question helps.}
 Chosen option: "{Option N}", because {the justification — which driver it
 satisfies that the others do not}.
 
-### Consequences
-
-- Good, because {what improves}
-- Bad, because {what this costs — an ADR with no Bad entries is not finished}
-- Neutral, because {a trade-off that is neither, or a decision deliberately deferred}
-
 ### Confirmation
 
 {How compliance is verified: a CI job, a test file, a config invariant, a

@@ -10,6 +10,13 @@ db.sqlite3-journal
 /staticfiles/
 local_settings.py
 
+# Tests
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+test-results/
+
 # Environment
 .env
 .env.*
@@ -31,4 +38,4 @@ Desktop.ini
 .DS_Store
 
 # Personal daily learning log — local only
-/learning-notes/
+/learing-notes/

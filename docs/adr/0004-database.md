@@ -1,6 +1,6 @@
 ---
 status: "proposed"
-date: "2026-09-08"
+date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
 
@@ -24,18 +24,13 @@ The schema defines Candy, User, Cart, and Order entities with relational links b
 
 ## Decision Outcome
 
-Chosen option: "PostgreSQL", because Django's ORM is designed with PostgreSQL in mind.
+Chosen option: "PostgreSQL", in production and in local development, because the data model uses `ArrayField` for the allergy fields and PostgreSQL covers the Candy/Cart/Order relations at production scale.
 
-### Consequences
-
-- Good, because it has first-class support for array and JSON fields, a natural fit for the Allergies field and structured order-item content
-- Good, because it handles the relational structure between Candy, Cart, and Order reliably at production scale, with strong support in Django's ORM
-- Neutral, because it requires running a separate database server, unlike SQLite, but this is standard practice for production Django deployments
-- Bad, because it has a steeper operational setup (connection pooling, backups, tuning) compared to a file-based database
+Unlike the other ADRs in this set, this one is not started on the Django default and swapped later: SQLite and PostgreSQL differ in available field types and concurrency behaviour, so running one in development and the other in production means development does not test what production runs.
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage.
+Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Tests run against PostgreSQL rather than a local SQLite fallback for example.)
 
 ## Pros and Cons of the Options
 
@@ -69,5 +64,6 @@ Nothing enforces it currently, but there could be a use for adding CI jobs to en
 
 ## More Information
 
-{Supporting links: docs, the blog post or commit where the decision played out,
-related ADRs. Note here when the decision should be revisited.}
+[`docs/data-model.md`](../data-model.md) depends on this decision: `Profile.allergies` and `Candy.allergens` use `ArrayField`, which is PostgreSQL-only.
+
+Media storage for the Candy Picture is named in the title and context but no options are given for it — still open.

@@ -1,6 +1,6 @@
 ---
 status: "proposed"
-date: "2026-09-08"
+date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
 
@@ -12,11 +12,13 @@ A candy ordering website (Customer flow: View the candy → Read about it → Ch
 
 ## Decision Drivers
 
+- Test what Django provides out of the box before adding dependencies
 - Learning new approaches and technologies.
 - Create a professional website, with a dash of satire.
 
 ## Considered Options
 
+- Django Templates + hand-written CSS (Django out of the box)
 - Django Templates + Tailwind CSS + HTMX + Alpine.js
 - React Single-Page Application (SPA) + Django REST Framework API
 - Vue.js Single-Page Application (SPA) + Django REST Framework API
@@ -24,29 +26,27 @@ A candy ordering website (Customer flow: View the candy → Read about it → Ch
 
 ## Decision Outcome
 
-Chosen option: "Django Templates + Tailwind CSS + HTMX + Alpine.js".
-Because HTMX and Alpine.js are frameworks I have yet to work with, instead of for example React or Vue which I have done some smaller projects in already.
-Could swap to "Django Templates + Bootstrap", if there is too much to learn with HTMX + Alpine.js.
-
-### Consequences
-
-- Good, because Tailwind's unprefixed utility classes are mobile-first by default, encouraging small-screen-first layout decisions
-- Good, because HTMX enables partial page updates (cart changes, filtering) without a full JavaScript framework or separate API layer
-- Neutral, because it keeps the project server-rendered, which simplifies SEO and initial load but limits offline/app-like behavior without extra work (e.g. a PWA layer)
-- Bad, because the team must learn HTMX's request/response model if unfamiliar with this
+Chosen option: "Django Templates + hand-written CSS (Django out of the box)", to see how far Django's own templating and static files get the catalog, cart and order screens. Tailwind, HTMX and Alpine.js get added later if the baseline turns out to be insufficient.
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Builds fail when react/vue/djangorestframework is found in package.json for example)
+Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Builds fail when react/vue is found in package.json for example.)
 
 ## Pros and Cons of the Options
+
+### Django Templates + hand-written CSS (Django out of the box)
+
+- Good, because it renders the catalog, cart and order screens with no dependency beyond Django itself and no build step
+- Good, because HTMX and Alpine.js are script tags that can be added to working templates later, so nothing here has to be undone to adopt them
+- Bad, because hand-written CSS has to handle mobile-first breakpoints deliberately, which Tailwind's unprefixed utilities would do by default
+- Bad, because none of the unfamiliar technology gets exercised in the first iteration
 
 ### Django Templates + Tailwind CSS + HTMX + Alpine.js
 
 - Good, because Tailwind's unprefixed utility classes are mobile-first by default, encouraging small-screen-first layout decisions
 - Good, because HTMX enables partial page updates (cart changes, filtering) without a full JavaScript framework or separate API layer
 - Neutral, because it keeps the project server-rendered, which simplifies SEO and initial load but limits offline/app-like behavior without extra work (e.g. a PWA layer)
-- Bad, because the team must learn Tailwind's utility-class conventions and HTMX's request/response model if unfamiliar with either
+- Bad, because the team must learn HTMX's request/response model if unfamiliar with this
 
 ### React Single-Page Application (SPA) + Django REST Framework API
 
@@ -71,5 +71,6 @@ Nothing enforces it currently, but there could be a use for adding CI jobs to en
 
 ## More Information
 
-{Supporting links: docs, the blog post or commit where the decision played out,
-related ADRs. Note here when the decision should be revisited.}
+Tailwind CSS, HTMX and Alpine.js are deferred, not rejected — revisit once the baseline is running and its limits are known.
+
+Related: [0003](0003-backend.md), which assumes the same server-rendered architecture.

@@ -1,6 +1,6 @@
 ---
 status: "proposed"
-date: "2026-09-08"
+date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
 
@@ -8,12 +8,13 @@ decision-makers: "Martin Larsson"
 
 ## Context and Problem Statement
 
-The backend must implement the core business logic behind the Candy catalog, Cart operations, and the Order lifecycle (creation, status transitions, and the Track order feature), as well as expose an admin interface for managing Candy records (Price, Supplier, Allergies, Picture). Some of this work — order confirmation, notifying the Supplier, status updates — is naturally asynchronous. Which backend framework and architecture should be used to implement this logic?
+The backend must implement the core business logic behind the Candy catalog, Cart operations, and the Order lifecycle (creation, status transitions, and the Track order feature), as well as expose an admin interface for managing Candy records (Price, Allergies, Picture). Some of this work — order confirmation, status updates — is naturally asynchronous. Which backend framework and architecture should be used to implement this logic?
 
 ## Decision Drivers
 
+- Test what Django provides out of the box before adding dependencies
 - Work with ORM
-- Mobile and desktop compatability
+- Mobile and desktop compatibility
 
 ## Considered Options
 
@@ -24,18 +25,11 @@ The backend must implement the core business logic behind the Candy catalog, Car
 
 ## Decision Outcome
 
-Chosen option: "Django + Django REST Framework as an API-first backend", because it ships with built-in ORM and would work well for a mobile app.
-
-### Consequences
-
-- Good, because it exposes Candy, Cart, and Order data through a versioned REST API that can serve a web frontend, a future mobile app, or partner integrations equally
-- Good, because DRF provides serialization, validation, and browsable API documentation out of the box
-- Bad, because it requires building a separate frontend (SPA or otherwise) to consume the API, duplicating some logic (e.g. cart totals) on both client and server
-- Bad, because it adds development overhead not justified if only a single server-rendered website is planned
+Chosen option: "Django monolith with server-rendered views (MVT pattern, no separate API layer)", because the ORM comes from Django itself, not from DRF. DRF adds serializers and viewsets on top of unchanged models, so it can be added later if a mobile app or third-party integration actually needs an API.
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage.
+Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Builds fail when djangorestframework is found in requirements.txt for example.)
 
 ## Pros and Cons of the Options
 
@@ -69,5 +63,6 @@ Nothing enforces it currently, but there could be a use for adding CI jobs to en
 
 ## More Information
 
-{Supporting links: docs, the blog post or commit where the decision played out,
-related ADRs. Note here when the decision should be revisited.}
+Django REST Framework is deferred, not rejected — revisit when there is an actual consumer for an API.
+
+Related: [0001](0001-frontend.md), which assumes the same server-rendered architecture.
