@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+
+# AI repository validation entry point.
+#
+# Copy this file to:
+#
+#     scripts/validate
+#
+# and replace the example commands with the actual commands for the repository.
+#
+# The important property is that this script should represent the repository's
+# practical definition of "validated".
+#
+# Claude Code (and any other coding agent) can then run:
+#
+#     ./scripts/validate
+#
+# instead of having to infer the validation sequence from scratch.
+
+set -euo pipefail
+
+echo "======================================"
+echo "AI Repository Validation"
+echo "======================================"
+
+# ------------------------------------------------------------
+# Formatting
+# ------------------------------------------------------------
+
+echo
+echo "==> Formatting"
+
+# Examples:
+#
+# npm run format:check
+# pnpm format:check
+# cargo fmt --check
+# ruff format --check .
+
+# ------------------------------------------------------------
+# Lint
+# ------------------------------------------------------------
+
+echo
+echo "==> Lint"
+
+# Examples:
+#
+# npm run lint
+# pnpm lint
+# cargo clippy --all-targets --all-features -- -D warnings
+# ruff check .
+
+# ------------------------------------------------------------
+# Type checking
+# ------------------------------------------------------------
+
+echo
+echo "==> Type checking"
+
+# Examples:
+#
+# npm run typecheck
+# pnpm typecheck
+# npx tsc --noEmit
+# mypy .
+
+# ------------------------------------------------------------
+# Tests
+# ------------------------------------------------------------
+
+echo
+echo "==> Tests"
+
+# Examples:
+#
+# npm test
+# pnpm test
+# cargo test
+# pytest
+
+# ------------------------------------------------------------
+# Build
+# ------------------------------------------------------------
+
+echo
+echo "==> Build"
+
+# Examples:
+#
+# npm run build
+# pnpm build
+# cargo build
+# go build ./...
+
+# ------------------------------------------------------------
+# Final status
+# ------------------------------------------------------------
+
+echo
+echo "======================================"
+echo "Validation completed successfully."
+echo "======================================"
