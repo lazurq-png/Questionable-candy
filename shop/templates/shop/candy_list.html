@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Candy shop</h1>
+<ul>
+  {% for candy in candies %}
+    <li>
+      {{ candy.name }} — ${{ candy.price }}
+      <button hx-post="{% url 'add_to_cart' candy.id %}" hx-swap="outerHTML" type="button">
+        Add to cart
+      </button>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}
