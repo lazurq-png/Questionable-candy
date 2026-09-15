@@ -101,3 +101,63 @@ blank flaw from *any* save path, which is what UC-06's Constraint asks for
 ("Required at the data-model level, not only in the form"). Registering the
 admin afterwards inherits that rejection for free. Flagged for supervised work
 because verifying an admin screen means logging into one.
+
+---
+
+## Q5. Migration `0003` has no in-file guard for existing blank-flaw rows
+
+**Question.** The reviewer's Finding 1: `AddConstraint` compiles to
+`ALTER TABLE ... ADD CONSTRAINT ... CHECK ("flaw"::text ~ E'\S')`, which
+PostgreSQL validates against every existing row. A row with `flaw = ''` was
+legal until this commit — that is exactly what
+`test_a_candy_cannot_be_saved_without_a_flaw` proves. On a database holding
+one, `migrate` aborts with a Postgres error that names no row.
+
+It is transactional, so nothing is corrupted and the application stays on the
+old schema. But the deployment stops, and whoever is looking at it gets no
+guidance. The dev database has 2 rows and 0 violations, so a clean local
+`migrate` is evidence of nothing — `.claude/rules/database.md` is explicit that
+development data does not stand in for production.
+
+**What was needed, and why the rule blocked it.** The legible fix is a
+`RunPython` guard ahead of the `AddConstraint`, raising with the offending ids.
+`night-run` §3 forbids "deleting or **editing** an existing migration file", and
+the reviewer's cheaper alternative — a comment inside `0003` — is the same
+edit. The file is one this run generated and has not committed, so the rule's
+intent (do not rewrite schema history) arguably does not reach it; that is
+exactly the judgement call an unattended run should not be making on its own.
+
+**The diff not applied**, for a human to approve verbatim — inserted into
+`shop/migrations/0003_candyproduct_candyproduct_flaw_is_not_blank.py` before
+the existing `AddConstraint` operation:
+
+```python
+def reject_blank_flaws(apps, schema_editor):
+    """Fail with the offending rows rather than with Postgres's bare error."""
+    CandyProduct = apps.get_model("shop", "CandyProduct")
+    offenders = [
+        (c.pk, c.name) for c in CandyProduct.objects.all() if not c.flaw.strip()
+    ]
+    if offenders:
+        raise RuntimeError(
+            "These candies have no flaw recorded and must be given one before "
+            f"UC-06's constraint can apply: {offenders}. Do not backfill a "
+            "placeholder -- a fabricated disclosure is what UC-06 prevents."
+        )
+
+
+operations = [
+    migrations.RunPython(reject_blank_flaws, migrations.RunPython.noop),
+    migrations.AddConstraint(...),   # unchanged
+]
+```
+
+**What was done instead.** The precondition and the triage query
+(`SELECT id, name FROM shop_candyproduct WHERE flaw !~ '\S';`) are written into
+`docs/data-model.md` §3.4, where the rest of the `Candy` gap analysis lives, and
+into this run's `progress.md`. That informs a reader; it does not stop a
+deployment. **Recommendation: apply the diff above.**
+
+**Not a candidate:** a data migration that writes placeholder flaw text. A
+fabricated disclosure is the exact failure UC-06 exists to prevent, so those
+rows need a person, not a default.

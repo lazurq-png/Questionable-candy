@@ -123,3 +123,50 @@ browser test `test_the_detail_page_returns_to_the_catalog` was covering the
 actual click throughout, so nothing was ever unverified — but the integration
 test claimed a guard it did not provide, and the idiom was sitting in the file
 to be copied to the next root-mounted route.
+
+## D7. The flaw is labelled, and sits above the add-to-cart button
+
+UC-06 step 3 says the flaw "renders alongside the description". Rendered as an
+unlabelled paragraph it would be indistinguishable from the sales copy, and a
+disclosure the reader cannot identify as one has not disclosed anything — so it
+is a `<section data-testid="candy-flaw">` with a "Known flaw" heading.
+
+Placed *before* the add-to-cart button rather than after it. UC-06's success
+guarantee is that every detail view shows a flaw; a flaw below the button is
+one the customer can act without ever reaching. No styling was added (stated
+non-goal), so this is document order doing the work.
+
+## D8. `\S`, not `!= ""`
+
+The constraint is `Q(flaw__regex=r"\S")` — at least one non-whitespace
+character — rather than `~Q(flaw="")`.
+
+Not extra strictness. Django's form field strips whitespace before testing
+`blank`, so a submitted `"   "` is already rejected at the form. With
+`~Q(flaw="")` the database would have been the *more permissive* of the two,
+and "has a flaw" would mean two different things depending on the write path.
+Verified by the reviewer against PostgreSQL that `~ '\S'` treats `\xa0` and
+` ` the same way Python's `str.strip()` does, so the two agree on the
+unicode edges as well.
+
+`violation_error_message` is set because a constraint is not attached to a
+field: the error surfaces under `__all__`, and without the message the user
+would be shown Django's generic text naming a constraint they have never heard
+of.
+
+## D9. Migration `0003` was left without an in-file guard — see `questions.md` Q5
+
+The reviewer's Finding 1 is correct: `AddConstraint` validates against existing
+rows, and a database holding a blank-flaw row will abort `migrate` with a
+Postgres error that names nothing. The fix is a `RunPython` guard inside the
+migration.
+
+`night-run` §3 forbids editing an existing migration file. The file is one this
+run generated and has not yet committed, so the rule's *intent* — do not
+rewrite schema history — plausibly does not reach it. Deciding that on my own
+is the kind of judgement the rule exists to take away from an unattended run,
+so the diff is written out verbatim in `questions.md` Q5 for approval instead,
+and the precondition plus its triage query went into `docs/data-model.md` §3.4.
+
+That informs a reader. It does not stop a deployment. **This is the most
+consequential thing left undone in this run.**

@@ -109,9 +109,19 @@ One\-to\-one extension of User for domain\-specific fields not part of authentic
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
 | Missing         | `slug`, `sugar_content_g`, `allergens`, `is_published`, timestamps        | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification      |
-| Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null only |
+| Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null **and** non\-blank |
 
-`flaw` being non\-null is the one UC\-06 guarantee that already holds in code. The rest of UC\-06's "enforced at the model level" intent — and the uniqueness constraints — do not yet. Renaming and filling this out is a migration, not an edit; it has not been scheduled.
+**UC\-06's "enforced at the model level" intent now holds.** Since 2026\-09\-15 `flaw` carries a `CheckConstraint` (`candyproduct_flaw_is_not_blank`, migration `0003`) requiring at least one non\-whitespace character, so the empty string — which satisfies NOT NULL perfectly well, and which `objects.create()` would happily write — is rejected by the database rather than only by a form. §5's design note is therefore satisfied for `flaw`.
+
+The uniqueness constraints on `name`/`slug` still do not exist, and the rename plus the remaining fields is a migration, not an edit; it has not been scheduled.
+
+> **Deployment precondition for migration `0003`.** `AddConstraint` compiles to a plain `ALTER TABLE ... ADD CONSTRAINT ... CHECK`, which PostgreSQL validates against every existing row. Rows with a blank `flaw` were legal before it, so on any database holding one, `migrate` aborts — transactionally, leaving the old schema intact, but with a Postgres error that names no row. Find them with:
+>
+> ```sql
+> SELECT id, name FROM shop_candyproduct WHERE flaw !~ '\S';
+> ```
+>
+> Each needs a real flaw before the migration can apply. **Do not backfill a placeholder:** a fabricated disclosure is precisely what UC\-06 exists to prevent, so this is a decision per row, not a data migration.
 
 ### 3\.5 ShoppingCart
 

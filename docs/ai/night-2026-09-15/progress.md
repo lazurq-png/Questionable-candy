@@ -105,3 +105,56 @@ appeared.
 
 **Not verified.** No styling exists, so nothing about the detail page's layout,
 spacing or mobile behaviour has been looked at by anything.
+
+### Task 3a — UC-06 flaw disclosure on the detail page — **done**
+
+**Changed.** `candy_detail.html` renders the flaw as a labelled `<section>`
+above the add-to-cart button (D7); two integration tests and one browser test.
+
+**Verification actually run** (task 3a alone, before the constraint of 3b):
+`python -m pytest tests --cov=...` → **26 passed**, coverage 88%.
+
+### Task 3b — UC-06 enforced at the data-model level — **done**
+
+**Changed.** `CandyProduct.Meta.constraints` gains
+`candyproduct_flaw_is_not_blank` (D8) with migration `0003`; four unit tests;
+`docs/data-model.md` §3.4 updated — it had recorded this gap as open, and
+`shop/models.py` cites that section, so the two had begun contradicting each
+other.
+
+Split from 3a into its own commit because the run request scoped task 3 to "the
+detail page", and this is the data-model half of UC-06's Constraint. It is
+separable if a reviewer judges it out of scope.
+
+**Verification actually run** (3a and 3b together, after the reviewer's fixes):
+
+| Command | Result |
+| ------- | ------ |
+| `python -m pytest tests --cov=shop --cov=mysite --cov-report=term-missing` | **31 passed**, 9.88s, coverage **89%** |
+| `python -m pylint --fail-under=0 --fail-on=E shop mysite scripts tests` | exit 0, **9.40/10**; message set on touched files identical to baseline |
+| `python scripts/adr_guards.py` | exit 0 |
+| `manage.py makemigrations --check --dry-run --noinput` | exit 0 — `0003` is the only new migration and is the one intended |
+| `manage.py sqlmigrate shop 0003` (run by the reviewer) | `ALTER TABLE ... ADD CONSTRAINT ... CHECK ("flaw"::text ~ E'\S')` |
+
+Migration drift re-checked, `night-run` §2.4.
+
+**Independent review.** **Request Changes**, five findings, all acted on:
+
+- *Medium* — migration `0003` has no answer for existing violating rows.
+  **Not fixed in code**; the guard would mean editing a migration file, which
+  `night-run` §3 forbids. Parked as Q5 with the exact diff, and the precondition
+  and triage query written into `docs/data-model.md` §3.4. D9.
+- *Low* — `test_model_validation_also_rejects_a_missing_flaw` passed only by an
+  accident of Django's `full_clean` ordering and would have reported "Database
+  access not allowed" instead of its own assertion under the regression it
+  guards. Marked `django_db`.
+- *Low* — the one path where the new constraint's *own* validation runs
+  (`full_clean` on a whitespace flaw) had no test. Added.
+- *Low* — `docs/data-model.md` still recorded the gap this change closed, while
+  `shop/models.py` cited it as open. Both corrected.
+- *Low* — the migration was untracked. Staged with `git add -A` and checked
+  against `git status`.
+
+**Not verified.** Nobody and nothing has looked at this page. The `<section>`'s
+layout, spacing and contrast are unexamined; styling is a stated non-goal, and
+`to_be_visible` is the strongest claim made about the disclosure.
