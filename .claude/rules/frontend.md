@@ -130,9 +130,15 @@ substitute is a real browser driven by a test — **not** a waiver of step 4, an
 not `django.test.Client`, which is the thing that let the 403 through.
 
 `pytest-playwright` is already in `requirements.txt` (ADR 0006 unblocked it) and
-the browser binaries are installed. `tests/e2e/` exists and is empty, and
-`python scripts/dev.py test:e2e` tolerates an empty suite — so the first
-unattended UI task is also the one that starts filling it.
+the browser binaries are installed. `tests/e2e/` holds the catalog and detail
+tests; follow their shape rather than inventing a second one.
+
+Two things there are load-bearing and easy to lose. `tests/e2e/conftest.py` sets
+`DJANGO_ALLOW_ASYNC_UNSAFE` — without it Playwright's event loop makes Django
+refuse every database call in the test thread. And every browser test calls the
+`assert_page_is_fully_rendered` fixture, because Django's `{# ... #}` comment is
+single-line only: a multi-line one is printed to the page as text, and an
+assertion on what you expect to see passes straight over it.
 
 Use `pytest-django`'s `live_server` fixture. It starts a real server on a real
 port for the test, so no separate `dev.py run` is needed and there is no stray

@@ -107,6 +107,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # pytest-playwright is a pip package; the browser it drives is not, and
+      # the runner image does not ship one. Until tests/e2e/ had tests in it the
+      # browser fixture was never instantiated and this was invisible -- an
+      # empty suite needs no browser. --with-deps pulls the shared libraries
+      # chromium needs on the ubuntu image; chromium alone, because that is the
+      # only browser the suite parametrises over.
+      - name: Install Playwright browser
+        run: python -m playwright install --with-deps chromium
+
       # scripts/dev.py runs makemigrations, which would quietly *write* a
       # missing migration and let the suite pass green. Fail here first: a model
       # change with no migration is drift, and CI is where it should surface.

@@ -7,10 +7,15 @@
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
-{# hx-headers is inherited by every htmx request on the page, so each hx-post
-   carries the CSRF token. Without it Django's CsrfViewMiddleware returns 403
-   in a real browser -- the test client hides this unless it is constructed
-   with enforce_csrf_checks=True. #}
+{% comment %}
+hx-headers is inherited by every htmx request on the page, so each hx-post
+carries the CSRF token. Without it Django's CsrfViewMiddleware returns 403
+in a real browser -- the test client hides this unless it is constructed
+with enforce_csrf_checks=True.
+
+{% comment %}, not {# #}: Django's {# #} is single-line only, so a multi-line
+one is not recognised as a tag and is printed to the page as text.
+{% endcomment %}
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     {% block content %}{% endblock %}
 </body>
