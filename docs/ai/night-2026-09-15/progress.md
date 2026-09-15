@@ -90,8 +90,6 @@ initially walked straight past a paragraph of raw template source on the page
 
 ---
 
-# Progress — night-2026-09-15
-
 ## Preflight (2026-09-15)
 
 | Step | Command | Result |
