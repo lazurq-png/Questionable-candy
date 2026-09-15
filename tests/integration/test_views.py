@@ -153,3 +153,33 @@ def test_catalog_links_each_candy_to_its_detail_page(client):
 
     expected = f'href="{reverse("candy_detail", args=[candy.id])}"'
     assert expected.encode() in response.content
+
+
+# --- UC-06: flaw disclosure ------------------------------------------------
+
+def test_candy_detail_discloses_the_flaw(client):
+    """UC-06 step 3, and UC-03 step 2's fourth field."""
+    candy = CandyProductFactory(
+        name="Hollow Humbug",
+        flaw="Dissolves into a sticky film that outlasts the flavour.",
+    )
+
+    response = client.get(reverse("candy_detail", args=[candy.id]))
+
+    assert b"Dissolves into a sticky film that outlasts the flavour." in response.content
+
+
+def test_the_flaw_is_labelled_as_a_flaw(client):
+    """A disclosure indistinguishable from the sales copy discloses nothing.
+
+    UC-06's success guarantee is that the detail view *shows a flaw* -- so the
+    text has to be identifiable as one, not merely present somewhere on the
+    page. This asserts the labelled region exists; the browser test asserts the
+    reader can see it.
+    """
+    candy = CandyProductFactory()
+
+    response = client.get(reverse("candy_detail", args=[candy.id]))
+
+    assert b'data-testid="candy-flaw"' in response.content
+    assert b"Known flaw" in response.content

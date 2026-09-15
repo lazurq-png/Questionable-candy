@@ -67,3 +67,29 @@ def test_adding_to_the_cart_from_the_detail_page(
 
     expect(page.get_by_role("button", name="Added! (Hollow Humbug)")).to_be_visible()
     assert_page_is_fully_rendered(page)
+
+
+def test_the_flaw_is_visible_to_the_customer(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """UC-06 step 3, in the browser.
+
+    The integration test asserts the flaw is in the markup. That is not the
+    same claim: markup can be present and the reader still never see it.
+    `to_be_visible` is the one that matches UC-06's success guarantee, and it
+    is the assertion that would start failing the day this page is styled and
+    the disclosure ends up hidden, collapsed or off-screen.
+    """
+    CandyProductFactory(
+        name="Hollow Humbug",
+        flaw="Dissolves into a sticky film that outlasts the flavour.",
+    )
+
+    page.goto(live_server.url)
+    page.get_by_role("link", name="Hollow Humbug").click()
+
+    flaw = page.get_by_test_id("candy-flaw")
+    expect(flaw).to_be_visible()
+    expect(flaw).to_contain_text("Dissolves into a sticky film that outlasts the flavour.")
+    expect(page.get_by_role("heading", name="Known flaw")).to_be_visible()
+    assert_page_is_fully_rendered(page)
