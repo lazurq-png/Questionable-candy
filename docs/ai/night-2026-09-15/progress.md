@@ -1,5 +1,97 @@
 # Progress — night-2026-09-15
 
+## Morning report
+
+**All three requested tasks are complete, verified and committed.** The branch
+is `night-2026-09-15`, four commits on top of `dev` @ `3344c6b`, working tree
+clean, nothing pushed.
+
+### Completed
+
+| Task | Commit | Verification actually run |
+| ---- | ------ | ------------------------- |
+| 1. `tests/e2e/` stands up; UC-01 + add-to-cart in a real browser | `3d938db` | 16 passed (3 e2e, chromium), coverage 87%; pylint exit 0 @ 9.16; adr_guards exit 0; no drift |
+| 2. UC-03 candy detail page | `3e02e95` | 23 passed, coverage 88%; pylint exit 0 @ 9.32; adr_guards exit 0; drift check clean, `0002` intended |
+| 3a. UC-06 flaw disclosed on the detail page | `56393a8` | 26 passed, coverage 88% |
+| 3b. UC-06 enforced at the data-model level | `fce8cd8` | 31 passed, coverage 89%; pylint exit 0 @ 9.40; adr_guards exit 0; drift check clean, `0003` intended |
+
+Final state re-verified after the last commit, on a clean tree: **31 passed,
+coverage 89%, pylint exit 0 at 9.40/10, adr_guards exit 0,
+`makemigrations --check` exit 0.**
+
+### Provisional
+
+None. Nothing in this run was built on a parked assumption; the parked items
+(Q2-Q4) are scope *exclusions*, not assumptions that later work leans on.
+
+### Abandoned
+
+None.
+
+### Questions, most consequential first
+
+1. **Q5 — migration `0003` has no guard for existing blank-flaw rows.** The one
+   thing in this run that a human should act on before the branch goes
+   anywhere. Adding a constraint validates it against every existing row, and a
+   database holding a blank flaw will abort `migrate` on an error that names
+   nothing. The fix is a `RunPython` guard *inside* the migration, which
+   `night-run` §3 forbids editing, so the exact diff is written out for
+   approval instead. The dev database has 2 rows and 0 violations, so the local
+   `migrate` proved nothing about anyone else's.
+2. **Q1 — the acceptance criteria for tasks 2 and 3 were elided** from the run
+   request ("Acceptance: ..."). They were taken from `docs/requirements.md` §4
+   instead, and every acceptance line in `plan.md` cites the UC step it came
+   from, so a divergence from what was meant is visible rather than buried.
+3. **Q2 — publication state is not modelled.** UC-01 "published items" and
+   UC-03 extension 2a "unpublished or deleted" cannot both be satisfied; only
+   deletion is representable, and it returns 404 rather than "no longer
+   available" copy.
+4. **Q3 — detail URLs use the primary key**, where `data-model.md` specifies a
+   slug.
+5. **Q4 — UC-06 step 1 (the administrator recording a flaw) has no interface.**
+   `shop/admin.py` still registers nothing. The constraint from 3b makes
+   extension 2a true whatever interface is eventually built.
+
+### State
+
+- **Branch** `night-2026-09-15`, 4 commits, **not pushed**.
+- **Green**, on the evidence above.
+- **Working tree clean.** No pre-existing uncommitted changes existed to carry.
+- **Lint 9.40/10 against a 9.04 baseline.** The rise is new modules carrying
+  docstrings, not warnings being suppressed; the message set on every touched
+  file is identical to `lint-baseline.txt`, checked per task rather than trusted
+  to the exit code.
+- **Migrations `0002` and `0003` are new**, both intended, both additive, and
+  `makemigrations --check` is clean. `0003` carries the deployment precondition
+  in Q5.
+
+### What nothing in this run verified
+
+**No human or machine has looked at how any of these pages appear.** The browser
+tests drive real clicks and assert visibility, which is why they caught what the
+test suite could not — but layout, spacing, contrast and mobile behaviour are
+entirely unexamined, and UC-01 step 3's "mobile-first grid" is neither
+implemented nor tested. Styling was a stated non-goal, so this is expected
+rather than a gap; it is stated plainly because three green browser tests
+initially walked straight past a paragraph of raw template source on the page
+(D2), and that is what the absence of a human eye costs.
+
+### Two things worth a human's attention beyond the task list
+
+- **`templates/base.html` was printing four lines of its own source on every
+  page of the site** since `2935aac`, because Django's `{# ... #}` comment is
+  single-line only. Fixed in `3d938db`. It had survived every previous check
+  because nothing had ever rendered a page in a browser.
+- **CI could not have run the new suite.** `pip install -r requirements.txt`
+  installs `pytest-playwright` but no browser. An install step was added in
+  `3d938db`; it is unobservable from here, so **the first push is the test of
+  it**, and PyYAML is not installed locally, so the workflow file was checked
+  by eye rather than parsed.
+
+---
+
+# Progress — night-2026-09-15
+
 ## Preflight (2026-09-15)
 
 | Step | Command | Result |
