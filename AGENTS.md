@@ -466,6 +466,21 @@ Do not ask the user for information that can be discovered from the repository.
 
 Do not repeatedly ask for approval for routine implementation details.
 
+## Unattended operation
+
+The pause triggers above assume a human is available. When no human is — an
+overnight or otherwise unsupervised run — pausing produces nothing, so they
+resolve differently: record the question, the options and a recommendation in
+the run's durable state, choose the smallest reversible interpretation, isolate
+that work on its own commit as provisional, and continue with the next
+independent task.
+
+This is a change of *response*, not of *threshold*. What counts as consequential
+is unchanged; it is logged and worked around rather than waited on. The
+exceptions that must never be worked around unattended — destructive schema
+changes, secrets, dependency changes that break the ADR guards, force-pushes —
+are listed in `.claude/skills/night-run/SKILL.md`, which governs that mode.
+
 ---
 
 # 19. Failure Recovery

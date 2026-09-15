@@ -29,7 +29,7 @@ Chosen option: "Django monolith with server-rendered views (MVT pattern, no sepa
 
 ### Confirmation
 
-`python scripts/dev.py validate` fails if `djangorestframework` appears in `requirements.txt`. This was proposed here as a hypothetical; it is now a real check, and `requirements.txt` exists for it to read.
+`python scripts/adr_guards.py` fails if `djangorestframework` appears in `requirements.txt`. This was proposed here as a hypothetical; it is now a real check, and CI runs it as its own job on every push and pull request (`.github/workflows/ci.yml`), so it no longer depends on anyone remembering to run it locally.
 
 Not enforced: nothing prevents an API layer being written by hand without DRF, and nothing checks that views stay server-rendered. The guard catches the dependency, not the architecture.
 

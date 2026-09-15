@@ -201,6 +201,14 @@ When using multiple agents:
 
 For high-risk changes, an independent reviewer should ideally evaluate the implementation without relying on the builder's assumptions.
 
+`.claude/agents/reviewer.md` is the standing reviewer for this — dispatch it by
+name. It has no Edit or Write tool, follows the `code-review` skill, and knows
+this repository's recurring failure modes.
+
+Unattended, "ideally" becomes "always": it is the only review a change will get
+before it is committed. Give it the task, not your reasoning —
+`.claude/skills/night-run/SKILL.md` §2.
+
 ---
 
 ## 9. Verification
@@ -211,18 +219,31 @@ In this repository the checks that exist are:
 
 | Check              | Command                                        |
 | ------------------ | ---------------------------------------------- |
-| Targeted tests     | `python scripts/dev.py test:unit` / `test:integration` |
-| Full suite         | `python scripts/dev.py test`                   |
-| Migration drift    | `python scripts/dev.py migrations:check`       |
-| Everything         | `python scripts/dev.py validate`               |
+| Targeted tests     | `python scripts/dev.py test:unit` / `test:int` / `test:e2e` |
+| Full suite (+ coverage) | `python scripts/dev.py test`              |
+| ADR guards         | `python scripts/adr_guards.py`                 |
 | Browser            | `python scripts/dev.py run`, then open the page |
 
-There is **no** type checker, linter, formatter or build step, and no CI. Do not
-claim to have run one. `validate` deliberately has no stage for them.
+Every `dev.py` task runs `makemigrations` and `migrate` first, so the database
+always matches the models. The cluster must already be running — `dev.py` no
+longer starts it.
+
+There is **no** type checker, linter, formatter or build step. Do not claim to
+have run one.
+
+CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): an ADR-guards job and a
+test job with a PostgreSQL service, on every push and pull request to `master`
+and `dev`. It runs on GitHub, not on your machine — you cannot observe its
+result from here, so never report a CI run as evidence. CI also checks migration
+drift with `makemigrations --check`, which `dev.py` deliberately does not.
 
 Browser verification is not interchangeable with the test suite: `django.test.Client`
 does not enforce CSRF, so a green suite has already coexisted with a page that
 403'd on every interaction. See `.claude/rules/frontend.md`.
+
+When running unattended there is nobody to look at a page. The substitute is a
+Playwright `tests/e2e/` test driving a real browser — not a waiver of the check.
+`.claude/rules/frontend.md` defines what that must cover.
 
 Start with the narrowest useful verification.
 
@@ -267,6 +288,14 @@ A useful task state includes:
 Do not keep critical state exclusively in the conversation.
 
 When handing work to another agent or resuming after interruption, leave enough information for the next agent to continue without reconstructing the entire investigation.
+
+That state lives in `docs/ai/<branch>/` — `plan.md`, `progress.md`,
+`decisions.md`, `questions.md`. See `docs/ai/README.md` for what belongs in
+each. It is committed on the branch it describes, so the reasoning stays
+attached to the diff it explains.
+
+Unattended runs must maintain it; there is no conversation for a human to read
+afterwards, so these files are the entire record of what happened.
 
 ---
 
@@ -361,6 +390,12 @@ Examples:
 
 When asking, explain the actual decision and its consequences rather than asking a vague "what should I do?"
 
+If no human is available to answer — an unattended run — do not wait. Write the
+question, the options and your recommendation to the run's `questions.md`, take
+the smallest reversible interpretation, commit that work separately and flag it
+provisional, then continue. `.claude/skills/night-run/SKILL.md` governs this;
+AGENTS.md §18 states the same rule for tool-agnostic agents.
+
 ---
 
 ## 17. Final Response
@@ -393,23 +428,35 @@ This repository's `.claude/` directory is structured as follows:
 
 ```text
 .claude/
+├── agents/     — specialized subagents dispatched by name (reviewer)
 ├── rules/      — domain-specific reference docs (see §2), opened on demand
 ├── skills/     — reusable procedural workflows, invoked as slash commands
+│                 (code-review, night-run)
 ├── docs/       — supporting human-readable process docs (workflow, task
 │                 template, prompt patterns) — not auto-loaded
 └── settings.example.json — inert template; no settings.json is defined here
 ```
 
-The validation entry point is **`scripts/validate`** (`scripts/validate.cmd` on
-Windows), delegating to `python scripts/dev.py validate`. `scripts/dev.py` is the
-task runner for everything else too — `run`, the test suites, migrations, and
-`db:start`/`db:stop` for the local PostgreSQL cluster.
+**There is no `scripts/validate` and no `dev.py validate` task.** Both were
+removed; `dev.py validate` now exits 2 with `Unknown task`. Verification is the
+two commands in §9's table — `python scripts/dev.py test` and
+`python scripts/adr_guards.py` — run separately. `scripts/dev.py` is the task
+runner for everything else too: `run` and the four test suites, each preceded by
+`makemigrations` + `migrate`. It no longer starts or stops the PostgreSQL
+cluster; that must already be accepting connections.
 
 Use `.claude/skills/code-review/` for an adversarial review pass over a diff —
 see §13 for when to run it.
 
-Add `.claude/agents/` for specialized subagents if the repository's task mix
-justifies dedicated ones (e.g. a standing security-reviewer).
+Use `.claude/skills/night-run/` when this session is running unattended (no
+human available to answer). It defines the preflight, the branch and commit
+cadence, the durable state files, the forbidden operations, and the stop
+conditions for that mode. Do not improvise unattended operation without it.
+
+`.claude/agents/reviewer.md` is the standing independent reviewer — see §8 and
+§13. Add further specialized subagents only if the task mix justifies them; a
+dedicated security-reviewer is the likeliest next one, once this app has
+authentication and payments to review.
 
 Keep these complementary to `AGENTS.md`.
 

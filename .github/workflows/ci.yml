@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+
+# A newer push to the same branch makes an in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Deliberately separate from, and not a dependency of, the test job: it needs
+  # no database and installs nothing, so it can fail in seconds on its own.
+  adr-guards:
+    name: ADR guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # docs/adr/0003-backend.md (no DRF) and docs/adr/0005-testing.md (test
+      # stack capped at five packages) both name this as their enforcement.
+      - name: Check ADR 0003 and ADR 0005
+        run: python scripts/adr_guards.py
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          # Throwaway credential for a container that exists only for the life
+          # of this job and is unreachable from outside it. Not a real secret;
+          # nothing here may ever be reused for a deployed database.
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: questionable_candy
+        ports:
+          - 5432:5432
+        # The container being started is not the same as it accepting
+        # connections -- without this, migrate can win the race and fail.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # settings.py raises ImproperlyConfigured without these two, and CI has no
+      # .env to read them from -- that file is gitignored.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/questionable_candy
+      DJANGO_SECRET_KEY: ci-only-not-a-real-key-0000000000000000000000
+      # Matches local development, where this suite is known to pass. Django's
+      # test runner forces DEBUG off during tests anyway; what this avoids is
+      # the secure-cookie defaults that DEBUG=False would switch on, which the
+      # plain-HTTP test client cannot satisfy.
+      DJANGO_DEBUG: 'True'
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      # DJANGO_SECURE_COOKIES is deliberately unset: tests/unit/test_settings.py
+      # sets it per-test, and a value here would override those cases.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # scripts/dev.py runs makemigrations, which would quietly *write* a
+      # missing migration and let the suite pass green. Fail here first: a model
+      # change with no migration is drift, and CI is where it should surface.
+      - name: Migration drift
+        run: python manage.py makemigrations --check --dry-run --noinput
+
+      - name: Test suite
+        run: python scripts/dev.py test

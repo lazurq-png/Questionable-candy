@@ -24,7 +24,8 @@ at 0.2.
 | Database      | PostgreSQL                                                 |
 | Tests         | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
 
-No CSS has been written yet, and there is no CI.
+No CSS has been written yet. CI runs the ADR guards and the test suite on every
+push and pull request to `master` and `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
 
@@ -34,11 +35,15 @@ Requires Python 3.13 and a PostgreSQL 17 server.
 pip install -r requirements.txt
 cp .env.example .env          # then fill in DJANGO_SECRET_KEY and DATABASE_URL
 
-python scripts/dev.py db:start        # starts a local PostgreSQL cluster
+# Start your PostgreSQL cluster first -- scripts/dev.py does not start it.
+# For a portable install, e.g.:
+#   pg_ctl start -D "%USERPROFILE%\Binaries\pgsql\data" -l "%USERPROFILE%\Binaries\pgsql\server.log"
 createdb -U postgres questionable_candy
-python manage.py migrate
 python scripts/dev.py run             # http://127.0.0.1:8000/
 ```
+
+`dev.py` applies migrations itself before every task, so no separate
+`manage.py migrate` step is needed.
 
 There is no SQLite fallback — a missing `DATABASE_URL` fails at startup by
 design. See [ADR 0004](docs/adr/0004-database.md).
@@ -47,25 +52,32 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 
 `scripts/dev.py` is the task runner (`dev.cmd` wraps it on Windows):
 
-| Task                            | Does                                                  |
-| ------------------------------- | ----------------------------------------------------- |
-| `run`                           | Generate + apply migrations, then start the server     |
-| `validate`                      | The full verification sequence — see below             |
-| `test`, `test:unit`, `test:integration`, `test:e2e` | Run a suite              |
-| `migrations`, `migrations:check`| Generate migrations / fail if any are missing          |
-| `db:start`, `db:stop`, `db:status` | Drive the local PostgreSQL cluster                  |
+| Task                                        | Does                                       |
+| ------------------------------------------- | ------------------------------------------ |
+| `run`                                       | Start the dev server                       |
+| `test`                                      | Whole suite, with coverage                 |
+| `test:unit`, `test:int`, `test:e2e`         | Run one suite                              |
 
-`python scripts/dev.py validate` (also `scripts/validate` / `scripts/validate.cmd`)
-runs Django's system checks, fails on migration drift, enforces the ADR guards
-described below, and runs the suite with coverage. It is what `AGENTS.md` §13 and
-`CLAUDE.md` §9 mean by verification.
+Every task runs `makemigrations` and `migrate` first, so the database always
+matches the models. No task starts or stops PostgreSQL — the cluster must
+already be accepting connections.
 
-Set `PGSQL_HOME` if your PostgreSQL lives somewhere other than the default the
-script assumes.
+Verification is two commands, run separately:
+
+```sh
+python scripts/dev.py test        # migrations + full suite + coverage
+python scripts/adr_guards.py      # ADR guards; no database, no dependencies
+```
+
+Together these are what `AGENTS.md` §13 and `CLAUDE.md` §9 mean by verification.
+There is no type checker, linter, formatter or build step. CI additionally runs
+`makemigrations --check`, which `dev.py` deliberately does not — `dev.py` writes
+a missing migration rather than failing on it.
 
 ### ADR guards
 
-Two decisions are enforced rather than merely recorded. `validate` fails if
+Two decisions are enforced rather than merely recorded. `python scripts/adr_guards.py`
+fails if
 `djangorestframework` appears in `requirements.txt` ([ADR 0003](docs/adr/0003-backend.md)
 defers it) or if the test stack exceeds five packages ([ADR 0005](docs/adr/0005-testing.md)
 budgets 3–5). Everything else in `docs/adr/` is unenforced, and each ADR's

@@ -31,13 +31,13 @@ The stack is adopted as one decision but not installed all at once: `pytest-djan
 
 ### Confirmation
 
-`python scripts/dev.py validate` runs an "ADR guards" stage that reads `requirements.txt` and fails when the test stack exceeds five packages, so adding a sixth breaks validation rather than passing unnoticed. The same stage enforces [ADR 0003](0003-backend.md)'s exclusion of DRF.
+`python scripts/adr_guards.py` reads `requirements.txt` and fails when the test stack exceeds five packages, so adding a sixth breaks CI rather than passing unnoticed. The same script enforces [ADR 0003](0003-backend.md)'s exclusion of DRF. It runs as its own job in `.github/workflows/ci.yml`, needing no database and no installed dependencies.
 
 The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_SETTINGS_MODULE`, so the runner choice is a config invariant rather than a convention.
 
 Tests now run against PostgreSQL, because `pytest-django` derives the test database from the same `DATABASE_URL` the application uses and [ADR 0004](0004-database.md) leaves no SQLite fallback to fall into.
 
-Not enforced: there is no coverage threshold. `dev validate` reports coverage but does not gate on it — add `--cov-fail-under` once a target is agreed.
+Not enforced: there is no coverage threshold. `dev test` reports coverage but does not gate on it — add `--cov-fail-under` in `scripts/dev.py` once a target is agreed.
 
 ## Pros and Cons of the Options
 

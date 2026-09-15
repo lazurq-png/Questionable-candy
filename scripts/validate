@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-# The repository's verification entry point -- AGENTS.md 13, CLAUDE.md 9.
-# Thin delegate: the stages live in scripts/dev.py so there is one
-# implementation rather than a shell copy that drifts from it.
-exec python "$(dirname "$0")/dev.py" validate "$@"

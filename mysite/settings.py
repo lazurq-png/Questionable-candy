@@ -109,7 +109,8 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 if not os.getenv('DATABASE_URL'):
     raise ImproperlyConfigured(
         'DATABASE_URL is not set. Copy .env.example to .env and fill it in, '
-        'then start the cluster with: python scripts/dev.py db:start'
+        'then start your PostgreSQL cluster -- scripts/dev.py does not start '
+        'it. See .env.example for the pg_ctl command.'
     )
 
 DATABASES = {

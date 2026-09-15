@@ -70,6 +70,8 @@ Not enforced: nothing checks the *version* of PostgreSQL, and nothing prevents a
 
 [`docs/data-model.md`](../data-model.md) depends on this decision: `Profile.allergies` and `Candy.allergens` use `ArrayField`, which is PostgreSQL-only. `django.contrib.postgres` is in `INSTALLED_APPS` to make those fields available.
 
-Implemented on 2026-09-14. Local development runs a PostgreSQL 17 cluster started with `python scripts/dev.py db:start`; `.env.example` carries the connection string and notes that the local cluster's `trust` authentication is a development-only convenience that must not reach a deployed environment.
+Implemented on 2026-09-14. Local development runs a PostgreSQL 17 cluster; `.env.example` carries the connection string and the command to start the cluster, and notes that its `trust` authentication is a development-only convenience that must not reach a deployed environment.
+
+Amended 2026-09-15: this paragraph originally said the cluster was started with `python scripts/dev.py db:start`. That task, along with `db:stop` and `db:status`, has since been removed from the task runner — `scripts/dev.py` no longer manages the cluster at all, and it must already be accepting connections before any task runs. The decision this ADR records is unchanged; only the command was corrected, because it was being cited as current instruction.
 
 **Open — media storage for the Candy Picture.** The original title of this ADR promised a media-storage decision alongside the engine, but no options were ever offered for it, so the title has been narrowed to what this ADR actually decides. Media storage remains undecided and needs its own ADR covering at least: local `MEDIA_ROOT`, object storage (S3/R2) via `django-storages`, and database bytes. Not urgent — no model has an image field yet, and `docs/data-model.md` lists Picture only on the target `Candy` entity, which is not the implemented `shop.CandyProduct`.

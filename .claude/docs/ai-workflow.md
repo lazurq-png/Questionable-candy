@@ -305,6 +305,8 @@ Examples:
 
 Subagents provide specialized reasoning. **This repository defines none** — there is no `.claude/agents/` directory, so the roles below describe how you might scope a general-purpose subagent, not agents that exist to be invoked by name.
 
+Unattended, an independent reviewer subagent is the only substitute for the human review that would otherwise happen at the end of a task. `night-run` requires one per completed task.
+
 Examples:
 
 * security reviewer
@@ -314,20 +316,22 @@ Examples:
 
 ## Hooks and CI
 
-**Neither exists in this repository.** There is no `.claude/settings.json` (only `settings.example.json`, which is inert) and no CI configuration of any kind. Nothing is enforced automatically at commit or push time.
+**Hooks: none.** There is no `.claude/settings.json` (only `settings.example.json`, which is inert). Nothing is enforced at commit time, and an unattended run started with permissions bypassed ignores `settings.json` entirely even if one is added — see `.claude/skills/night-run/SKILL.md`.
 
-What *does* enforce things is `python scripts/dev.py validate`, and only what it actually runs: Django system checks, migration drift, the ADR guards, and the test suite. It deliberately has no formatting, lint or type-checking stage, because this repository installs no such tools — a stage that prints success without checking anything is worse than no stage.
+**CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs two jobs on every push and pull request to `master` and `dev`: the ADR guards (`scripts/adr_guards.py`, no database, no dependencies) and the test suite against a PostgreSQL 17 service, preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not — `scripts/dev.py` *writes* missing migrations instead of failing on them.
 
-If hooks or CI are added later, the deterministic requirements they would cover are:
+CI runs on GitHub. A local agent cannot observe its result and must never report one as evidence.
+
+Locally, verification is `python scripts/dev.py test` and `python scripts/adr_guards.py`, run separately. There is no `scripts/validate` and no `dev.py validate` task — both were removed. Neither local nor CI verification has a formatting, lint or type-checking stage, because this repository installs no such tools; a stage that prints success without checking anything is worse than no stage.
+
+The deterministic requirements still *not* mechanically enforced anywhere:
 
 * formatting
 * type checking
-* tests
 * secret detection
 * generated-file validation
-* policy enforcement
 
-Do not rely on an AI instruction for something that can be mechanically enforced.
+Do not rely on an AI instruction for something that can be mechanically enforced. This matters most in unattended mode, where an instruction is the *only* thing standing between the agent and a destructive command.
 
 ---
 
@@ -383,7 +387,7 @@ docs/ai/
     handoff.md
 ```
 
-The exact location is repository-dependent. **`docs/ai/` does not currently exist here** — create it when a task actually needs durable state, rather than assuming it is already there.
+In this repository that location is real and scoped per branch: `docs/ai/<branch>/` — see `docs/ai/README.md` for the layout. Unattended runs must maintain it (`.claude/skills/night-run/SKILL.md`); supervised runs should when a task spans many files or sessions.
 
 The purpose is to prevent critical context from existing only inside the agent's current conversation.
 
