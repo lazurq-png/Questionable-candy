@@ -13,19 +13,40 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Anchored to BASE_DIR, not the working directory, so manage.py and pytest work
+# from anywhere rather than only from the project root.
+load_dotenv(BASE_DIR / '.env')
+
+
+def _env_bool(name, default=False):
+    return os.getenv(name, str(default)).strip().lower() in {'1', 'true', 'yes', 'on'}
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-with open(".env") as f:
-    SECRET_KEY = f.read().strip()
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        'DJANGO_SECRET_KEY is not set. Copy .env.example to .env and fill it in.'
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -37,6 +58,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Installed ahead of the ArrayField use planned for Profile.allergies and
+    # Candy.allergens (docs/data-model.md section 3) - no model uses it yet.
+    'django.contrib.postgres',
 
     # Local apps
     'shop.apps.ShopConfig',
@@ -74,12 +98,27 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+#
+# PostgreSQL in development as well as production - see docs/adr/0004-database.md.
+# There is deliberately no SQLite fallback: the ADR rejects a dev/prod split on
+# the grounds that development would not then test what production runs.
+#
+# conn_health_checks and disable_server_side_cursors are required by Neon's
+# pooled endpoint, which idles the compute and closes connections after ~5 min.
+
+if not os.getenv('DATABASE_URL'):
+    raise ImproperlyConfigured(
+        'DATABASE_URL is not set. Copy .env.example to .env and fill it in, '
+        'then start the cluster with: python scripts/dev.py db:start'
+    )
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        env='DATABASE_URL',
+        conn_max_age=600,
+        conn_health_checks=True,
+        disable_server_side_cursors=True,
+    )
 }
 
 
@@ -100,6 +139,19 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+# Session and CSRF cookies
+# https://docs.djangoproject.com/en/6.1/ref/settings/#session-cookie-secure
+#
+# docs/requirements.md section 3 requires session cookies to be secure and
+# HTTPS-only. Derived from DEBUG so local HTTP development still works, which
+# means turning DEBUG off secures them rather than leaving it to be remembered.
+# The override exists for a staging box deliberately run with DEBUG off behind
+# plain HTTP; do not set it on anything public.
+
+SESSION_COOKIE_SECURE = _env_bool('DJANGO_SECURE_COOKIES', not DEBUG)
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 
 # Internationalization
@@ -123,6 +175,8 @@ STATIC_URL = 'static/'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+# MAILERS replaces the EMAIL_* settings, which Django 7.0 removes. The 'default'
+# alias is the one django.core.mail uses when no 'using' argument is passed.
 MAILERS = {
     'default': {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',

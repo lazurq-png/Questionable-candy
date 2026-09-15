@@ -14,10 +14,14 @@ CLAUDE.md               Claude Code operating model — always loaded by the ext
 ├── skills/              reusable procedures invoked as slash commands (e.g. /code-review)
 ├── docs/                 supporting human-readable process docs — workflow narrative,
 │                          a task-request template, and ready-to-paste prompt patterns
-├── scripts/validate.example   copy to scripts/validate and fill in this repo's real
-│                                format/lint/typecheck/test/build commands
 └── settings.example.json       copy to settings.json and adjust permissions/hooks
+                                 (not yet done here — settings.json does not exist)
 ```
+
+This repository's verification entry point is **`scripts/validate`** (and
+`scripts/validate.cmd` on Windows), each a thin delegate to
+`python scripts/dev.py validate`. The stages live in `dev.py` so there is one
+implementation rather than a shell copy that drifts from it.
 
 ### Why rules aren't auto-loaded
 
@@ -43,9 +47,11 @@ diff.
 ## Setting this up in a new repo
 
 1. Copy `AGENTS.md`, `CLAUDE.md`, and this `.claude/` folder into the repo root.
-2. Copy `.claude/scripts/validate.example` to `scripts/validate` and fill in the
-   real commands — this is what `AGENTS.md` §13 and `CLAUDE.md` §9 expect agents
-   to be able to run for "verification."
+2. Create `scripts/validate` — this is what `AGENTS.md` §13 and `CLAUDE.md` §9
+   expect agents to be able to run for "verification." Give it only stages that
+   run a real command. A stage that echoes a heading and prints success without
+   checking anything is worse than no stage at all: it manufactures the evidence
+   those sections exist to require.
 3. Copy `.claude/settings.example.json` to `.claude/settings.json` only if you
    want to pre-approve specific commands/permissions; otherwise omit it and let
    the extension prompt as usual.

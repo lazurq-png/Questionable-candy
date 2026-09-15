@@ -1,5 +1,5 @@
 ---
-status: "{proposed | accepted | rejected | deprecated | superseded by ADR-NNNN}"
+status: "{proposed | accepted | rejected | deprecated | superseded by ADR-NNNN | partially superseded by ADR-NNNN}"
 date: "{YYYY-MM-DD the decision was made}"
 decision-makers: "{who made the call}"
 ---

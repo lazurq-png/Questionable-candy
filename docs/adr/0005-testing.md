@@ -1,5 +1,5 @@
 ---
-status: "proposed"
+status: "accepted"
 date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
@@ -31,7 +31,13 @@ The stack is adopted as one decision but not installed all at once: `pytest-djan
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Tests run against PostgreSQL rather than a local SQLite fallback for example.)
+`python scripts/dev.py validate` runs an "ADR guards" stage that reads `requirements.txt` and fails when the test stack exceeds five packages, so adding a sixth breaks validation rather than passing unnoticed. The same stage enforces [ADR 0003](0003-backend.md)'s exclusion of DRF.
+
+The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_SETTINGS_MODULE`, so the runner choice is a config invariant rather than a convention.
+
+Tests now run against PostgreSQL, because `pytest-django` derives the test database from the same `DATABASE_URL` the application uses and [ADR 0004](0004-database.md) leaves no SQLite fallback to fall into.
+
+Not enforced: there is no coverage threshold. `dev validate` reports coverage but does not gate on it — add `--cov-fail-under` once a target is agreed.
 
 ## Pros and Cons of the Options
 
@@ -67,8 +73,14 @@ Nothing enforces it currently, but there could be a use for adding CI jobs to en
 
 Playwright is decided but dormant — revisit when the templates from ADR 0001 exist and there are interactive flows to drive. Related: [0001](0001-frontend.md)
 
+**Update 2026-09-14 — that condition is now met.** The templates exist and [ADR 0006](0006-frontend-htmx-alpine.md) confirms the htmx interactivity layer they use, so Playwright is no longer dormant by its own terms. `pytest-playwright` is installed and `tests/e2e/` exists but is still empty; `python scripts/dev.py test:e2e` reports it as empty rather than passing silently.
+
+There is a concrete first case waiting for it. The add-to-cart button 403'd in a real browser for two commits while the integration suite stayed green, because `django.test.Client` does not enforce CSRF. That gap is now covered by an `enforce_csrf_checks=True` test, but a browser test is what would have caught it natively — and the same blind spot applies to every future htmx interaction.
+
 DRF-specific test tooling (`APIClient`, `pytest-drf`, `schemathesis`) is deferred, not rejected — revisit if ADR 0003 is reopened and an API layer is added. Related: [0003](0003-backend.md)
 
 The `ArrayField` usage on `Profile.allergies` and `Candy.allergens` is what pushes test data toward factory_boy rather than JSON fixtures. Related: [0004](0004-database.md)
 
-`mysite/settings.py` still configures SQLite while ADR 0004 chose PostgreSQL for development and production, so the Confirmation clause above cannot hold until that is changed — noted here as an open item, not addressed by this ADR.
+~~`mysite/settings.py` still configures SQLite while ADR 0004 chose PostgreSQL for development and production, so the Confirmation clause above cannot hold until that is changed — noted here as an open item, not addressed by this ADR.~~
+
+**Resolved 2026-09-14.** `mysite/settings.py` now builds `DATABASES` from `DATABASE_URL` with no SQLite fallback, so tests run on PostgreSQL and the Confirmation clause above holds.

@@ -1,8 +1,16 @@
 ---
-status: "proposed"
+status: "partially superseded by ADR-0006"
 date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
+
+> **Superseded in part by [ADR 0006](0006-frontend-htmx-alpine.md) (2026-09-14).**
+> The deferral of htmx and Alpine.js recorded below ended when the cart work
+> added both to `templates/base.html`. ADR 0006 records that adoption.
+> The choice of **Django Templates** stands unchanged, and the hand-written-CSS
+> half of this decision is still unexercised — no CSS exists yet.
+> The Decision Outcome below is left as written; it is the history, not the
+> current state.
 
 # 0001. Choosing a mobile-first frontend stack for the candy ordering website
 
@@ -30,7 +38,9 @@ Chosen option: "Django Templates + hand-written CSS (Django out of the box)", to
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Builds fail when react/vue is found in package.json for example.)
+**Nothing enforced this decision, which is how it came to be contradicted without anyone noticing.** The proposed check — failing the build when react or vue appears in `package.json` — would not have caught what actually happened: htmx and Alpine.js were added as CDN `<script>` tags in `templates/base.html`, so no dependency file changed at all. There is still no `package.json` in this repository.
+
+See [ADR 0006](0006-frontend-htmx-alpine.md) for the current state and its confirmation.
 
 ## Pros and Cons of the Options
 

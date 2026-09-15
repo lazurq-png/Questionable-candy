@@ -109,14 +109,17 @@ Do not assume desktop-only behavior unless the product explicitly is desktop-onl
 
 After significant UI work:
 
-1. run relevant tests
-2. run typecheck
-3. run lint/build
-4. start the application if practical
-5. inspect the actual rendered UI
-6. test important interactions
+1. run relevant tests — `python scripts/dev.py test:integration`
+2. run `python scripts/dev.py validate` (Django system checks, migration drift, ADR guards, full suite with coverage)
+3. start the application — `python scripts/dev.py run`
+4. inspect the actual rendered UI in a browser
+5. test important interactions
 
-Compilation does not prove UI correctness.
+There is no typecheck, lint or build step in this repository, and no CI. Do not report having run one.
+
+**Step 4 is not optional here, and this repository has already paid for skipping it.** The add-to-cart button returned 403 in every real browser for two commits while the test suite stayed green, because `django.test.Client` does not enforce CSRF. A passing suite is not evidence that a page works.
+
+Where a browser check finds something the suite missed, add the test that would have caught it — for that case, a client built with `enforce_csrf_checks=True`.
 
 ---
 

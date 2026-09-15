@@ -8,7 +8,19 @@ Open this for API, service, and server-side implementation work.
 
 Follow the existing backend separation of concerns.
 
-Where applicable:
+[ADR 0003](../../docs/adr/0003-backend.md) chose a **Django MVT monolith with no separate API layer**, so the generic five-layer stack below is not this repository's shape. In Django terms the separation is:
+
+```text
+URLconf          (shop/urls.py)          — routing
+view             (shop/views.py)         — request/response, auth checks
+form/serializer                          — validation of external input
+model             (shop/models.py)       — domain rules and constraints
+ORM/migrations                           — persistence
+```
+
+Business logic belongs in models (and, once they exist, forms) rather than accumulating in views. Do not introduce a service layer, repository classes, or a `services.py` convention on the strength of the generic diagram below — that would be adding an abstraction ADR 0003 explicitly did not choose.
+
+The general stack, for orientation only:
 
 ```text
 transport

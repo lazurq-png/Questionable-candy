@@ -1,5 +1,5 @@
 ---
-status: "proposed"
+status: "accepted"
 date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
@@ -29,7 +29,9 @@ Chosen option: "Django monolith with server-rendered views (MVT pattern, no sepa
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage. (Builds fail when djangorestframework is found in requirements.txt for example.)
+`python scripts/dev.py validate` fails if `djangorestframework` appears in `requirements.txt`. This was proposed here as a hypothetical; it is now a real check, and `requirements.txt` exists for it to read.
+
+Not enforced: nothing prevents an API layer being written by hand without DRF, and nothing checks that views stay server-rendered. The guard catches the dependency, not the architecture.
 
 ## Pros and Cons of the Options
 

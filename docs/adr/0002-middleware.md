@@ -1,5 +1,5 @@
 ---
-status: "proposed"
+status: "accepted"
 date: "2026-09-10"
 decision-makers: "Martin Larsson"
 ---
@@ -29,7 +29,15 @@ Chosen option: "Django built-in session-based authentication (SessionMiddleware 
 
 ### Confirmation
 
-Nothing enforces it currently, but there could be a use for adding CI jobs to enforce framework at a later stage.
+**Nothing enforces this decision.** `MIDDLEWARE` in `mysite/settings.py` is Django's stock seven, including `SessionMiddleware`, `AuthenticationMiddleware` and `CsrfViewMiddleware`, but no test or check asserts that, and no custom middleware has been written.
+
+CSRF protection is the one part with coverage: `tests/integration/test_views.py` asserts that a POST without a token is rejected and that the catalog page supplies one, using `enforce_csrf_checks=True` because the default test client bypasses CSRF entirely.
+
+The cart is **not** attached to every request by middleware as this ADR's problem statement anticipated — `shop/views.py` reads and writes `request.session["shoppingcart"]` directly in the view. That is a smaller mechanism than the one described here, and it has been adequate so far; revisit if cart state is needed across many views.
+
+Two cookie settings are enforced rather than assumed: `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` derive from `DEBUG`, so turning `DEBUG` off secures them without anyone having to remember, and `tests/unit/test_settings.py` fails if either is pinned to `False`. That test exists because `manage.py check --deploy` reports these only as warnings and `check` exits 0 on warnings — a validation stage built on it would pass without checking anything.
+
+**Session key rename, 2026-09-15.** That key was `"cart"` until the view was renamed to `add_to_shoppingcart`. Session contents are persisted rows (`SESSION_ENGINE` is the database backend), so the rename changed a stored format with no read-compatibility shim — the repository's first such change. It was handled by deleting the existing session rows rather than by reading both keys for a transitional period: `DATABASE_URL` pointed only at the local development cluster, the two affected rows held nothing but cart quantities (no authentication data — there is no login yet), and there is no deployment. A shim would have been transitional code with no user to protect. Anything with real sessions must not repeat this without one.
 
 ## Pros and Cons of the Options
 

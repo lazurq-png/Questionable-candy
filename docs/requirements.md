@@ -5,8 +5,8 @@ Requirements Specification — Use Cases (Cockburn format)
 |                  |                                                                       |
 | ---------------- | --------------------------------------------------------------------- |
 | **Status**       | Draft                                                                 |
-| **Version**      | 0.2                                                                   |
-| **Date**         | 2026-09-10                                                            |
+| **Version**      | 0.3                                                                   |
+| **Date**         | 2026-09-14                                                            |
 | **System**       | Candy Ordering Website                                                |
 | **Architecture** | See [`docs/adr/`](adr/) — this document is implementation-independent |
 
@@ -34,7 +34,7 @@ The customer-facing ordering flow — browsing, viewing, cart, checkout, payment
 | Priority    | Feature                                            | Use Case | Depends on          |
 | ----------- | -------------------------------------------------- | -------- | ------------------- |
 | Must have   | Show candy in a professional interface             | UC-01    | —                   |
-| Must have   | Log in with a Google account                       | UC-02    | —                   |
+| Should have | Log in with a Google account                       | UC-02    | —                   |
 | Must have   | View a candy's description on click/tap            | UC-03    | UC-01               |
 | Must have   | Add, edit, and remove candy in a cart              | UC-04    | UC-01, UC-03        |
 | Must have   | Place an order and pay                             | UC-05    | UC-04, UC-07, UC-08 |
@@ -65,6 +65,8 @@ The customer-facing ordering flow — browsing, viewing, cart, checkout, payment
 - 2a. Nothing published: System shows a "nothing available right now" state rather than an empty page.
 
 ### UC-02: Log In with Google
+
+> **Should have, not a launch requirement** (changed 2026-09-14 — see §5). [ADR 0002](adr/0002-middleware.md) builds authentication on Django's session framework first; the Google flow below needs django-allauth, which is deferred. The steps are specified here so the decision to adopt it later does not need re-specifying.
 
 **Actor:** Customer · **Supporting:** Google (OAuth 2.0 / OIDC)
 **Precondition:** Customer is not authenticated.
@@ -213,5 +215,7 @@ The customer-facing ordering flow — browsing, viewing, cart, checkout, payment
 - **Warning content** — fixed text or derived from per-item sugar/allergen data, and is the acknowledgment logged (UC-07)?
 - **Confirmation layout** — three screens or three distinct controls on one (UC-08)?
 - **Alternative login methods** — which are in scope for launch (UC-09)?
+- **No login method is currently a Must have** (opened 2026-09-14, a direct consequence of the UC-02 resolution below). UC-02 is now *Should have* and UC-09 is *Could have*, so the priority table no longer requires any way to sign in — while UC-05 "Place an order and pay" remains a Must have. Either a username/password login built on [ADR 0002](adr/0002-middleware.md)'s session auth becomes the Must-have path, or guest checkout does. This overlaps the Guest checkout and Authentication timing items above and should be settled with them rather than separately.
 - **Catalog paging** — pagination or infinite scroll for a large catalog (UC-01)?
-- **UC-02 vs. [ADR 0002](adr/0002-middleware.md)** — Google login is a Must have here, but ADR 0002 chooses Django's built-in session auth and defers django-allauth. One of the two needs to change.
+- ~~**UC-02 vs. [ADR 0002](adr/0002-middleware.md)** — Google login is a Must have here, but ADR 0002 chooses Django's built-in session auth and defers django-allauth. One of the two needs to change.~~
+  **Resolved 2026-09-14: the requirement changed, not the ADR.** UC-02 is now a *Should have*. ADR 0002's driver — test what Django ships with before adding a dependency — applies with more force now than when it was written, because no authentication of any kind has been built yet. django-allauth extends `django.contrib.auth` rather than replacing it, so adopting it later costs no rework. Consequence: the launch set no longer requires an external identity provider, and the account model in [`data-model.md`](data-model.md) drops `SocialAccount` until that changes.

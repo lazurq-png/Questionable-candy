@@ -4,7 +4,9 @@ This repository uses AI coding agents as engineering collaborators, not as unres
 
 The standard operating model is:
 
-**Explore → Plan → Implement → Verify → Repair → Review**
+**Explore → Plan → Implement → Verify → Review**
+
+When verification fails, the loop becomes **Repair → Verify → Review** — repair is a branch taken on failure, not a phase every task passes through. This matches `CLAUDE.md` §1, which is the authority; §5 below describes the repair branch in detail.
 
 For trivial tasks, some phases may be abbreviated. For substantial work, all phases should be explicit.
 
@@ -301,7 +303,7 @@ Examples:
 
 ## Subagents
 
-Subagents provide specialized reasoning, defined under `.claude/agents/`.
+Subagents provide specialized reasoning. **This repository defines none** — there is no `.claude/agents/` directory, so the roles below describe how you might scope a general-purpose subagent, not agents that exist to be invoked by name.
 
 Examples:
 
@@ -312,9 +314,11 @@ Examples:
 
 ## Hooks and CI
 
-Hooks (`.claude/settings.json`) and CI enforce deterministic requirements.
+**Neither exists in this repository.** There is no `.claude/settings.json` (only `settings.example.json`, which is inert) and no CI configuration of any kind. Nothing is enforced automatically at commit or push time.
 
-Examples:
+What *does* enforce things is `python scripts/dev.py validate`, and only what it actually runs: Django system checks, migration drift, the ADR guards, and the test suite. It deliberately has no formatting, lint or type-checking stage, because this repository installs no such tools — a stage that prints success without checking anything is worse than no stage.
+
+If hooks or CI are added later, the deterministic requirements they would cover are:
 
 * formatting
 * type checking
@@ -379,7 +383,7 @@ docs/ai/
     handoff.md
 ```
 
-The exact location is repository-dependent.
+The exact location is repository-dependent. **`docs/ai/` does not currently exist here** — create it when a task actually needs durable state, rather than assuming it is already there.
 
 The purpose is to prevent critical context from existing only inside the agent's current conversation.
 

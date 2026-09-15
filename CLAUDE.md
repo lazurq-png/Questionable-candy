@@ -207,18 +207,22 @@ For high-risk changes, an independent reviewer should ideally evaluate the imple
 
 Verification is mandatory for meaningful code changes.
 
-Choose checks appropriate to the change:
+In this repository the checks that exist are:
 
-* targeted tests
-* type checking
-* linting
-* formatting
-* build
-* integration tests
-* end-to-end tests
-* browser verification
-* migration checks
-* security checks
+| Check              | Command                                        |
+| ------------------ | ---------------------------------------------- |
+| Targeted tests     | `python scripts/dev.py test:unit` / `test:integration` |
+| Full suite         | `python scripts/dev.py test`                   |
+| Migration drift    | `python scripts/dev.py migrations:check`       |
+| Everything         | `python scripts/dev.py validate`               |
+| Browser            | `python scripts/dev.py run`, then open the page |
+
+There is **no** type checker, linter, formatter or build step, and no CI. Do not
+claim to have run one. `validate` deliberately has no stage for them.
+
+Browser verification is not interchangeable with the test suite: `django.test.Client`
+does not enforce CSRF, so a green suite has already coexisted with a page that
+403'd on every interaction. See `.claude/rules/frontend.md`.
 
 Start with the narrowest useful verification.
 
@@ -393,9 +397,13 @@ This repository's `.claude/` directory is structured as follows:
 ├── skills/     — reusable procedural workflows, invoked as slash commands
 ├── docs/       — supporting human-readable process docs (workflow, task
 │                 template, prompt patterns) — not auto-loaded
-├── scripts/    — validate.example: the repository's validation entry point
-└── settings.json  — permissions/hooks, if this project defines any
+└── settings.example.json — inert template; no settings.json is defined here
 ```
+
+The validation entry point is **`scripts/validate`** (`scripts/validate.cmd` on
+Windows), delegating to `python scripts/dev.py validate`. `scripts/dev.py` is the
+task runner for everything else too — `run`, the test suites, migrations, and
+`db:start`/`db:stop` for the local PostgreSQL cluster.
 
 Use `.claude/skills/code-review/` for an adversarial review pass over a diff —
 see §13 for when to run it.
