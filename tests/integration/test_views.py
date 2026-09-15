@@ -98,3 +98,58 @@ def test_add_to_shoppingcart_rejects_post_without_csrf_token():
     response = csrf_client.post(reverse("add_to_shoppingcart", args=[candy.id]))
 
     assert response.status_code == 403
+
+# --- UC-03: candy detail ---------------------------------------------------
+
+def test_candy_detail_shows_name_description_and_price(client):
+    """UC-03 step 2. The flaw is asserted separately -- that is UC-06."""
+    candy = CandyProductFactory(
+        name="Hollow Humbug",
+        description="Looks solid. Is not.",
+        price="9.95",
+    )
+
+    response = client.get(reverse("candy_detail", args=[candy.id]))
+
+    assert response.status_code == 200
+    assert b"Hollow Humbug" in response.content
+    assert b"Looks solid. Is not." in response.content
+    assert b"9.95" in response.content
+
+
+def test_candy_detail_offers_both_ways_out(client):
+    """UC-03 step 3: return to the catalog, or add to the cart."""
+    candy = CandyProductFactory()
+
+    response = client.get(reverse("candy_detail", args=[candy.id]))
+
+    # As an attribute, not a bare substring: the catalog is mounted at "/", so
+    # `reverse("candy_list").encode() in response.content` asserts that b"/"
+    # appears somewhere in the HTML, which no document can fail.
+    assert f'href="{reverse("candy_list")}"'.encode() in response.content
+    assert reverse("add_to_shoppingcart", args=[candy.id]).encode() in response.content
+
+
+def test_candy_detail_404s_for_an_item_that_does_not_exist(client):
+    """UC-03 extension 2a, as far as the current model can express it.
+
+    Publication state is not modelled, so 'unpublished' has no representation
+    and only deletion is testable -- see docs/ai/night-2026-09-15/questions.md
+    Q2. This asserts the status, so whichever way that question is answered has
+    a test to change rather than a gap to discover.
+    """
+    candy = CandyProductFactory()
+    url = reverse("candy_detail", args=[candy.id])
+    candy.delete()
+
+    assert client.get(url).status_code == 404
+
+
+def test_catalog_links_each_candy_to_its_detail_page(client):
+    """UC-03 step 1 needs the catalog to be where the customer selects an item."""
+    candy = CandyProductFactory(name="Sour Gummy Worms")
+
+    response = client.get(reverse("candy_list"))
+
+    expected = f'href="{reverse("candy_detail", args=[candy.id])}"'
+    assert expected.encode() in response.content

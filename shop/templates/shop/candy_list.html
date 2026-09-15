@@ -5,10 +5,8 @@
   <ul>
     {% for candy in candies %}
       <li>
-        {{ candy.name }} — ${{ candy.price }}
-        <button hx-post="{% url 'add_to_shoppingcart' candy.id %}" hx-swap="outerHTML" type="button">
-          Add to cart
-        </button>
+        <a href="{% url 'candy_detail' candy.id %}">{{ candy.name }}</a> — ${{ candy.price }}
+        {% include "shop/partials/add_to_cart_button.html" %}
       </li>
     {% endfor %}
   </ul>

@@ -89,7 +89,7 @@ One\-to\-one extension of User for domain\-specific fields not part of authentic
 | id              | BigAutoField          | PK                  |                                                                                            |
 | name            | CharField             | unique, not null    |                                                                                            |
 | slug            | SlugField             | unique, not null    | Used in catalog/detail URLs.                                                               |
-| description     | TextField             | not null            | Shown on the detail view (UC\-03).                                                         |
+| description     | TextField             | not null            | Shown on the detail view (UC\-03). Implemented 2026\-09\-15 as `TextField(blank=True, default="")` — not null, but not mandatory; only `flaw` is. |
 | flaw            | TextField             | **not null**        | Mandatory design/feature downside (UC\-06) — enforced at the model level, not just the UI. |
 | price           | DecimalField          | not null            |                                                                                            |
 | stock_quantity  | PositiveIntegerField  | not null, default 0 | Checked on every ShoppingCart mutation and at checkout.                                    |
@@ -104,10 +104,10 @@ One\-to\-one extension of User for domain\-specific fields not part of authentic
 | Aspect          | Target `Candy`                                                            | Current `shop.CandyProduct`         |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
 | Name            | `Candy`                                                                   | `CandyProduct`                      |
-| Present         | `name`, `flaw`, `price`                                                   | same three                          |
+| Present         | `name`, `flaw`, `price`, `description`                                    | same four                           |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
-| Missing         | `slug`, `description`, `sugar_content_g`, `allergens`, `is_published`, timestamps | —                            |
+| Missing         | `slug`, `sugar_content_g`, `allergens`, `is_published`, timestamps        | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification      |
 | Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null only |
 

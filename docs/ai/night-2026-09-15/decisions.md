@@ -72,3 +72,54 @@ fixture, no launch — and this commit is what puts it on the critical path.
 Not verifiable from here: CI runs on GitHub (`CLAUDE.md` §9), and PyYAML is not
 installed, so the workflow file was checked by eye against the indentation of
 the steps around it, not parsed. **The first push is the test of D3.**
+
+## D4. `description` is not null but not mandatory
+
+Added as `TextField(blank=True, default="")`. `docs/data-model.md` §3.4 specifies
+`description` as "not null", which a `TextField` without `null=True` already is;
+`blank=True` makes it non-mandatory at the form level.
+
+`default=""` is load-bearing rather than decorative: without a default, adding a
+non-nullable field to a table with rows makes `makemigrations` **prompt
+interactively** for what to do about them — which in an unattended run is a
+hang, not a question. With it, the migration is a metadata-only `AddField` on
+PostgreSQL, with no table rewrite and no backfill.
+
+Not mandatory because UC-06 singles out `flaw` as the field that may never be
+omitted, and says so at the data-model level. Holding `description` to the same
+bar would be a constraint nobody specified, and tightening it later is one
+migration.
+
+## D5. The initial add-to-cart button became a shared partial
+
+The detail page needs the same button the catalog has. `cart_button.html`
+could not be reused — despite the name it is the *response* to the hx-post, the
+disabled "Added!" state, not the button in its initial state.
+
+Options: duplicate the three lines into `candy_detail.html`, or extract the
+initial state into `partials/add_to_cart_button.html` and include it from both.
+
+**Chosen: extract.** The two copies would have to keep the same URL name, the
+same `hx-swap` target and the same `type="button"` as `cart_button.html`, and
+nothing would notice if one drifted. It is deduplication of markup with two
+call sites, not a new abstraction — `.claude/rules/frontend.md` says not to
+create duplicate primitives, which is this case exactly.
+
+`cart_button.html` was deliberately **not** renamed to match, even though the
+pairing would read better as `add_to_cart_button` / `added_to_cart_button`. A
+rename is a delete of a file this run did not create, which `night-run` §3
+forbids. The relationship is documented in both files instead.
+
+## D6. A test that could not fail
+
+The reviewer found `assert reverse("candy_list").encode() in response.content`
+in `test_candy_detail_offers_both_ways_out`. The catalog is mounted at `""`, so
+`reverse("candy_list")` is `"/"` — confirmed in a Django shell — and the
+assertion reduces to `b"/" in response.content`, which `</html>` alone
+satisfies. Deleting the back-link from the template left it green.
+
+Now asserted as `href="/"`, which the rendered page contains exactly once. The
+browser test `test_the_detail_page_returns_to_the_catalog` was covering the
+actual click throughout, so nothing was ever unverified — but the integration
+test claimed a guard it did not provide, and the idiom was sitting in the file
+to be copied to the next root-mounted route.

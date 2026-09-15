@@ -9,6 +9,17 @@ def candy_list(request):
     return render(request, "shop/candy_list.html", {"candies": candies})
 
 
+def candy_detail(request, pk):
+    """UC-03: one candy's full detail.
+
+    Extension 2a asks for "no longer available" on a deleted item; a 404 is
+    what this gives instead, and publication state is not modelled at all --
+    see docs/ai/night-2026-09-15/questions.md Q2.
+    """
+    candy = get_object_or_404(CandyProduct, pk=pk)
+    return render(request, "shop/candy_detail.html", {"candy": candy})
+
+
 @require_POST
 def add_to_shoppingcart(request, pk):
     candy = get_object_or_404(CandyProduct, pk=pk)

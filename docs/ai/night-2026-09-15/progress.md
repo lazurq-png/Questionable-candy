@@ -68,3 +68,40 @@ behaviour, so UC-01 step 3's "mobile-first grid" is neither implemented nor
 tested — styling is a stated non-goal. Finding 2 is the cautionary case: a human
 glancing at the page would have seen it instantly, and three green browser tests
 did not.
+
+### Task 2 — UC-03 candy detail page — **done**
+
+**Changed.** `shop/models.py` gains `description` (D4) with migration
+`0002_candyproduct_description.py`; `candy_detail` view + `candy/<int:pk>/`
+route; `shop/templates/shop/candy_detail.html`; the initial add-to-cart button
+extracted to `partials/add_to_cart_button.html` and included by both pages (D5);
+the catalog links each name to its detail page. Four integration tests, three
+browser tests, a `description` on the factory, and `docs/data-model.md` §3.4
+updated so `description` is no longer listed as missing.
+
+**Verification actually run**, after the reviewer's fix was applied:
+
+| Command | Result |
+| ------- | ------ |
+| `python -m pytest tests --cov=shop --cov=mysite --cov-report=term-missing` | **23 passed**, 10.91s, coverage **88%** |
+| `python -m pylint --fail-under=0 --fail-on=E shop mysite scripts tests` | exit 0, **9.32/10**; no new messages |
+| `python scripts/adr_guards.py` | exit 0 |
+| `manage.py makemigrations --check --dry-run --noinput` | exit 0 — the only migration is the intended one |
+
+Migration drift re-checked because this task touched `shop/models.py`
+(`night-run` §2.4): `0002` is the field this task added, and nothing else
+appeared.
+
+**Independent review.** **Request Changes**, one real defect:
+
+- *Medium* — `test_candy_detail_offers_both_ways_out` contained an assertion
+  that could not fail (D6). Fixed and re-verified.
+- *Low* — mixed LF/CRLF line endings in `tests/integration/test_views.py`
+  raised a new `C0327`. Resolved; the file is now uniformly CRLF and the
+  message is gone from the lint report.
+- *Low* — four load-bearing files were untracked, so a `git commit -am` would
+  have committed a view whose template did not exist. Staged explicitly with
+  `git add -A` and confirmed against `git status` before committing.
+
+**Not verified.** No styling exists, so nothing about the detail page's layout,
+spacing or mobile behaviour has been looked at by anything.
