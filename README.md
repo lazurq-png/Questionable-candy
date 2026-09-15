@@ -55,24 +55,36 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 | Task                                        | Does                                       |
 | ------------------------------------------- | ------------------------------------------ |
 | `run`                                       | Start the dev server                       |
+| `lint`                                      | pylint; errors fail, the rest is advisory  |
 | `test`                                      | Whole suite, with coverage                 |
 | `test:unit`, `test:int`, `test:e2e`         | Run one suite                              |
 
 Every task runs `makemigrations` and `migrate` first, so the database always
 matches the models. No task starts or stops PostgreSQL — the cluster must
-already be accepting connections.
+already be accepting connections. `lint` is the exception: it reads source, so
+it needs no database and runs with the cluster down.
 
 Verification is two commands, run separately:
 
 ```sh
 python scripts/dev.py test        # migrations + full suite + coverage
+python scripts/dev.py lint        # pylint; needs `pip install -r requirements-dev.txt`
 python scripts/adr_guards.py      # ADR guards; no database, no dependencies
 ```
 
 Together these are what `AGENTS.md` §13 and `CLAUDE.md` §9 mean by verification.
-There is no type checker, linter, formatter or build step. CI additionally runs
+There is no type checker, formatter or build step. CI additionally runs
 `makemigrations --check`, which `dev.py` deliberately does not — `dev.py` writes
 a missing migration rather than failing on it.
+
+### Lint
+
+`pylint` with `pylint-django`, configured in [`.pylintrc`](.pylintrc) and pinned
+in [`requirements-dev.txt`](requirements-dev.txt). **Errors fail the build;
+warnings, refactors and conventions are reported but do not.** Generated
+migrations are excluded. The plugin calls `django.setup()`, so `DATABASE_URL`
+and `DJANGO_SECRET_KEY` must be set — no database is contacted, the URL is only
+parsed.
 
 ### ADR guards
 

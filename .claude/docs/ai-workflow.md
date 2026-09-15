@@ -322,7 +322,7 @@ Examples:
 
 CI runs on GitHub. A local agent cannot observe its result and must never report one as evidence.
 
-Locally, verification is `python scripts/dev.py test` and `python scripts/adr_guards.py`, run separately. There is no `scripts/validate` and no `dev.py validate` task — both were removed. Neither local nor CI verification has a formatting, lint or type-checking stage, because this repository installs no such tools; a stage that prints success without checking anything is worse than no stage.
+Locally, verification is `python scripts/dev.py test`, `python scripts/dev.py lint` and `python scripts/adr_guards.py`, run separately. There is no `scripts/validate` and no `dev.py validate` task — both were removed. Lint is pylint plus pylint-django (pinned in `requirements-dev.txt`, configured in `.pylintrc`), gated on the error class only. There is still no formatting or type-checking stage, because this repository installs no such tools; a stage that prints success without checking anything is worse than no stage.
 
 The deterministic requirements still *not* mechanically enforced anywhere:
 
@@ -330,6 +330,8 @@ The deterministic requirements still *not* mechanically enforced anywhere:
 * type checking
 * secret detection
 * generated-file validation
+
+Lint left that list on 2026-09-15: pylint now runs as its own CI job and as `dev.py lint`.
 
 Do not rely on an AI instruction for something that can be mechanically enforced. This matters most in unattended mode, where an instruction is the *only* thing standing between the agent and a destructive command.
 

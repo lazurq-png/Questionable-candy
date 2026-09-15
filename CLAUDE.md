@@ -221,14 +221,21 @@ In this repository the checks that exist are:
 | ------------------ | ---------------------------------------------- |
 | Targeted tests     | `python scripts/dev.py test:unit` / `test:int` / `test:e2e` |
 | Full suite (+ coverage) | `python scripts/dev.py test`              |
+| Lint               | `python scripts/dev.py lint`                   |
 | ADR guards         | `python scripts/adr_guards.py`                 |
 | Browser            | `python scripts/dev.py run`, then open the page |
 
 Every `dev.py` task runs `makemigrations` and `migrate` first, so the database
 always matches the models. The cluster must already be running — `dev.py` no
-longer starts it.
+longer starts it. The one exception is `lint`, which reads source only and runs
+with the cluster down.
 
-There is **no** type checker, linter, formatter or build step. Do not claim to
+`lint` is pylint with the Django plugin (`.pylintrc`, `requirements-dev.txt`).
+**Errors fail; warnings, refactors and conventions print without failing** — so
+a clean exit does not mean an empty report. Read the output; do not report
+"lint passed" as though it found nothing.
+
+There is still **no** type checker, formatter or build step. Do not claim to
 have run one.
 
 CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): an ADR-guards job and a

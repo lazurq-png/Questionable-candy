@@ -83,11 +83,23 @@ misattributed to your work.
 
 ```bash
 python scripts/adr_guards.py
+python scripts/dev.py lint
 python scripts/dev.py test
 ```
 
-Both must pass before any new work begins. Without a green baseline, every
+All three must pass before any new work begins. Without a green baseline, every
 "passed" reported afterwards is meaningless.
+
+`lint` needs one extra step. It exits 0 while still printing warnings — errors
+are the only failing class — so its exit code alone tells you nothing about what
+it found. Save the report somewhere it can be diffed later:
+
+```bash
+python scripts/dev.py lint > docs/ai/<branch>/lint-baseline.txt 2>&1
+```
+
+Record the score line (`Your code has been rated at N/10`) in `progress.md`. A
+warning you introduced is invisible against a baseline you never read.
 
 **If the baseline is red, repairing it is task #1.** Fix it on its own commit,
 with regression coverage where appropriate, and reach green before starting the
@@ -121,9 +133,20 @@ Write `plan.md` before the first code change.
 Per task, `CLAUDE.md` §1 is unchanged — explore, plan, implement, verify,
 review — with these additions:
 
-1. **Verify before committing, always.** The narrowest relevant suite during
-   work; `python scripts/dev.py test` plus `python scripts/adr_guards.py` before
-   the commit. Never commit on unrun tests.
+1. **Verify before committing, always.** Run the narrowest relevant suite during
+   the work itself; before the commit, `python scripts/dev.py test`,
+   `python scripts/dev.py lint` and `python scripts/adr_guards.py` must all
+   exit 0. **Never commit on a failing or unrun check** — a pylint error blocks
+   a commit exactly as a failing test does.
+
+   Lint then needs the comparison its exit code does not give you: diff its
+   output against `lint-baseline.txt` from §1.3. A warning your task introduced
+   is either fixed before the commit, or recorded in `decisions.md` with the
+   reason it stands. It does not pass unmentioned.
+
+   Warnings are not errors, so do not spend the three-attempt budget (§6) on
+   one. A warning you decide not to fix is a decision to write down, not a
+   failure to repair.
 2. **UI work needs a browser.** Not `django.test.Client`, which is what let a 403
    through for two commits. Write or extend a Playwright test in `tests/e2e/`
    using `live_server` — see `.claude/rules/frontend.md`.
@@ -248,7 +271,8 @@ The run's last act is a summary at the top of `progress.md`, committed:
 - **Provisional** — what was built on a parked assumption, and which question
 - **Abandoned** — task, why, what was needed
 - **Questions** — the `questions.md` queue, most consequential first
-- **State** — branch name, whether it is green, whether anything is uncommitted
+- **State** — branch name, whether it is green, whether anything is uncommitted,
+  and the lint score against the §1.3 baseline
 
 Report only what was observed. `CLAUDE.md` §9 applies with full force here: there
 is nobody to catch an overstated result before it is believed and acted on.

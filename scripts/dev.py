@@ -1,6 +1,7 @@
 """Project task runner.
 
     python scripts/dev.py run                 # dev server at 127.0.0.1:8000
+    python scripts/dev.py lint                # pylint; errors fail, rest advisory
     python scripts/dev.py test                # whole suite, with coverage
     python scripts/dev.py test:unit           # tests/unit only
     python scripts/dev.py test:int            # tests/integration only
@@ -9,7 +10,8 @@
     python scripts/dev.py test:unit -- -x -v
 
 Every task generates and applies migrations first, so the database always
-matches the models before the server starts or the tests run.
+matches the models before the server starts or the tests run. The exception is
+`lint`, which only reads source and so must not require a running database.
 
 The database is PostgreSQL (docs/adr/0004-database.md) and must already be
 accepting connections -- this runner no longer starts or stops the cluster.
@@ -34,7 +36,15 @@ SUITES = {
 # not merely unwritten. Only the per-suite tasks may legitimately be empty.
 MAY_BE_EMPTY = set(SUITES) - {"test"}
 
-TASKS = ["run", *SUITES]
+TASKS = ["run", "lint", *SUITES]
+
+# Tasks that read source and never query. Paying for makemigrations/migrate
+# would make lint unrunnable whenever the cluster is down -- precisely when a
+# source-only check is still perfectly valid.
+NO_DB_TASKS = {"lint"}
+
+# Migrations are excluded by .pylintrc, not here.
+LINT_TARGETS = ["shop", "mysite", "scripts", "tests"]
 
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
 # Reported, not gated: ADR 0005 chose pytest-cov but agreed no threshold. Add
@@ -59,6 +69,21 @@ def prepare():
     if code:
         return code
     return run("manage.py", "migrate")
+
+
+def lint(extra):
+    """Errors fail the build; warnings, refactors and conventions only print.
+
+    pylint's exit status is a bitfield, one bit per message class, so a plain
+    run returns non-zero for a missing docstring. --fail-under=0 drops that
+    score-based failure and --fail-on=E puts back the one that matters, which
+    leaves a single pass that reports everything and fails on errors alone.
+
+    Configuration -- the Django plugin, the settings module, the migration
+    exclusion -- lives in .pylintrc so that a bare `pylint shop/` agrees with
+    this task.
+    """
+    return run("-m", "pylint", "--fail-under=0", "--fail-on=E", *LINT_TARGETS, *extra)
 
 
 def pytest_suite(task, extra):
@@ -93,13 +118,16 @@ def main(argv):
             print(f"Unknown task '{task}'. Available: {', '.join(TASKS)}")
             return 2
 
-    code = prepare()
-    if code:
-        return code
+    if not all(task in NO_DB_TASKS for task in tasks):
+        code = prepare()
+        if code:
+            return code
 
     for task in tasks:
         if task == "run":
             code = run("manage.py", "runserver", *extra)
+        elif task == "lint":
+            code = lint(extra)
         else:
             code = pytest_suite(task, extra)
         if code:

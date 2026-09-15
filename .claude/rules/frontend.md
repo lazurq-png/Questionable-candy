@@ -115,7 +115,9 @@ After significant UI work:
 4. inspect the actual rendered UI in a browser
 5. test important interactions
 
-There is no typecheck, lint or build step in this repository. Do not report having run one. CI (`.github/workflows/ci.yml`) runs the suite and the ADR guards on push, but it runs on GitHub — it is not something you can observe or report from a local session, and it does no browser check at all.
+There is no typecheck or build step in this repository. Do not report having run one. `python scripts/dev.py lint` does exist, but it tells you nothing about a page: pylint reads Python, and the UI here lives in templates, htmx attributes and Alpine directives it never parses. A green lint is not UI evidence.
+
+CI (`.github/workflows/ci.yml`) runs the suite, lint and the ADR guards on push, but it runs on GitHub — it is not something you can observe or report from a local session, and it does no browser check at all.
 
 **Step 4 is not optional here, and this repository has already paid for skipping it.** The add-to-cart button returned 403 in every real browser for two commits while the test suite stayed green, because `django.test.Client` does not enforce CSRF. A passing suite is not evidence that a page works.
 

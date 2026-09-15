@@ -18,9 +18,9 @@ jobs:
     name: ADR guards
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
 
@@ -28,6 +28,35 @@ jobs:
       # stack capped at five packages) both name this as their enforcement.
       - name: Check ADR 0003 and ADR 0005
         run: python scripts/adr_guards.py
+
+  # pylint-django calls django.setup(), so this needs the runtime dependencies
+  # and the two settings.py demands -- but no database: dj_database_url only
+  # parses DATABASE_URL, it does not connect. Hence no service container here.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    env:
+      # Never connected to. Present only so mysite/settings.py imports.
+      DATABASE_URL: postgresql://lint:lint@localhost:5432/lint_only_never_connected
+      DJANGO_SECRET_KEY: lint-only-not-a-real-key-00000000000000000000
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      # requirements.txt as well, because the plugin imports Django itself.
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # Errors fail; warnings, refactors and conventions print without failing.
+      # See scripts/dev.py lint() for why that is one pass and not two.
+      - name: pylint
+        run: python scripts/dev.py lint
 
   tests:
     name: Tests
@@ -68,9 +97,9 @@ jobs:
       # sets it per-test, and a value here would override those cases.
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
           cache: pip

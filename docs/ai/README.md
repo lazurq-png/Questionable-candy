@@ -12,11 +12,12 @@ One directory per run, named after the branch the run works on:
 
 ```text
 docs/ai/
-└── <branch-name>/          e.g. night-2026-09-15/
-    ├── plan.md             objective, scope, task list, non-goals
-    ├── progress.md         per-task: status, commit, verification evidence
-    ├── decisions.md        choices made and why — including rejected options
-    └── questions.md        parked ambiguities awaiting a human answer
+└── <branch-name>/            e.g. night-2026-09-15/
+    ├── plan.md               objective, scope, task list, non-goals
+    ├── progress.md           per-task: status, commit, verification evidence
+    ├── decisions.md          choices made and why — including rejected options
+    ├── questions.md          parked ambiguities awaiting a human answer
+    └── lint-baseline.txt     pylint output captured before any work started
 ```
 
 A supervised task that spans many files or sessions may use the same layout
@@ -38,6 +39,12 @@ will be believed.
 **decisions.md** — implementation and architectural choices with consequences.
 Record the alternatives considered and why they lost. A choice that was obvious
 does not belong here.
+
+**lint-baseline.txt** — the raw `python scripts/dev.py lint` report from before
+the first code change. Its purpose is to be diffed: the lint gate only fails on
+errors, so warnings introduced during a run are invisible without something to
+compare against. Written by unattended runs (`night-run` §1.3); a supervised
+task needs it only if it expects to churn a lot of code.
 
 **questions.md** — the queue for a human. Each entry states the ambiguity, the
 options, a recommendation, and what was done in the meantime. An unattended run

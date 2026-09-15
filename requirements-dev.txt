@@ -1,0 +1,17 @@
+# Development tooling. Not needed to run the application -- requirements.txt is
+# the runtime and test manifest, and this file is installed on top of it.
+#
+# Kept separate so that a deployment installs neither of these, and so that
+# scripts/adr_guards.py keeps reading one manifest. The ADR 0005 package budget
+# it enforces covers the *test stack*; pylint is neither a runtime nor a test
+# dependency, so it does not count against that budget.
+
+# Lint -- errors fail, warnings are advisory. Config in .pylintrc,
+# invocation in scripts/dev.py (`lint`) and .github/workflows/ci.yml.
+pylint~=4.0
+
+# Teaches pylint about Django's dynamic attributes. Without it, every
+# `Model.objects` access is reported as E1101, which is error class and would
+# fail the gate on correct code. Requires Django itself to be importable, so
+# the lint job installs requirements.txt as well.
+pylint-django~=2.8
