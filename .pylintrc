@@ -1,0 +1,34 @@
+# pylint configuration.
+#
+# Policy: errors fail, everything else is advisory. The gate is
+# `--fail-under=0 --fail-on=E`, set by scripts/dev.py and
+# .github/workflows/ci.yml rather than here, so that the failing condition is
+# visible at the call site instead of buried in a config file.
+#
+# Keeping the plugin and settings module here rather than on the command line
+# means a bare `pylint shop/` behaves the same as `dev.py lint`.
+
+[MAIN]
+
+# Without this, pylint cannot see Django's dynamic attributes and reports
+# E1101 no-member on every `CandyProduct.objects` access -- error class, so it
+# would fail the gate on correct code.
+load-plugins=pylint_django
+
+# pylint_django calls django.setup(), which imports mysite.settings. That
+# module raises ImproperlyConfigured without DATABASE_URL and
+# DJANGO_SECRET_KEY, so both must be set in the environment for lint to run.
+# No database connection is opened -- dj_database_url only parses the string.
+django-settings-module=mysite.settings
+
+# Migrations are generated (CLAUDE.md section 15). pylint objects to their
+# module names not being snake_case and to their missing docstrings; neither is
+# actionable without hand-editing a generated artifact.
+# Matches both path separators so the pattern works on Windows and in CI.
+ignore-paths=(^|.*[\\/])migrations[\\/].*
+
+[FORMAT]
+
+# Django's own coding style allows 119; pylint defaults to 100, which flags
+# shop/urls.py's route table for no useful reason.
+max-line-length=120

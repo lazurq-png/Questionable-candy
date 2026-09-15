@@ -5,17 +5,17 @@ Data Model Specification — Entity\-Relationship Model
 |              |                                                                                                        |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
 | **Status**   | Draft                                                                                                  |
-| **Version**  | 0\.1                                                                                                   |
-| **Date**     | 2026\-09\-08                                                                                           |
+| **Version**  | 0\.2                                                                                                   |
+| **Date**     | 2026\-09\-14                                                                                           |
 | **Database** | PostgreSQL                                                                                             |
-| **ORM**      | Django ORM (Django \+ Django REST Framework)                                                           |
+| **ORM**      | Django ORM \(no Django REST Framework — see [ADR 0003](adr/0003-backend.md)\)                          |
 | **Notation** | Entity\-Relationship Diagram (ERD) — the current, most widely used notation for relational data models |
 
 ## 1\. Overview
 
 This document defines the data model for the Candy Ordering Website: the entities behind the Candy catalog, User accounts, the ShoppingCart, and Orders, and how they relate. It follows the entities named in the requirements specification (Candy, User, Cart, Order) and expands each into join tables where the relationship is many\-to\-many in practice (ShoppingCart–Candy via `ShoppingCartItem`, Order–Candy via `OrderItem`).
 
-The requirements specification calls the entity "Cart"; this model and [`erd.png`](erd.png) call it **`ShoppingCart`**, and that is the name the code uses.
+The requirements specification calls the entity "Cart"; this model and [`erd.png`](erd.png) call it **`ShoppingCart`**, and that is the name to use when it is built. No such model exists yet — see the status table in §3.
 
 The model assumes Django's ORM mapped onto PostgreSQL, so it uses PostgreSQL\-specific field types (`ArrayField`) where they are a natural fit, consistent with the earlier decision to use PostgreSQL for its native array and JSON support.
 
@@ -25,13 +25,28 @@ The model assumes Django's ORM mapped onto PostgreSQL, so it uses PostgreSQL\-sp
 
 Diagram source: [`erd.excalidraw`](erd.excalidraw) — re\-export to `erd.png` after editing.
 
-Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1`, `*`). `SocialAccount` is provided by django\-allauth rather than defined by this project.
+Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1`, `*`). `SocialAccount` would be provided by django\-allauth rather than defined by this project, and is currently deferred — see §3\.2. The diagram still draws it.
 
 ## 3\. Entity Definitions
 
+**This section is the target model, not a description of the code.** The application is early; most of it is not built. Each entity below carries a status so the gap is visible rather than implied:
+
+| Entity          | Status      | In code                                                                           |
+| --------------- | ----------- | --------------------------------------------------------------------------------- |
+| User            | implemented | `django.contrib.auth.models.User`, Django's stock model, unextended                |
+| SocialAccount   | deferred    | Needs django\-allauth, deferred by [ADR 0002](adr/0002-middleware.md)              |
+| Profile         | not started | —                                                                                  |
+| Candy           | partial     | `shop.CandyProduct` — see the note in §3\.4                                        |
+| ShoppingCart    | not started | Cart state currently lives in `request.session["shoppingcart"]`, not in a table    |
+| ShoppingCartItem| not started | —                                                                                  |
+| Order           | not started | —                                                                                  |
+| OrderItem       | not started | —                                                                                  |
+
+`ArrayField` on `Profile.allergies` and `Candy.allergens` is viable: [ADR 0004](adr/0004-database.md) is implemented, the application runs on PostgreSQL, and `django.contrib.postgres` is installed.
+
 ### 3\.1 User
 
-Django's built\-in user model, as extended by django\-allauth for social/federated login.
+Django's built\-in user model, used as\-is. [ADR 0002](adr/0002-middleware.md) chose Django's session authentication and defers django\-allauth, so nothing extends this model today.
 
 | Field       | Type          | Constraints      | Notes                                       |
 | ----------- | ------------- | ---------------- | ------------------------------------------- |
@@ -43,7 +58,9 @@ Django's built\-in user model, as extended by django\-allauth for social/federat
 | is_active   | Boolean       | default true     |                                             |
 | date_joined | DateTimeField | auto, not null   |                                             |
 
-### 3\.2 SocialAccount _(django\-allauth, reference only)_
+### 3\.2 SocialAccount _(deferred — not part of the current model)_
+
+> Provided by django\-allauth, which [ADR 0002](adr/0002-middleware.md) defers, and needed only by UC\-02, which [`requirements.md`](requirements.md) demoted to *Should have* on 2026\-09\-14. Kept here so the shape is known if social login is adopted; it is **not** a table this project creates. `erd.png` still shows it — the diagram lags this text until `erd.excalidraw` is re\-exported.
 
 | Field      | Type              | Constraints | Notes                                       |
 | ---------- | ----------------- | ----------- | ------------------------------------------- |
@@ -81,6 +98,20 @@ One\-to\-one extension of User for domain\-specific fields not part of authentic
 | is_published    | Boolean               | default true        | Unpublished items are hidden from the catalog.                                             |
 | created_at      | DateTimeField         | auto                |                                                                                            |
 | updated_at      | DateTimeField         | auto                |                                                                                            |
+
+**Partially implemented as `shop.CandyProduct`.** The code has an earlier, smaller model that this entity is the target for. The differences are deliberate and open, not drift to be silently tolerated:
+
+| Aspect          | Target `Candy`                                                            | Current `shop.CandyProduct`         |
+| --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
+| Name            | `Candy`                                                                   | `CandyProduct`                      |
+| Present         | `name`, `flaw`, `price`                                                   | same three                          |
+| `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
+| `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
+| Missing         | `slug`, `description`, `sugar_content_g`, `allergens`, `is_published`, timestamps | —                            |
+| Extra           | —                                                                         | `flavor` — in no specification      |
+| Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null only |
+
+`flaw` being non\-null is the one UC\-06 guarantee that already holds in code. The rest of UC\-06's "enforced at the model level" intent — and the uniqueness constraints — do not yet. Renaming and filling this out is a migration, not an edit; it has not been scheduled.
 
 ### 3\.5 ShoppingCart
 
@@ -135,7 +166,7 @@ Join table resolving the many\-to\-many relationship between Order and Candy, wi
 
 | Relationship         | Cardinality | Enforced By                          |
 | -------------------- | ----------- | ------------------------------------ |
-| User – SocialAccount | 1 : \*      | django\-allauth                      |
+| User – SocialAccount | 1 : \*      | django\-allauth — deferred, see §3\.2 |
 | User – Profile       | 1 : 0..1    | `Profile.user_id` (unique FK)        |
 | User – ShoppingCart  | 1 : 0..1    | `ShoppingCart.user_id` (unique, nullable FK) |
 | User – Order         | 1 : \*      | `Order.user_id`                      |

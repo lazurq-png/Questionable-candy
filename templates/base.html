@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Candy shop{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+{# hx-headers is inherited by every htmx request on the page, so each hx-post
+   carries the CSRF token. Without it Django's CsrfViewMiddleware returns 403
+   in a real browser -- the test client hides this unless it is constructed
+   with enforce_csrf_checks=True. #}
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% block content %}{% endblock %}
+</body>
+</html>
