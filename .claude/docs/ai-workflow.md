@@ -318,7 +318,9 @@ Examples:
 
 **Hooks: none.** There is no `.claude/settings.json` (only `settings.example.json`, which is inert). Nothing is enforced at commit time, and an unattended run started with permissions bypassed ignores `settings.json` entirely even if one is added — see `.claude/skills/night-run/SKILL.md`.
 
-**CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs two jobs on every push and pull request to `master` and `dev`: the ADR guards (`scripts/adr_guards.py`, no database, no dependencies) and the test suite against a PostgreSQL 17 service, preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not — `scripts/dev.py` *writes* missing migrations instead of failing on them.
+**CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs three jobs — the ADR guards (`scripts/adr_guards.py`, no database, no dependencies), lint, and the test suite against a PostgreSQL 17 service preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not: `scripts/dev.py` *writes* missing migrations instead of failing on them.
+
+It triggers on pull requests to `master` and `dev`, and on pushes to `master`, `dev` and `night-**`. The last of those is there for unattended runs, which push a branch per finished task (`.claude/skills/night-run/SKILL.md` §2.6) with nobody awake to read a failure. The test job installs a Playwright browser, so `tests/e2e/` runs in CI too.
 
 CI runs on GitHub. A local agent cannot observe its result and must never report one as evidence.
 
