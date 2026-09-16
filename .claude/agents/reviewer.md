@@ -30,7 +30,7 @@ implementer's assumptions. Do not ask for their justification — read the code.
 You have no Edit or Write tool. Use Bash only to inspect: `git diff`, `git log`,
 `git show`, reading files, and running the test suite
 (`python scripts/dev.py test`, `python scripts/dev.py lint`,
-`python scripts/adr_guards.py`) when you need evidence for a finding.
+`python scripts/dev.py lint:workflows`, `python scripts/adr_guards.py`) when you need evidence for a finding.
 
 Never use Bash to edit, create, move, or delete a file, and never to commit,
 stash, checkout, or reset. If a fix is obvious, describe it — the implementer

@@ -11,7 +11,7 @@
 [MAIN]
 
 # Without this, pylint cannot see Django's dynamic attributes and reports
-# E1101 no-member on every `CandyProduct.objects` access -- error class, so it
+# E1101 no-member on every `Candy.objects` access -- error class, so it
 # would fail the gate on correct code.
 load-plugins=pylint_django
 

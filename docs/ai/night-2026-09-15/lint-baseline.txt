@@ -1,0 +1,40 @@
+
+$ python -m pylint --fail-under=0 --fail-on=E shop mysite scripts tests
+************* Module shop.admin
+shop\admin.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+shop\admin.py:1:0: W0611: Unused admin imported from django.contrib (unused-import)
+************* Module shop.apps
+shop\apps.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+shop\apps.py:4:0: C0115: Missing class docstring (missing-class-docstring)
+************* Module shop.models
+shop\models.py:12:0: C0304: Final newline missing (missing-final-newline)
+shop\models.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+shop\models.py:4:0: C0115: Missing class docstring (missing-class-docstring)
+************* Module shop.urls
+shop\urls.py:7:0: C0304: Final newline missing (missing-final-newline)
+shop\urls.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+************* Module shop.views
+shop\views.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+shop\views.py:7:0: C0116: Missing function or method docstring (missing-function-docstring)
+shop\views.py:13:0: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module adr_guards
+scripts\adr_guards.py:36:0: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module dev
+scripts\dev.py:58:11: W1510: 'subprocess.run' used without explicitly defining the value for 'check'. (subprocess-run-check)
+scripts\dev.py:89:0: C0116: Missing function or method docstring (missing-function-docstring)
+scripts\dev.py:106:0: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module tests.factories.candy_factory
+tests\factories\candy_factory.py:12:0: C0304: Final newline missing (missing-final-newline)
+tests\factories\candy_factory.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+tests\factories\candy_factory.py:4:0: C0115: Missing class docstring (missing-class-docstring)
+************* Module tests.integration.test_views
+tests\integration\test_views.py:100:0: C0304: Final newline missing (missing-final-newline)
+tests\integration\test_views.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+tests\integration\test_views.py:8:0: C0116: Missing function or method docstring (missing-function-docstring)
+tests\integration\test_views.py:16:0: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module tests.unit.test_models
+tests\unit\test_models.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+
+------------------------------------------------------------------
+Your code has been rated at 9.04/10 (previous run: 9.04/10, +0.00)
+

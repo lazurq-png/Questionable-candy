@@ -8,7 +8,7 @@ concrete layout for this repository.
 
 ## Layout
 
-One directory per run, named after the branch the run works on:
+One directory per run, named after the run's branch:
 
 ```text
 docs/ai/
@@ -22,6 +22,13 @@ docs/ai/
 
 A supervised task that spans many files or sessions may use the same layout
 under its own branch name. Most supervised work needs none of this.
+
+An unattended run works on several branches — one per task, plus the run's
+integration branch (`night-run` §1.4) — but keeps **one** directory, named after
+the integration branch. Each task commits its updates to these files on its own
+branch, and they reach the run branch when that task merges. Do not create a
+directory per task branch: the point of this record is that a reader finds the
+whole run in one place.
 
 ## What each file is for
 

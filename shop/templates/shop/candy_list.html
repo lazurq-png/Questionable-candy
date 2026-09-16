@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Candy shop</h1>
-<ul>
-  {% for candy in candies %}
-    <li>
-      {{ candy.name }} — ${{ candy.price }}
-      <button hx-post="{% url 'add_to_shoppingcart' candy.id %}" hx-swap="outerHTML" type="button">
-        Add to cart
-      </button>
-    </li>
-  {% endfor %}
-</ul>
+{% if candies %}
+  <ul>
+    {% for candy in candies %}
+      <li>
+        <a href="{% url 'candy_detail' candy.id %}">{{ candy.name }}</a> — ${{ candy.price }}
+        {% include "shop/partials/add_to_cart_button.html" %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  {% comment %}
+  UC-01 extension 2a: an empty catalog must say so rather than render an
+  empty page, which is indistinguishable from a broken one.
+  {% endcomment %}
+  <p data-testid="catalog-empty">Nothing available right now. Please check back soon.</p>
+{% endif %}
 {% endblock %}
