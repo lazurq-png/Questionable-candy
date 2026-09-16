@@ -117,3 +117,21 @@ def test_model_validation_rejects_a_whitespace_flaw_via_the_constraint():
         candy.full_clean()
 
     assert "Every candy must disclose a flaw (UC-06)." in raised.value.messages
+
+
+# --- Publication: UC-01 step 2, UC-03 extension 2a ---------------------------
+
+@pytest.mark.django_db
+def test_a_new_candy_is_published_unless_said_otherwise():
+    """Rows that predate the field must not vanish from the catalog."""
+    candy = Candy.objects.create(name="Hollow Humbug", price=Decimal("9.00"), flaw="hollow")
+    assert Candy.objects.get(pk=candy.pk).is_published is True
+
+
+@pytest.mark.django_db
+def test_published_excludes_unpublished_candy():
+    """The one filter the catalog, detail page and cart all rely on."""
+    shown = Candy.objects.create(name="Sour Bricks", price=Decimal("1.00"), flaw="hard")
+    Candy.objects.create(name="Withdrawn Toffee", price=Decimal("1.00"), flaw="stale", is_published=False)
+
+    assert list(Candy.objects.published()) == [shown]

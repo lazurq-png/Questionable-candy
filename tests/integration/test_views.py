@@ -130,19 +130,50 @@ def test_candy_detail_offers_both_ways_out(client):
     assert reverse("add_to_shoppingcart", args=[candy.id]).encode() in response.content
 
 
-def test_candy_detail_404s_for_an_item_that_does_not_exist(client):
-    """UC-03 extension 2a, as far as the current model can express it.
-
-    Publication state is not modelled, so 'unpublished' has no representation
-    and only deletion is testable -- see docs/ai/night-2026-09-15/questions.md
-    Q2. This asserts the status, so whichever way that question is answered has
-    a test to change rather than a gap to discover.
-    """
+def test_a_deleted_candy_is_no_longer_available(client):
+    """UC-03 extension 2a: say so, and offer the way back to the catalog."""
     candy = CandyFactory()
     url = reverse("candy_detail", args=[candy.id])
     candy.delete()
 
-    assert client.get(url).status_code == 404
+    response = client.get(url)
+
+    assert response.status_code == 404
+    assert b'data-testid="candy-unavailable"' in response.content
+    assert f'href="{reverse("candy_list")}"'.encode() in response.content
+
+
+def test_an_unpublished_candy_is_no_longer_available_and_not_named(client):
+    """The same response as a deleted one, so the page leaks nothing about it."""
+    candy = CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    response = client.get(reverse("candy_detail", args=[candy.id]))
+
+    assert response.status_code == 404
+    assert b'data-testid="candy-unavailable"' in response.content
+    assert f'href="{reverse("candy_list")}"'.encode() in response.content
+    assert b"Withdrawn Toffee" not in response.content
+
+
+def test_catalog_hides_unpublished_candy(client):
+    """UC-01 step 2: the catalog lists published items only."""
+    CandyFactory(name="Sour Gummy Worms")
+    CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    response = client.get(reverse("candy_list"))
+
+    assert b"Sour Gummy Worms" in response.content
+    assert b"Withdrawn Toffee" not in response.content
+
+
+def test_an_unpublished_candy_cannot_be_added_to_the_cart(client):
+    """Otherwise a stale page or a guessed URL puts it in the cart anyway."""
+    candy = CandyFactory(is_published=False)
+
+    response = client.post(reverse("add_to_shoppingcart", args=[candy.id]))
+
+    assert response.status_code == 404
+    assert client.session.get("shoppingcart", {}) == {}
 
 
 def test_catalog_links_each_candy_to_its_detail_page(client):

@@ -98,3 +98,26 @@ def test_the_flaw_is_visible_to_the_customer(
     expect(flaw).to_contain_text("Dissolves into a sticky film that outlasts the flavour.")
     expect(page.get_by_role("heading", name="Known flaw")).to_be_visible()
     assert_page_is_fully_rendered(page)
+
+
+def test_an_unpublished_candy_is_hidden_and_says_it_is_unavailable(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """UC-01 step 2 and UC-03 extension 2a, as a customer meets them.
+
+    The catalog no longer lists it, and following an old link to it explains
+    why and leads back -- rather than an unexplained error page.
+    """
+    CandyFactory(name="Sour Bricks")
+    withdrawn = CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    page.goto(live_server.url)
+    expect(page.get_by_role("link", name="Sour Bricks")).to_be_visible()
+    expect(page.get_by_role("link", name="Withdrawn Toffee")).to_have_count(0)
+
+    page.goto(f"{live_server.url}/candy/{withdrawn.pk}/")
+    expect(page.get_by_test_id("candy-unavailable")).to_be_visible()
+    assert_page_is_fully_rendered(page)
+
+    page.get_by_test_id("back-to-catalog").click()
+    expect(page.get_by_role("heading", name="Candy shop")).to_be_visible()

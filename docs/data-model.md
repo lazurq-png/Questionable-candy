@@ -96,10 +96,10 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 
 | Aspect          | Target `Candy`                                                            | Current `shop.Candy`                |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| Present         | `name`, `flaw`, `price`, `description`                                    | same four                           |
+| Present         | `name`, `flaw`, `price`, `description`, `is_published`                    | same five                           |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
-| Missing         | `slug`, `sugar_content_g`, `allergens`, `is_published`, timestamps        | —                                   |
+| Missing         | `slug`, `sugar_content_g`, `allergens`, timestamps                        | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification      |
 | Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null **and** non\-blank |
 
