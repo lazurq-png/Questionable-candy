@@ -6,14 +6,14 @@ it arrives anywhere.
 """
 from playwright.sync_api import expect
 
-from tests.factories.candy_factory import CandyProductFactory
+from tests.factories.candy_factory import CandyFactory
 
 
 def test_selecting_a_candy_opens_its_detail_page(
     live_server, page, assert_page_is_fully_rendered
 ):
     """UC-03 steps 1-2: select an item, see its name, description and price."""
-    CandyProductFactory(
+    CandyFactory(
         name="Hollow Humbug",
         description="Looks solid. Is not.",
         price="9.95",
@@ -32,7 +32,7 @@ def test_the_detail_page_returns_to_the_catalog(
     live_server, page, assert_page_is_fully_rendered
 ):
     """UC-03 step 3, the first of its two exits."""
-    CandyProductFactory(name="Hollow Humbug")
+    CandyFactory(name="Hollow Humbug")
 
     page.goto(live_server.url)
     page.get_by_role("link", name="Hollow Humbug").click()
@@ -53,7 +53,7 @@ def test_adding_to_the_cart_from_the_detail_page(
     that the shared partial works on a page that reaches it by {% include %}
     rather than by being the page it was written for.
     """
-    CandyProductFactory(name="Hollow Humbug")
+    CandyFactory(name="Hollow Humbug")
 
     page.goto(live_server.url)
     page.get_by_role("link", name="Hollow Humbug").click()
@@ -80,7 +80,7 @@ def test_the_flaw_is_visible_to_the_customer(
     is the assertion that would start failing the day this page is styled and
     the disclosure ends up hidden, collapsed or off-screen.
     """
-    CandyProductFactory(
+    CandyFactory(
         name="Hollow Humbug",
         flaw="Dissolves into a sticky film that outlasts the flavour.",
     )

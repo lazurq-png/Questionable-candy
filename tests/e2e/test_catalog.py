@@ -11,16 +11,16 @@ the server thread without a `django_db` marker.
 """
 from playwright.sync_api import expect
 
-from shop.models import CandyProduct
-from tests.factories.candy_factory import CandyProductFactory
+from shop.models import Candy
+from tests.factories.candy_factory import CandyFactory
 
 
 def test_catalog_renders_the_available_candy(
     live_server, page, assert_page_is_fully_rendered
 ):
     """UC-01 steps 1-3: the catalog a customer opens lists what is for sale."""
-    CandyProductFactory(name="Sour Gummy Worms", price="2.50")
-    CandyProductFactory(name="Chocolate Fudge", price="4.00")
+    CandyFactory(name="Sour Gummy Worms", price="2.50")
+    CandyFactory(name="Chocolate Fudge", price="4.00")
 
     page.goto(live_server.url)
 
@@ -42,7 +42,7 @@ def test_empty_catalog_says_so_instead_of_rendering_a_blank_page(
     # Arranged rather than assumed: this test means nothing if a previous test
     # left rows behind, and "empty because the suite happened to run in this
     # order" is not a precondition worth relying on.
-    assert not CandyProduct.objects.exists()
+    assert not Candy.objects.exists()
 
     page.goto(live_server.url)
 
@@ -61,7 +61,7 @@ def test_add_to_cart_swaps_the_button_in_the_browser(
     answers 403, htmx swaps nothing, and the button keeps its original label --
     so the expectation below fails exactly where the browser would.
     """
-    CandyProductFactory(name="Sour Gummy Worms")
+    CandyFactory(name="Sour Gummy Worms")
 
     page.goto(live_server.url)
 

@@ -48,7 +48,7 @@ TASKS = ["run", "lint", "lint:workflows", *SUITES]
 NO_DB_TASKS = {"lint", "lint:workflows"}
 
 # Migrations are excluded by .pylintrc, not here.
-LINT_TARGETS = ["shop", "mysite", "scripts", "tests"]
+LINT_TARGETS = ["accounts", "shop", "mysite", "scripts", "tests"]
 
 # Standalone executables, not Python requirements, so they are looked up rather
 # than installed: first on PATH, then where this machine's tooling lives
@@ -63,7 +63,7 @@ WORKFLOW_TOOLS = {
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
 # Reported, not gated: ADR 0005 chose pytest-cov but agreed no threshold. Add
 # --cov-fail-under here once there is a target to hold the suite to.
-COV_ARGS = ["--cov=shop", "--cov=mysite", "--cov-report=term-missing"]
+COV_ARGS = ["--cov=accounts", "--cov=shop", "--cov=mysite", "--cov-report=term-missing"]
 
 
 def run(*args):

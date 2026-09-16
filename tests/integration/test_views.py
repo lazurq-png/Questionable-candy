@@ -1,12 +1,12 @@
 import pytest
 from django.test import Client
 from django.urls import reverse
-from tests.factories.candy_factory import CandyProductFactory
+from tests.factories.candy_factory import CandyFactory
 
 pytestmark = pytest.mark.django_db
 
 def test_add_to_shoppingcart_returns_partial_with_added_label(client):
-    candy = CandyProductFactory(name="Sour Gummy Worms")
+    candy = CandyFactory(name="Sour Gummy Worms")
     url = reverse("add_to_shoppingcart", args=[candy.id])
     response = client.post(url)
     assert response.status_code == 200
@@ -14,8 +14,8 @@ def test_add_to_shoppingcart_returns_partial_with_added_label(client):
     assert b"<html" not in response.content  # confirms it's a partial, not a full page
 
 def test_candy_list_shows_all_candies(client):
-    CandyProductFactory(name="Sour Gummy Worms")
-    CandyProductFactory(name="Chocolate Fudge")
+    CandyFactory(name="Sour Gummy Worms")
+    CandyFactory(name="Chocolate Fudge")
 
     response = client.get(reverse("candy_list"))
 
@@ -29,7 +29,7 @@ def test_add_to_shoppingcart_rejects_get(client):
 
     Without @require_POST, following the URL in a browser silently adds an item.
     """
-    candy = CandyProductFactory()
+    candy = CandyFactory()
 
     response = client.get(reverse("add_to_shoppingcart", args=[candy.id]))
 
@@ -47,7 +47,7 @@ def test_adding_the_same_candy_twice_accumulates_in_the_session(client):
     thing that saves it. client.session re-reads the store, so this asserts what
     was written, not what was in memory.
     """
-    candy = CandyProductFactory()
+    candy = CandyFactory()
     url = reverse("add_to_shoppingcart", args=[candy.id])
 
     client.post(url)
@@ -65,7 +65,7 @@ def test_adding_the_same_candy_twice_accumulates_in_the_session(client):
 def test_catalog_page_supplies_csrf_token_to_htmx():
     """The page must hand htmx a CSRF token for its hx-post requests."""
     csrf_client = Client(enforce_csrf_checks=True)
-    CandyProductFactory()
+    CandyFactory()
 
     page = csrf_client.get(reverse("candy_list"))
 
@@ -77,7 +77,7 @@ def test_catalog_page_supplies_csrf_token_to_htmx():
 def test_add_to_shoppingcart_accepts_post_with_the_token_the_page_supplies():
     """The token the page hands out must actually satisfy the view."""
     csrf_client = Client(enforce_csrf_checks=True)
-    candy = CandyProductFactory()
+    candy = CandyFactory()
 
     csrf_client.get(reverse("candy_list"))
     token = csrf_client.cookies["csrftoken"].value
@@ -93,7 +93,7 @@ def test_add_to_shoppingcart_accepts_post_with_the_token_the_page_supplies():
 def test_add_to_shoppingcart_rejects_post_without_csrf_token():
     """CSRF protection stays on; the fix supplies a token, it does not exempt."""
     csrf_client = Client(enforce_csrf_checks=True)
-    candy = CandyProductFactory()
+    candy = CandyFactory()
 
     response = csrf_client.post(reverse("add_to_shoppingcart", args=[candy.id]))
 
@@ -103,7 +103,7 @@ def test_add_to_shoppingcart_rejects_post_without_csrf_token():
 
 def test_candy_detail_shows_name_description_and_price(client):
     """UC-03 step 2. The flaw is asserted separately -- that is UC-06."""
-    candy = CandyProductFactory(
+    candy = CandyFactory(
         name="Hollow Humbug",
         description="Looks solid. Is not.",
         price="9.95",
@@ -119,7 +119,7 @@ def test_candy_detail_shows_name_description_and_price(client):
 
 def test_candy_detail_offers_both_ways_out(client):
     """UC-03 step 3: return to the catalog, or add to the cart."""
-    candy = CandyProductFactory()
+    candy = CandyFactory()
 
     response = client.get(reverse("candy_detail", args=[candy.id]))
 
@@ -138,7 +138,7 @@ def test_candy_detail_404s_for_an_item_that_does_not_exist(client):
     Q2. This asserts the status, so whichever way that question is answered has
     a test to change rather than a gap to discover.
     """
-    candy = CandyProductFactory()
+    candy = CandyFactory()
     url = reverse("candy_detail", args=[candy.id])
     candy.delete()
 
@@ -147,7 +147,7 @@ def test_candy_detail_404s_for_an_item_that_does_not_exist(client):
 
 def test_catalog_links_each_candy_to_its_detail_page(client):
     """UC-03 step 1 needs the catalog to be where the customer selects an item."""
-    candy = CandyProductFactory(name="Sour Gummy Worms")
+    candy = CandyFactory(name="Sour Gummy Worms")
 
     response = client.get(reverse("candy_list"))
 
@@ -159,7 +159,7 @@ def test_catalog_links_each_candy_to_its_detail_page(client):
 
 def test_candy_detail_discloses_the_flaw(client):
     """UC-06 step 3, and UC-03 step 2's fourth field."""
-    candy = CandyProductFactory(
+    candy = CandyFactory(
         name="Hollow Humbug",
         flaw="Dissolves into a sticky film that outlasts the flavour.",
     )
@@ -177,9 +177,23 @@ def test_the_flaw_is_labelled_as_a_flaw(client):
     page. This asserts the labelled region exists; the browser test asserts the
     reader can see it.
     """
-    candy = CandyProductFactory()
+    candy = CandyFactory()
 
     response = client.get(reverse("candy_detail", args=[candy.id]))
 
     assert b'data-testid="candy-flaw"' in response.content
     assert b"Known flaw" in response.content
+
+
+def test_admin_user_page_lets_an_administrator_edit_allergies(admin_client, django_user_model):
+    """The swapped user model is registered, and its extra field is reachable.
+
+    Registering UserAdmin as-is would pass a changelist check and still leave
+    allergies off the form, because the stock fieldsets predate the field.
+    """
+    customer = django_user_model.objects.create_user(username="ada", allergies=["peanuts"])
+
+    response = admin_client.get(reverse("admin:accounts_user_change", args=[customer.pk]))
+
+    assert response.status_code == 200
+    assert b'name="allergies"' in response.content

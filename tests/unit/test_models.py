@@ -4,20 +4,20 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from shop.models import CandyProduct
+from shop.models import Candy
 
 
 def test_str_is_the_candy_name():
     """__str__ drives the admin list and any {{ candy }} in a template."""
-    assert str(CandyProduct(name="Sour Gummy Worms")) == "Sour Gummy Worms"
+    assert str(Candy(name="Sour Gummy Worms")) == "Sour Gummy Worms"
 
 
 @pytest.mark.django_db
 def test_price_round_trips_as_decimal():
     """Money must not become a float on the way through the database."""
-    CandyProduct.objects.create(name="Hollow Humbug", price=Decimal("9.95"), flaw="hollow")
+    Candy.objects.create(name="Hollow Humbug", price=Decimal("9.95"), flaw="hollow")
 
-    stored = CandyProduct.objects.get(name="Hollow Humbug")
+    stored = Candy.objects.get(name="Hollow Humbug")
 
     assert stored.price == Decimal("9.95")
     assert isinstance(stored.price, Decimal)
@@ -26,9 +26,9 @@ def test_price_round_trips_as_decimal():
 @pytest.mark.django_db
 def test_stock_defaults_to_zero():
     """A candy with no stock stated is out of stock, not unbounded."""
-    CandyProduct.objects.create(name="Regrettable Toffee", price=Decimal("1.00"), flaw="stale")
+    Candy.objects.create(name="Regrettable Toffee", price=Decimal("1.00"), flaw="stale")
 
-    assert CandyProduct.objects.get(name="Regrettable Toffee").stock == 0
+    assert Candy.objects.get(name="Regrettable Toffee").stock == 0
 
 
 # --- UC-06: a flaw can never be silently omitted ---------------------------
@@ -44,7 +44,7 @@ def test_a_candy_cannot_be_saved_without_a_flaw():
     """The whole premise of the shop is that every candy discloses one."""
     with pytest.raises(IntegrityError):
         with transaction.atomic():
-            CandyProduct.objects.create(
+            Candy.objects.create(
                 name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw=""
             )
 
@@ -59,7 +59,7 @@ def test_whitespace_does_not_count_as_a_flaw():
     """
     with pytest.raises(IntegrityError):
         with transaction.atomic():
-            CandyProduct.objects.create(
+            Candy.objects.create(
                 name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   "
             )
 
@@ -67,11 +67,11 @@ def test_whitespace_does_not_count_as_a_flaw():
 @pytest.mark.django_db
 def test_a_candy_with_a_flaw_saves_normally():
     """The constraint must not reject the ordinary case."""
-    candy = CandyProduct.objects.create(
+    candy = Candy.objects.create(
         name="Hollow Humbug", price=Decimal("9.95"), flaw="Hollow, and not on purpose."
     )
 
-    assert CandyProduct.objects.get(pk=candy.pk).flaw == "Hollow, and not on purpose."
+    assert Candy.objects.get(pk=candy.pk).flaw == "Hollow, and not on purpose."
 
 
 @pytest.mark.django_db
@@ -89,7 +89,7 @@ def test_model_validation_also_rejects_a_missing_flaw():
     and the failure becomes "Database access not allowed" instead of the
     assertion below. Still red, but pointing at the wrong thing.
     """
-    candy = CandyProduct(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="")
+    candy = Candy(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="")
 
     with pytest.raises(ValidationError) as raised:
         candy.full_clean()
@@ -111,7 +111,7 @@ def test_model_validation_rejects_a_whitespace_flaw_via_the_constraint():
     worth setting: without it the user is shown Django's generic text for a
     constraint they have never heard of.
     """
-    candy = CandyProduct(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   ")
+    candy = Candy(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   ")
 
     with pytest.raises(ValidationError) as raised:
         candy.full_clean()

@@ -129,6 +129,7 @@ Confirmation section says so plainly.
 - [ADR 0004 — Database engine](docs/adr/0004-database.md)
 - [ADR 0005 — Test frameworks](docs/adr/0005-testing.md)
 - [ADR 0006 — htmx and Alpine.js](docs/adr/0006-frontend-htmx-alpine.md)
+- [ADR 0007 — Custom user model](docs/adr/0007-custom-user-model.md)
 
 New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 
@@ -136,5 +137,5 @@ New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 
 - Media storage for candy pictures is undecided — [ADR 0004](docs/adr/0004-database.md)
 - No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md)
-- `shop.CandyProduct` is a partial implementation of the target `Candy` entity — [data model §3.4](docs/data-model.md)
+- `shop.Candy` is a partial implementation of the target `Candy` entity — [data model §3.3](docs/data-model.md)
 - `tests/e2e/` is empty; Playwright is installed and unblocked, but no browser test has been written yet — [ADR 0006](docs/adr/0006-frontend-htmx-alpine.md)

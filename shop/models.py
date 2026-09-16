@@ -1,10 +1,10 @@
 from django.db import models
 
 # Create your models here.
-class CandyProduct(models.Model):
+class Candy(models.Model):
     name = models.CharField(max_length=200)
     # UC-03 step 2 renders this on the detail page. Not null (docs/data-model.md
-    # section 3.4) but not mandatory: UC-06 singles out `flaw` as the field that
+    # section 3.3) but not mandatory: UC-06 singles out `flaw` as the field that
     # may never be omitted, and holding description to that bar is a tightening
     # nobody has asked for. default="" so the migration needs no answer about
     # existing rows.
@@ -15,14 +15,16 @@ class CandyProduct(models.Model):
     flaw = models.CharField(max_length=200)
 
     class Meta:
+        # Django would otherwise pluralise the class name to "candys".
+        verbose_name_plural = "candies"
         constraints = [
             # UC-06's Constraint: "Required at the data-model level, not only in
             # the form, so it can never be silently omitted."
             #
             # NOT NULL alone does not deliver that -- it is satisfied by the
-            # empty string, and CandyProduct.objects.create(flaw="") bypasses
+            # empty string, and Candy.objects.create(flaw="") bypasses
             # form validation entirely. This closes the gap docs/data-model.md
-            # section 3.4 records as still open.
+            # section 3.3 records as still open.
             #
             # Matched on \S rather than != "" so that a flaw of "   " is
             # rejected too. That is not extra strictness: Django's form field
@@ -31,7 +33,7 @@ class CandyProduct(models.Model):
             # permissive of the two.
             models.CheckConstraint(
                 condition=models.Q(flaw__regex=r"\S"),
-                name="candyproduct_flaw_is_not_blank",
+                name="candy_flaw_is_not_blank",
                 violation_error_message="Every candy must disclose a flaw (UC-06).",
             ),
         ]
