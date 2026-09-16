@@ -57,6 +57,11 @@ def test_adding_to_the_cart_from_the_detail_page(
 
     page.goto(live_server.url)
     page.get_by_role("link", name="Hollow Humbug").click()
+    # click() returns once the navigation starts, not once the new page has
+    # loaded, so htmx -- a blocking script from unpkg -- may still be
+    # downloading. wait_for_url waits for the load event by default. Without
+    # it this passed locally with htmx cached and failed in CI's cold browser.
+    page.wait_for_url("**/candy/*/")
 
     assert page.evaluate("typeof window.htmx") == "object", (
         "htmx did not load from the CDN; the cart assertions below cannot mean "
