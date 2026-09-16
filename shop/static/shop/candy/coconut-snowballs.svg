@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Coconut Snowballs</title>
+  <rect width="160" height="160" rx="24" fill="#eef3f7"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <circle cx="60" cy="96" r="26" fill="#fff" stroke="#cfd8dc" stroke-width="2"/>
+  <circle cx="102" cy="90" r="30" fill="#fafafa" stroke="#cfd8dc" stroke-width="2"/>
+  <path d="M50 88l4 2M66 104l4-2M94 80l4 3M110 98l3-4M100 104l4 1" stroke="#b0bec5" stroke-width="3" stroke-linecap="round"/>
+</svg>

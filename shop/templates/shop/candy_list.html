@@ -1,10 +1,12 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <h1>Candy shop</h1>
 {% if candies %}
   <ul>
     {% for candy in candies %}
       <li>
+        <img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="120" height="120" data-testid="candy-image">
         <a href="{% url 'candy_detail' candy.id %}">{{ candy.name }}</a> — ${{ candy.price }}
         {% include "shop/partials/add_to_cart_button.html" %}
       </li>

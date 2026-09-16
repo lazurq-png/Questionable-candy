@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Cola Bottle Gummies</title>
+  <rect width="160" height="160" rx="24" fill="#f7ebe0"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M72 30h16v14c0 8 12 14 12 30v46a10 10 0 0 1-10 10H70a10 10 0 0 1-10-10V74c0-16 12-22 12-30z" fill="#7b3f00"/>
+  <rect x="60" y="84" width="40" height="18" fill="#a0522d"/>
+  <path d="M72 94h6M84 94h6" stroke="#fff" stroke-width="2" opacity=".6"/>
+</svg>

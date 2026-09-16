@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Maple Fudge Squares</title>
+  <rect width="160" height="160" rx="24" fill="#f4e7d7"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <rect x="32" y="74" width="46" height="46" rx="6" fill="#b5651d"/>
+  <rect x="82" y="62" width="46" height="46" rx="6" fill="#c97b33"/>
+  <path d="M90 70h14M40 82h12" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+</svg>

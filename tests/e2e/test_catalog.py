@@ -78,3 +78,35 @@ def test_add_to_cart_swaps_the_button_in_the_browser(
     expect(page.get_by_role("button", name="Added! (Sour Gummy Worms)")).to_be_visible()
     expect(page.get_by_role("button", name="Add to cart")).to_have_count(0)
     assert_page_is_fully_rendered(page)
+
+
+def test_candy_pictures_load_in_the_catalog_and_on_the_detail_page(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """An <img> with a wrong static path still renders -- as a broken icon.
+
+    naturalWidth is 0 for an image the browser could not load or decode, so
+    this fails on a missing file, a wrong URL or a malformed SVG, none of which
+    the HTML alone would show. The second candy has no picture and must get the
+    placeholder rather than a broken image.
+    """
+    CandyFactory(name="Sour Bricks", image="shop/candy/sour-bricks.svg")
+    CandyFactory(name="Mystery Mix", image="")
+
+    page.goto(live_server.url)
+    images = page.get_by_test_id("candy-image")
+    expect(images).to_have_count(2)
+    for index in range(2):
+        image = images.nth(index)
+        expect(image).to_have_js_property("complete", True)
+        assert image.evaluate("img => img.naturalWidth") > 0, image.get_attribute("src")
+    expect(page.get_by_role("img", name="Mystery Mix")).to_have_attribute(
+        "src", "/static/shop/candy/placeholder.svg"
+    )
+
+    page.get_by_role("link", name="Sour Bricks").click()
+    page.wait_for_url("**/candy/*/")
+    detail_image = page.get_by_role("img", name="Sour Bricks")
+    expect(detail_image).to_have_js_property("complete", True)
+    assert detail_image.evaluate("img => img.naturalWidth") > 0
+    assert_page_is_fully_rendered(page)

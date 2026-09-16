@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Strawberry Cloud Marshmallows</title>
+  <rect width="160" height="160" rx="24" fill="#fde8ee"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <rect x="30" y="72" width="54" height="50" rx="16" fill="#f9a8c0"/>
+  <rect x="76" y="60" width="54" height="50" rx="16" fill="#fbc4d4"/>
+  <rect x="84" y="66" width="22" height="7" rx="3.5" fill="#fff" opacity=".6"/>
+</svg>

@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ candy.name }} — Candy shop{% endblock %}
 {% block content %}
 <h1>{{ candy.name }}</h1>
+
+<img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="240" height="240" data-testid="candy-image">
 
 <p data-testid="candy-price">${{ candy.price }}</p>
 

@@ -24,6 +24,10 @@ class Candy(models.Model):
     # docs/data-model.md section 3.3. Default True so rows that existed before
     # the field keep appearing in the catalog; hiding them is a per-row decision.
     is_published = models.BooleanField(default=True)
+    # A path under static/, e.g. "shop/candy/sour-bricks.svg" -- not an upload.
+    # Media storage is undecided (docs/adr/0004-database.md), so images ship as
+    # static files and this names one. Blank means the placeholder is shown.
+    image = models.CharField(max_length=200, blank=True, default="")
 
     objects = CandyQuerySet.as_manager()
 

@@ -45,6 +45,15 @@ python scripts/dev.py run             # http://127.0.0.1:8000/
 `dev.py` applies migrations itself before every task, so no separate
 `manage.py migrate` step is needed.
 
+To fill an empty catalog with the shop's candy, pictures included:
+
+```sh
+python manage.py seed_candy
+```
+
+It is safe to run again: it creates only candy that is missing, and on candy
+that exists it fills in empty fields without overwriting anything.
+
 There is no SQLite fallback — a missing `DATABASE_URL` fails at startup by
 design. See [ADR 0004](docs/adr/0004-database.md).
 
