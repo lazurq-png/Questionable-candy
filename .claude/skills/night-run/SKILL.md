@@ -453,7 +453,9 @@ further, push nothing further, delete nothing:
 - **A fast-forward merge onto the run branch is refused** (§2.6). The run owns
   both branches, so a refusal means the model is wrong about who is writing to
   them.
-- **The wall clock reaches the hard stop** (§8).
+- **The wall clock reaches the deadline** (§8.2). This one does not discard the
+  task in flight: §8.4 decides whether it runs to completion or is abandoned,
+  and §8.5's 08:30 ceiling is what keeps "finishing up" finite.
 - **The task list is complete _and_ the discretionary work in §9 is done or has
   no time left.** Stopping early with a clean, documented result is a success.
   Outside §9's explicit bounds, do not invent work to fill the night —
@@ -473,8 +475,11 @@ unmerged one.
 
 ## 7. Morning report
 
-The run's last act, begun no later than 07:45 and committed by 08:00 (§8.2). It
-is a summary at the top of `progress.md`.
+The run's last act. It begins when the last task ends — the list running out, a
+stop condition, or the deadline resolving the task in flight (§8.4) — and it is
+a summary at the top of `progress.md`.
+
+It is the one thing never cut short for the clock (§8.5).
 
 It is written as a task like any other — its own branch,
 `night-<YYYY-MM-DD>-t<N>-report`, merged and pushed — because the run branch
@@ -556,15 +561,21 @@ powershell -NoProfile -Command "[System.TimeZoneInfo]::ConvertTimeFromUtc([DateT
 ### 8.2 The checkpoints
 
 Check the clock at every task boundary — §2 step 0, before cutting a branch —
-and record the reading in `progress.md` with that task. Not mid-task: a clock
-check that interrupts a verify cycle buys nothing.
+and record the reading in `progress.md` with that task.
+
+**After 07:00, also check it at the seams inside a task**: when a verification
+run finishes, before starting a repair cycle, and before dispatching the
+`reviewer`. Those are already pauses, so a check there costs nothing — and a
+threshold you can only observe at a task boundary cannot fire during the task it
+is meant to govern. Do not check in the middle of a verify cycle; interrupting
+one tells you less and takes longer.
 
 | From  | Rule |
 | ----- | ---- |
 | 07:15 | Start no new **discretionary** task (§9). Requested work may still start. |
-| 07:30 | Start no new task of any kind. Finish the one in flight. |
-| 07:45 | **Stop working.** A task still in flight is abandoned per §3 — revert its uncommitted changes, leave its branch unmerged and unpushed, name it in the report. Begin the morning report. |
-| 08:00 | **Hard stop.** The report is committed by now, not started. |
+| 07:30 | Start no new task of any kind. Carry on with the one in flight. |
+| 08:00 | **The deadline.** Start nothing further. The task in flight either runs to completion or is abandoned — §8.4 decides which, and it is a judgement about the task's *state*, not about how much you want to finish it. Then the report. |
+| 08:30 | **Ceiling** (§8.5). Abandon whatever is in flight, however close. Report now. |
 
 ### 8.3 Estimating
 
@@ -574,11 +585,65 @@ the `reviewer` pass (4–7 minutes on its own) and several full `dev.py test`
 runs.
 
 So: **do not start a task after 07:30**, and do not start one you believe is
-large after 07:00. A task abandoned at 07:45 spent the night's remaining time
-and produced nothing, whereas stopping early with a clean report is explicitly a
-success (§6).
+large after 07:00. The overrun in §8.4 is there to save a task that is nearly
+finished, not to make a late start survivable — a task abandoned at the ceiling
+spent the night's remaining time and produced nothing, whereas stopping early
+with a clean report is explicitly a success (§6).
 
 If the requested list runs out well before the cutoff, that is what §9 is for.
+
+### 8.4 At the deadline: finish or abandon
+
+08:00 stops you *starting* things. It does not throw away a task that is nearly
+done — an hour of finished work discarded at the last minute helps nobody, and
+on a per-task branch a completed task is worth having even when the run ends
+immediately afterwards.
+
+So at 08:00, put one question to the task in flight: **is what remains the
+ordinary steps of §2, or is it unknown?**
+
+**Run it to completion** when all of these hold:
+
+- the change is written — you are not still deciding what to do;
+- verification is green, or running and expected to be;
+- the `reviewer` pass has run, or there is room for it (4–7 minutes);
+- nothing is sitting in a verify → repair cycle with an unresolved failure.
+
+Then finish §2 steps 1–7 as normal: verify, review, act on the findings, record,
+commit, merge, push.
+
+**Abandon it** (§3) when any of those fails — still mid-implementation, an
+unresolved failure, or a reviewer finding that needs real work. Finishing from
+an unknown state is not finishing; it is starting something new against a clock,
+and that is how a rushed commit gets made at 08:20 with nobody awake to catch
+it.
+
+Two things are never traded for the clock:
+
+- **the reviewer pass.** Skipping it to make the deadline is weakening a control
+  to make something pass (§3), and unattended it is the only review the change
+  will ever get.
+- **a failing check.** The commit gate in §2.1 has no time-based exception.
+
+If either cannot be honoured in the time remaining, the answer is abandon, not
+hurry.
+
+**Discretionary work (§9) gets no overrun.** At 08:00 a visual task in flight is
+abandoned outright. The allowance exists for work someone actually asked for.
+
+### 8.5 The ceiling
+
+**08:30 is absolute.** Whatever is in flight is abandoned, however close it
+looks. "Nearly done" at 08:30 is the same sentence that was true at 08:00, and
+hearing it twice is evidence the estimate was wrong — not that another ten
+minutes will do it.
+
+Write the report and stop. A run that overruns its ceiling has stopped being an
+overnight run and become an unsupervised one that somebody is now waiting on.
+
+The report itself is never cut short for the clock. It is the deliverable, it
+takes minutes, and a run that ends without one has produced branches nobody can
+interpret.
 
 ---
 
