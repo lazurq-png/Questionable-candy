@@ -238,11 +238,14 @@ a clean exit does not mean an empty report. Read the output; do not report
 There is still **no** type checker, formatter or build step. Do not claim to
 have run one.
 
-CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): an ADR-guards job and a
-test job with a PostgreSQL service, on every push and pull request to `master`
-and `dev`. It runs on GitHub, not on your machine — you cannot observe its
-result from here, so never report a CI run as evidence. CI also checks migration
-drift with `makemigrations --check`, which `dev.py` deliberately does not.
+CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): ADR-guards, lint, and a
+test job with a PostgreSQL service and a Playwright browser, so `tests/e2e/`
+runs there too. It triggers on pull requests to `master` and `dev`, and on
+pushes to `master`, `dev` and `night-**` — the last for unattended runs, which
+push a branch per finished task. It runs on GitHub, not on your machine — you
+cannot observe its result from here, so never report a CI run as evidence. CI
+also checks migration drift with `makemigrations --check`, which `dev.py`
+deliberately does not.
 
 Browser verification is not interchangeable with the test suite: `django.test.Client`
 does not enforce CSRF, so a green suite has already coexisted with a page that
@@ -302,7 +305,10 @@ each. It is committed on the branch it describes, so the reasoning stays
 attached to the diff it explains.
 
 Unattended runs must maintain it; there is no conversation for a human to read
-afterwards, so these files are the entire record of what happened.
+afterwards, so these files are the entire record of what happened. Such a run
+spans several branches — one per task, plus an integration branch it merges and
+pushes each finished task onto (`.claude/skills/night-run/SKILL.md` §1.3, §2.6)
+— but keeps a single directory, named after the integration branch.
 
 ---
 
@@ -456,9 +462,17 @@ Use `.claude/skills/code-review/` for an adversarial review pass over a diff —
 see §13 for when to run it.
 
 Use `.claude/skills/night-run/` when this session is running unattended (no
-human available to answer). It defines the preflight, the branch and commit
-cadence, the durable state files, the forbidden operations, and the stop
-conditions for that mode. Do not improvise unattended operation without it.
+human available to answer). It defines the preflight, the branch-per-task and
+commit cadence, when a finished task's branch may be pushed and to where, the
+durable state files, the forbidden operations, the 08:00 Europe/Stockholm
+deadline and its wind-down, and the stop conditions for that mode. It also
+carries the single bounded exception to "do not invent work": once the requested
+list is done, §9 permits visual work under fixed constraints, with only the four
+properties that can actually be measured treated as verified.
+
+Do not improvise unattended operation without it — least of all the push rules,
+which are the only part of this repository's agent protocol that reaches another
+machine.
 
 `.claude/agents/reviewer.md` is the standing independent reviewer — see §8 and
 §13. Add further specialized subagents only if the task mix justifies them; a
