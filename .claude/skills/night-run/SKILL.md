@@ -1,6 +1,6 @@
 ---
 name: night-run
-description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions. Defines preflight, a branch per task pushed as each one finishes, durable state, forbidden operations, two deadlines (08:00 Europe/Stockholm and the session budget, whichever comes first) with the morning report reserved for on both, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, or when a session discovers mid-flight that nobody is there.
+description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions, including ones spanning several sessions. Defines preflight and how to resume a run already in progress, a branch per task pushed as each one finishes, durable state, forbidden operations, the 08:00 Europe/Stockholm deadline, a per-session budget reserve that protects the morning report or a handoff, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, resuming one, or when a session discovers mid-flight that nobody is there.
 ---
 
 # Unattended Run
@@ -33,9 +33,25 @@ is the finished, verified, reviewed task and nothing less.
 
 ## 1. Preflight
 
-Run these in order, before touching any code. If a step fails in a way the step
-does not tell you how to recover from, stop the run and write why to
-`docs/ai/<branch>/progress.md`.
+**First, establish which of two things is happening.** A run may span several
+sessions (§10), so the session you are in is not necessarily the run's first:
+
+```bash
+date '+%Y-%m-%d %H:%M'
+git branch --list 'night-*'
+ls -d docs/ai/night-*/ 2>/dev/null
+```
+
+- **Nothing matching, or only runs whose reports are written** → a new run.
+  Do §1.1–§1.6 in order.
+- **A branch and state directory exist for a run whose `progress.md` has no
+  morning report** → you are **resuming**. Go to §10.2, which does an
+  abbreviated preflight and picks up the plan. Do *not* run §1.3 or §1.5: the
+  branch and the state files already exist, and recreating them is how a run
+  loses its own history.
+
+Whichever it is, if a step fails in a way the step does not tell you how to
+recover from, stop and write why to `docs/ai/<branch>/progress.md`.
 
 ### 1.1 Database
 
@@ -120,6 +136,13 @@ fatal: cannot lock ref 'refs/heads/night-2026-09-15/t1-detail-page':
 Task branches are cut in §2 as each task starts, not up front: a task branch cut
 before the task before it has merged is cut from the wrong commit.
 
+**`<YYYY-MM-DD>` is the date the run *started*, and never changes.** An
+overnight run crosses midnight, so by the second session `date` disagrees with
+the branch name — a run begun at 22:00 on the 16th is still `night-2026-09-16`
+at 03:00 on the 17th. Take the date from the existing branch when resuming
+(§10.2), never from today's clock. Two directories for one night is the failure
+this prevents.
+
 ### 1.4 Remote
 
 Pushing is part of the loop now (§2.6), so establish up front whether it can
@@ -134,7 +157,8 @@ git ls-remote --heads origin "night-<YYYY-MM-DD>*"
 | ------ | ------ |
 | No remote configured | The run is local-only. Record it in `progress.md` and skip every push; this is not a failure. |
 | Remote reachable, no matching branches | Normal. Continue. |
-| Remote already has a branch in this run's namespace | **Stop the run.** Either a previous run of the same date is still live or someone else owns that name. Picking a different name unattended risks two agents writing to one namespace. |
+| Remote already has a branch in this run's namespace, **and you are resuming that run** (§10.2) | Expected — an earlier session pushed it. Confirm the remote tip is an ancestor of, or equal to, your local run branch (`git fetch origin && git merge-base --is-ancestor origin/night-<date> night-<date>`) and continue. |
+| Remote already has a branch in this run's namespace, **and you are starting a new run** | **Stop.** Either a run of the same date is still live elsewhere or someone else owns that name, and picking a different name unattended risks two agents writing to one namespace. |
 | Remote configured but unreachable | Continue local-only, record why. A network problem is not a reason to abandon work you can still do. |
 
 Do not create, delete or fetch anything else on the remote during preflight.
@@ -459,10 +483,12 @@ further, push nothing further, delete nothing:
 - **A fast-forward merge onto the run branch is refused** (§2.6). The run owns
   both branches, so a refusal means the model is wrong about who is writing to
   them.
-- **The wall clock reaches the deadline** (§8.2), **or the session budget does**
-  (§8.6) — whichever comes first. Neither discards the task in flight: §8.4
-  decides whether it runs to completion or is abandoned, and the ceilings —
-  08:30, or 4% of the starting budget — are what keep "finishing up" finite.
+- **The wall clock reaches the deadline** (§8.2). Neither this nor the budget
+  discards the task in flight: §8.4 decides whether it runs to completion or is
+  abandoned, and the 08:30 ceiling keeps "finishing up" finite.
+- **The session budget reaches its roundup threshold** (§8.6). This ends the
+  *session*, and only ends the *run* when this is the session that owes the
+  morning report — otherwise it hands off (§10.3) and a later session resumes.
 - **The task list is complete _and_ the discretionary work in §9 is done or has
   no time left.** Stopping early with a clean, documented result is a success.
   Outside §9's explicit bounds, do not invent work to fill the night —
@@ -482,11 +508,15 @@ unmerged one.
 
 ## 7. Morning report
 
-The run's last act. It begins when the last task ends — the list running out, a
-stop condition, or the deadline resolving the task in flight (§8.4) — and it is
-a summary at the top of `progress.md`.
+The **run's** last act, not a session's. It begins when the last task ends — the
+list running out, a stop condition, or the clock deadline resolving the task in
+flight (§8.4) — and it is a summary at the top of `progress.md`.
 
 It is the one thing never cut short for the clock (§8.5).
+
+A session that stops earlier, with 08:00 still ahead, writes the handoff of
+§10.3 instead — which must carry everything below, because it becomes this
+report if no further session runs.
 
 It is written as a task like any other — its own branch,
 `night-<YYYY-MM-DD>-t<N>-report`, merged and pushed — because the run branch
@@ -689,13 +719,42 @@ having plenty.
 
 #### The thresholds
 
-Proportions of the figure the run *started* with, with absolute floors, because
-a percentage of a small budget is not enough to write anything:
+Proportions of the figure **this session** started with, with absolute floors,
+because a percentage of a small budget is not enough to write anything:
 
 | Remaining | Rule |
 | --------- | ---- |
-| below 30%, or 150k — whichever is larger | **Roundup.** Start nothing new, and put the task in flight to §8.4's finish-or-abandon test, exactly as at 08:00. Then the report. |
-| below 4%, or 40k | **Ceiling.** Abandon whatever is in flight and write the report now. Mirrors 08:30. |
+| below 30%, or 150k — whichever is larger | **Roundup.** Start nothing new, and put the task in flight to §8.4's finish-or-abandon test, exactly as at 08:00. Then close out — with the morning report if this is the final session, otherwise the handoff of §10.3. |
+| below 4%, or 40k | **Ceiling.** Abandon whatever is in flight and close out now. Mirrors 08:30. |
+
+#### The 30% is only reserved when this session must write the report
+
+A run can span sessions (§10), so running low is not automatically the end of
+the run — usually it is the end of a *session*, and the next one resumes from
+the branch and the state files.
+
+**Apply the 30% reserve only when 08:00 falls inside this session's own window**
+— when this is the session that will still be alive at the clock deadline, and
+therefore the one that owes the morning report. Any earlier session reserves
+for a handoff instead, which is cheaper:
+
+| This session | Reserve | Closes with |
+| ------------ | ------- | ----------- |
+| will be alive at 08:00 | **30%** | the morning report (§7) |
+| will not | **10%**, floor 60k | the handoff (§10.3) |
+
+**You cannot query when your window ends, so do not pretend to.** The practical
+test is the clock:
+
+- **past 07:30**, or less than one task's length (§8.3) before 08:00 → treat
+  this as the final session. Reserve 30%.
+- **earlier than that** → assume another session can follow. Reserve 10%, hand
+  off, and stop.
+
+Being wrong about this is survivable *by construction*, because §10.3 requires
+the handoff to read as a morning report would. If no further session ever runs,
+the last handoff is what the morning finds, and it is still a true and complete
+account — just written earlier than expected.
 
 Two stages here where the clock has three, and the first is deliberately far
 more generous than its 07:30 equivalent. The asymmetry is the point: a run that
@@ -728,8 +787,10 @@ above cannot be applied at all. Fall back to proxies, which are deliberately
 stricter than the thresholds would be — being blind is a reason to stop earlier,
 not later — and say in the report that you were flying blind:
 
-- **Task count.** Five completed tasks is well past the measured shape of a run.
-  Round up there.
+- **Task count.** Five completed tasks is well past the measured shape of a
+  *session*. Round up **that session** there — which, before 07:30, means hand
+  off (§10.3) and let a fresh session continue, not end the run. Blind, this is
+  the only brake there is; it is not a limit on how much a run may do.
 - **Context compaction.** If the conversation has been summarised, older detail
   is already gone. That is both a budget signal and an accuracy one: quote
   `progress.md`, not your recollection.
@@ -856,3 +917,113 @@ ordering as "the defect this document closes, not a pattern to repeat".
 
 Write what was chosen and why into `decisions.md`, and raise the ADR itself as a
 question in `questions.md`, for a human to accept, amend or reject.
+
+---
+
+## 10. Running across sessions
+
+A night is longer than a session. A run may therefore be carried by several in
+succession, and nothing about the work changes when it is — the branch and
+`docs/ai/night-<YYYY-MM-DD>/` are the run, and a session is only who happens to
+be holding them.
+
+That is why §1.5 insists the state files are current before each commit. They
+were always the handover mechanism; across sessions they are the *only* one,
+because nothing of the conversation survives.
+
+### 10.1 What a session owes the next one
+
+Everything needed to continue without reconstructing anything:
+
+- the run branch, with every completed task merged and pushed;
+- `plan.md`, so the next session knows what was asked for and what is left;
+- `progress.md`, with the real verification output per task — not a summary of
+  it, because the next session cannot re-derive what it never saw;
+- `decisions.md` and `questions.md`, so settled choices are not re-litigated and
+  parked ones are not silently answered differently;
+- a **handoff** (§10.3) as the last entry.
+
+A session that ends without these has not paused the run; it has ended it, and
+left the next session to guess.
+
+### 10.2 Resuming
+
+Reached from §1 when a run branch and state directory exist with no morning
+report written. Do **not** re-run §1.3 or §1.5.
+
+```bash
+git branch --list 'night-*'              # the run's date comes from HERE
+git checkout night-<YYYY-MM-DD>          # existing branch; no -b
+git status --short                       # must be empty
+git log --oneline dev..HEAD              # what previous sessions landed
+```
+
+Take `<YYYY-MM-DD>` from the existing branch, never from today's clock — see
+§1.3 on crossing midnight.
+
+Then:
+
+1. **Read the state files before anything else**, `progress.md` last entry
+   first. That is the handoff, and it is the context you do not have.
+2. **Re-run the §1.1 database check and §1.2 drift check.** Hours may have
+   passed; the cluster may have stopped.
+3. **Re-run the baseline** (§1.6) against the run branch. A previous session
+   left it green, but that is a claim you are inheriting, not one you made.
+   Reconcile the lint score against the existing `lint-baseline.txt` rather than
+   overwriting it — the baseline belongs to the run, not the session.
+4. **Record a new starting clock and budget reading** (§1.5) under a fresh
+   session heading in `progress.md`. The budget percentages are proportions of
+   *this* session's starting figure, so each session needs its own denominator.
+5. **Check for work left in flight.** A previous session may have abandoned a
+   task and named its branch. Do not silently resume that branch: treat it as
+   the previous session left it, and pick it up only if `progress.md` says it
+   was abandoned for time or budget rather than for a failure. A task abandoned
+   after three failed repair cycles (§6) stays abandoned — the limit belongs to
+   the run, not the session, or it resets every time a session does.
+6. **Continue at §2 step 0** with the next task in `plan.md`.
+
+Commit the resume entry as part of the next task, as usual — the run branch
+moves only by fast-forward (§2 step 7).
+
+### 10.3 The handoff
+
+What a session writes instead of the morning report when it is stopping and
+08:00 is still ahead (§8.6). It is appended to `progress.md`, committed and
+pushed on a task branch of its own,
+`night-<YYYY-MM-DD>-t<N>-handoff`.
+
+It carries:
+
+- **Why this session stopped** — budget roundup, task count while blind, or a
+  stop condition. Say which.
+- **Where the run is** — the run branch, its tip, which tasks are done, which
+  remain in `plan.md`.
+- **Anything in flight** — the branch of an abandoned task, whether it was
+  abandoned for time or for a failure, and which.
+- **What the next session should do first**, in one sentence.
+- **Everything the morning report would have said** (§7).
+
+That last point is the whole design. **A handoff must read as a morning report,
+because it may turn out to be one.** If no further session runs — the machine
+slept, nobody started one, the window never reopened — this is what a person
+finds over breakfast. Write it for them, and the next session gets a good
+handoff for free.
+
+Never write "continuing shortly" or leave a sentence that only makes sense if
+another session arrives. Nothing here can promise that one will.
+
+### 10.4 The run is still one run
+
+Some limits belong to the run and must not reset when a session does:
+
+- **the three-cycle repair limit** (§6, `.claude/rules/debugging.md` §8) —
+  per failure, across the whole run;
+- **the clock** (§8.2) — 08:00 is 08:00 regardless of how many sessions have
+  passed;
+- **parked questions** (§4) — a later session does not get to answer one by
+  choosing differently; it inherits the decision and the `PROVISIONAL:` branch;
+- **discretionary work** (§9) — still only after every requested task is
+  finished, judged across the run, not this session's slice of it.
+
+The budget is the exception, and the only one: it is per session, because each
+session gets its own.
