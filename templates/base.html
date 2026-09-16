@@ -17,6 +17,15 @@ with enforce_csrf_checks=True.
 one is not recognised as a tag and is printed to the page as text.
 {% endcomment %}
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <header>
+        <nav aria-label="Site">
+            <a href="{% url 'candy_list' %}">Candy shop</a>
+            {% include "shop/partials/shoppingcart_link.html" %}
+        </nav>
+    </header>
+    {% include "shop/partials/announcer.html" %}
+    <main>
     {% block content %}{% endblock %}
+    </main>
 </body>
 </html>

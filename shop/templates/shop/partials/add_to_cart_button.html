@@ -10,6 +10,10 @@ type="button" matters: without it a button defaults to type="submit", so the
 day either page gains a form around it, the click would submit that form as
 well as firing the hx-post.
 {% endcomment %}
+{% if candy.stock %}
 <button hx-post="{% url 'add_to_shoppingcart' candy.id %}" hx-swap="outerHTML" type="button">
   Add to cart
 </button>
+{% else %}
+<button type="button" disabled>Out of stock</button>
+{% endif %}

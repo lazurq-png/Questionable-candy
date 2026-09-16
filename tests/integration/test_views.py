@@ -167,12 +167,30 @@ def test_catalog_hides_unpublished_candy(client):
 
 
 def test_an_unpublished_candy_cannot_be_added_to_the_cart(client):
-    """Otherwise a stale page or a guessed URL puts it in the cart anyway."""
+    """Otherwise a stale page or a guessed URL puts it in the cart anyway.
+
+    Refused with 200 and a message rather than 404: htmx does not swap a 4xx
+    response, so a 404 would leave the customer's click doing nothing visible.
+    """
     candy = CandyFactory(is_published=False)
 
     response = client.post(reverse("add_to_shoppingcart", args=[candy.id]))
 
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert b"no longer available" in response.content
+    assert client.session.get("shoppingcart", {}) == {}
+
+
+def test_a_deleted_candy_cannot_be_added_to_the_cart(client):
+    """The same refusal for a candy deleted since the page was loaded."""
+    candy = CandyFactory()
+    url = reverse("add_to_shoppingcart", args=[candy.id])
+    candy.delete()
+
+    response = client.post(url)
+
+    assert response.status_code == 200
+    assert b"no longer available" in response.content
     assert client.session.get("shoppingcart", {}) == {}
 
 

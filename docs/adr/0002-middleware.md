@@ -33,7 +33,7 @@ Chosen option: "Django built-in session-based authentication (SessionMiddleware 
 
 CSRF protection is the one part with coverage: `tests/integration/test_views.py` asserts that a POST without a token is rejected and that the catalog page supplies one, using `enforce_csrf_checks=True` because the default test client bypasses CSRF entirely.
 
-The cart is **not** attached to every request by middleware as this ADR's problem statement anticipated — `shop/views.py` reads and writes `request.session["shoppingcart"]` directly in the view. That is a smaller mechanism than the one described here, and it has been adequate so far; revisit if cart state is needed across many views.
+The cart is **not** attached to every request by middleware as this ADR's problem statement anticipated. `shop/cart.py` reads and writes `request.session["shoppingcart"]`, the cart views call it, and a context processor (`shop.context_processors.shoppingcart`) supplies the item count to every page's header. That is a smaller mechanism than the one described here, and it has been adequate so far; revisit if cart state needs more than the count on every request.
 
 Two cookie settings are enforced rather than assumed: `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` derive from `DEBUG`, so turning `DEBUG` off secures them without anyone having to remember, and `tests/unit/test_settings.py` fails if either is pinned to `False`. That test exists because `manage.py check --deploy` reports these only as warnings and `check` exits 0 on warnings — a validation stage built on it would pass without checking anything.
 

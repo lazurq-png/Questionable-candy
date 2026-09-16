@@ -1,0 +1,55 @@
+{% comment %}
+The cart itself, UC-04 steps 4-5 and ext. 4a. The whole section is the htmx
+target of every update and removal, so the totals can never disagree with the
+lines above them.
+
+Each form has a real action and method as well as hx-post, so it still works
+without JavaScript; the view redirects those back here.
+
+No min/max on the quantity input, deliberately: htmx runs the browser's form
+validation before posting, so a max would stop an over-stock quantity in the
+browser with a native tooltip, and the server's cap and its message (UC-04
+ext. 2a) would never be reached or shown.
+{% endcomment %}
+<section id="cart" data-testid="shoppingcart">
+  <div data-testid="shoppingcart-messages">
+    {% for notice in cart_notices %}<p>{{ notice }}</p>{% endfor %}
+    {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+  </div>
+  {% if lines %}
+    <ul>
+      {% for line in lines %}
+        <li data-testid="shoppingcart-line">
+          <a href="{% url 'candy_detail' line.candy.pk %}">{{ line.candy.name }}</a>
+          <span>${{ line.candy.price }} each</span>
+          <form method="post" action="{% url 'update_shoppingcart' line.candy.pk %}"
+                hx-post="{% url 'update_shoppingcart' line.candy.pk %}" hx-target="#cart" hx-swap="outerHTML">
+            {% csrf_token %}
+            <label for="quantity-{{ line.candy.pk }}">Quantity of {{ line.candy.name }}</label>
+            <input id="quantity-{{ line.candy.pk }}" name="quantity" type="number" inputmode="numeric" value="{{ line.quantity }}">
+            <button type="submit" id="update-{{ line.candy.pk }}" aria-label="Update quantity of {{ line.candy.name }}">Update</button>
+          </form>
+          <span data-testid="shoppingcart-line-total">${{ line.total }}</span>
+          <form method="post" action="{% url 'remove_from_shoppingcart' line.candy.pk %}"
+                hx-post="{% url 'remove_from_shoppingcart' line.candy.pk %}" hx-target="#cart" hx-swap="outerHTML">
+            {% csrf_token %}
+            <button type="submit" aria-label="Remove {{ line.candy.name }}">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+    <p>Total: <span data-testid="shoppingcart-total">${{ total }}</span></p>
+  {% else %}
+    <p data-testid="shoppingcart-empty">Your cart is empty.</p>
+    <p><a href="{% url 'candy_list' %}">Browse the candy</a></p>
+  {% endif %}
+</section>
+{% comment %}
+Swapping #cart replaces the button that was just pressed. htmx restores focus
+to the element with the same id after the swap, which is why Update carries
+one; a removed line's Remove button has nothing left to return focus to.
+{% endcomment %}
+{% if oob %}
+{% include "shop/partials/shoppingcart_link.html" with oob=True %}
+{% include "shop/partials/announcer.html" with oob=True announcement=cart_notices|join:" " %}
+{% endif %}

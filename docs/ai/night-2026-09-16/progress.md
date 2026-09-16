@@ -114,3 +114,70 @@
   2. `image` had been written into the *target* Candy table and ADR 0004 still
      said no image field existed; moved to the gap table as interim, ADR
      sentence updated.
+
+### T3 — Cart (UC-04) — complete
+
+- **Branch:** `night-2026-09-16-t3-cart`. Clock at start 14:57; budget
+  14,892,363.
+- **Changed:**
+  - `shop/cart.py`: the session cart's rules (decisions.md D3):
+    - only published candy can be in the cart;
+    - quantities are capped at stock;
+    - entries deleted, unpublished or sold out since they were added are
+      dropped or capped when the cart is viewed, with a notice;
+    - corrupt session data is ignored.
+  - `shop/forms.py`: `QuantityForm` validates the posted quantity.
+  - Views and URLs: `shoppingcart/` (page), `shoppingcart/<pk>/update/`,
+    `shoppingcart/<pk>/remove/`. POST only, CSRF enforced. htmx gets the cart
+    partial; a plain form post redirects back with its notice (works without JS).
+  - Add-to-cart:
+    - refuses over-stock, out-of-stock and no-longer-available candy with 200
+      and a message (D4);
+    - the catalog shows a disabled "Out of stock" button;
+    - the header cart count updates out of band.
+  - `base.html`: `<header>`/`<nav>` with the cart link, `<main>`, and one
+    persistent live region, filled out of band (D5).
+  - `shop.context_processors.shoppingcart` in settings; ADR 0002's cart note
+    updated.
+- **Tests added:**
+  - Integration (24, CSRF enforced, token from a real page): add within stock,
+    over stock, out of stock; catalog out-of-stock button; cart lines, quantities,
+    line totals and total; empty cart; set, cap, and five invalid quantities;
+    update for a candy not in the cart; update after a sell-out; update after
+    unpublishing (reported once); remove to empty with count 0; stale unpublished
+    and deleted entries; stock lowered since; no-JS redirect with notice; 403
+    without token; 405 on GET; corrupt session.
+  - Plus a deleted-candy add test in `test_views.py`; T1's unpublished-add test
+    now asserts 200 + message + unchanged session instead of 404 (D4).
+  - e2e (5): add updates the header and fills the cart; quantity change updates
+    totals, keeps focus on Update, caps at stock with the message visible and in
+    the live region; remove to the empty state; refused add of the last one
+    (message and live region); out-of-stock catalog button.
+- **Negative controls:**
+  - Disabling the cap failed 2 tests.
+  - Disabling the add's stock check failed 1.
+  - Disabling stale cleanup failed 1.
+  - Removing the Update button's id failed the focus assertion.
+  - All restored byte-for-byte.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 151 passed, coverage 96%
+    (`cart.py`, `forms.py`, `views.py`, `context_processors.py` 100%).
+  - `python scripts/dev.py lint` exit 0 — 9.72/10, no messages beyond the
+    baseline; two baseline messages fixed along the way.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0 (no model change).
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved with four low findings, all acted on:
+  1. A stale add did nothing visible; it now answers 200 with a message, and the
+     double notice on update is gone.
+  2. Announcements came from freshly swapped regions; replaced by one persistent
+     live region, and focus is kept after Update.
+  3. Hand-parsed input in `cart.py`; moved to `QuantityForm`, D3 recorded.
+  4. One e2e test lacked `assert_page_is_fully_rendered`; added.
+
+  Second review of the fixes: approved, no new defects, the test status change
+  judged legitimate.
+- **Remaining, known:** after Remove, keyboard focus falls back to the page
+  (there is no button left to return to). Fixing it needs JavaScript or
+  restructuring the swap, neither in this task's bounds. Whether a screen reader
+  actually speaks the live region is unverified; only its text change is tested.
