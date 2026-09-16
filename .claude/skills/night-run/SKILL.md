@@ -694,9 +694,18 @@ a percentage of a small budget is not enough to write anything:
 
 | Remaining | Rule |
 | --------- | ---- |
-| below 15%, or 150k — whichever is larger | Start no new task. Mirrors 07:30. |
-| below 8%, or 80k | **Budget deadline.** §8.4's finish-or-abandon test, exactly as at 08:00. |
+| below 30%, or 150k — whichever is larger | **Roundup.** Start nothing new, and put the task in flight to §8.4's finish-or-abandon test, exactly as at 08:00. Then the report. |
 | below 4%, or 40k | **Ceiling.** Abandon whatever is in flight and write the report now. Mirrors 08:30. |
+
+Two stages here where the clock has three, and the first is deliberately far
+more generous than its 07:30 equivalent. The asymmetry is the point: a run that
+misjudges the clock writes its report late, which costs a reader nothing much,
+while a run that misjudges the budget cannot write one at all. Those are not
+comparable mistakes, so the budget buys its margin early and in one step rather
+than trimming it in two.
+
+The band between 30% and 4% is the room to *finish* in — begin rounding up at
+the first, be done by the second.
 
 Measured on the 2026-09-15 run, as the only data that exists so far: the whole
 run — preflight, three tasks each with a `reviewer` dispatch, and the report —
@@ -714,13 +723,16 @@ write it with.
 
 #### When no figure is visible
 
-If the harness surfaces nothing, fall back to proxies and say in the report that
-you were flying blind:
+If the harness surfaces nothing, there is no denominator and the percentages
+above cannot be applied at all. Fall back to proxies, which are deliberately
+stricter than the thresholds would be — being blind is a reason to stop earlier,
+not later — and say in the report that you were flying blind:
 
-- **Task count.** Five completed tasks is well past the measured shape of a run;
-  treat it as approaching the first threshold.
+- **Task count.** Five completed tasks is well past the measured shape of a run.
+  Round up there.
 - **Context compaction.** If the conversation has been summarised, older detail
-  is already gone. That is both a budget signal and an accuracy one.
+  is already gone. That is both a budget signal and an accuracy one: quote
+  `progress.md`, not your recollection.
 
 #### Why the state files are the defence
 
@@ -736,6 +748,7 @@ taken the verification output it needed to quote.
 Under a tight budget the report may be terse. **A short accurate report is a
 success; no report is not.** Cut the prose, never the facts: what landed, which
 branches, what was actually verified, what was left undone.
+
 ---
 
 ## 9. Discretionary work: the visual layer
