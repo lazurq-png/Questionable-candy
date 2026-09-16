@@ -1,6 +1,6 @@
 ---
 name: night-run
-description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions. Defines preflight, a branch per task pushed as each one finishes, durable state, forbidden operations, the 08:00 Europe/Stockholm deadline, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, or when a session discovers mid-flight that nobody is there.
+description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions. Defines preflight, a branch per task pushed as each one finishes, durable state, forbidden operations, two deadlines (08:00 Europe/Stockholm and the session budget, whichever comes first) with the morning report reserved for on both, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, or when a session discovers mid-flight that nobody is there.
 ---
 
 # Unattended Run
@@ -154,6 +154,12 @@ Write `plan.md` before the first code change.
 after a task branch. It is committed on each task branch as that task updates
 it, and reaches the run branch when the task merges. Splitting it per task would
 scatter the record across branches that a reader has to find first.
+
+**Record two starting readings in `progress.md` before the first task**: the
+wall clock (§8.1) and the session budget figure the harness reports (§8.6).
+The budget thresholds are proportions of where the run started, so without the
+starting figure written down there is no denominator — and by the time it
+matters, the message that carried it may have been summarised away.
 
 ### 1.6 Baseline
 
@@ -453,9 +459,10 @@ further, push nothing further, delete nothing:
 - **A fast-forward merge onto the run branch is refused** (§2.6). The run owns
   both branches, so a refusal means the model is wrong about who is writing to
   them.
-- **The wall clock reaches the deadline** (§8.2). This one does not discard the
-  task in flight: §8.4 decides whether it runs to completion or is abandoned,
-  and §8.5's 08:30 ceiling is what keeps "finishing up" finite.
+- **The wall clock reaches the deadline** (§8.2), **or the session budget does**
+  (§8.6) — whichever comes first. Neither discards the task in flight: §8.4
+  decides whether it runs to completion or is abandoned, and the ceilings —
+  08:30, or 4% of the starting budget — are what keep "finishing up" finite.
 - **The task list is complete _and_ the discretionary work in §9 is done or has
   no time left.** Stopping early with a clean, documented result is a success.
   Outside §9's explicit bounds, do not invent work to fill the night —
@@ -492,8 +499,11 @@ push outcomes that the per-task entries could not contain get filled in.
   **built and measured, not reviewed**, with the before/after screenshot paths
   and the §9.4 checks that passed. Never phrased so a reader could think the
   design was looked at
-- **Clock** — the reading at each task boundary, and which §8.2 checkpoint ended
-  the run
+- **Clock and budget** — the readings at each task boundary, the two starting
+  figures from §1.5, and **which deadline ended the run**: the clock, the
+  budget, the task list, or a stop condition. A reader who knows the run ended
+  on budget at 04:00 reads the rest of the report differently from one who
+  thinks it finished everything it meant to
 - **Provisional** — what was built on a parked assumption, which question, and
   the branch it is on (pushed, deliberately unmerged — §2.6)
 - **Abandoned** — task, why, what was needed, and the local branch it is on
@@ -514,12 +524,19 @@ is a lie the morning will act on.
 
 ---
 
-## 8. The clock
+## 8. Deadlines: the clock and the budget
 
-The run ends at **08:00 Europe/Stockholm**, whatever state the work is in. The
-point is not the hour; it is that someone will read the result over breakfast,
-and a run still mid-task at that moment hands them a half-finished branch and no
-report.
+The run has **two** deadlines and ends at whichever arrives first:
+
+- **the clock** — 08:00 Europe/Stockholm (§8.1–§8.3), because someone will read
+  the result over breakfast, and a run still mid-task at that moment hands them
+  a half-finished branch and no report;
+- **the session budget** (§8.6), because a run that spends its last tokens on a
+  commit leaves exactly the same thing: branches nobody can interpret.
+
+Both resolve the same way — §8.4 decides whether the task in flight finishes or
+is abandoned, and §8.5's ceiling keeps that finite. The morning report is not
+what you do with whatever is left over; it is reserved for, on both axes.
 
 ### 8.1 Reading the clock — do not use `TZ`
 
@@ -560,15 +577,19 @@ powershell -NoProfile -Command "[System.TimeZoneInfo]::ConvertTimeFromUtc([DateT
 
 ### 8.2 The checkpoints
 
-Check the clock at every task boundary — §2 step 0, before cutting a branch —
-and record the reading in `progress.md` with that task.
+Check the clock **and the budget** (§8.6) at every task boundary — §2 step 0,
+before cutting a branch — and record both readings in `progress.md` with that
+task.
 
-**After 07:00, also check it at the seams inside a task**: when a verification
+**After 07:00, also check them at the seams inside a task**: when a verification
 run finishes, before starting a repair cycle, and before dispatching the
 `reviewer`. Those are already pauses, so a check there costs nothing — and a
 threshold you can only observe at a task boundary cannot fire during the task it
 is meant to govern. Do not check in the middle of a verify cycle; interrupting
 one tells you less and takes longer.
+
+The table below is the clock. §8.6 has the budget's, with the same three stages;
+whichever threshold is reached first governs.
 
 | From  | Rule |
 | ----- | ---- |
@@ -645,6 +666,76 @@ The report itself is never cut short for the clock. It is the deliverable, it
 takes minutes, and a run that ends without one has produced branches nobody can
 interpret.
 
+### 8.6 The budget
+
+The clock is not the only thing that runs out. A session has a finite budget,
+and spending the last of it on a commit produces the failure the deadline exists
+to prevent: work that landed, and no report saying what it was or whether it
+passed.
+
+**The report is reserved for, not left over.**
+
+#### Reading it
+
+The harness surfaces a remaining figure in a system reminder, of the form
+`<total_tokens>N tokens left</total_tokens>`. It decrements across the run — an
+unattended run is effectively one long turn — so it is a real gauge rather than
+a per-message reading.
+
+Read it at the same points as the clock (§8.2): every task boundary, and after
+07:00 at the seams inside a task. **Read it; do not estimate it.** The whole
+problem with budget is that the feeling of having plenty is uncorrelated with
+having plenty.
+
+#### The thresholds
+
+Proportions of the figure the run *started* with, with absolute floors, because
+a percentage of a small budget is not enough to write anything:
+
+| Remaining | Rule |
+| --------- | ---- |
+| below 15%, or 150k — whichever is larger | Start no new task. Mirrors 07:30. |
+| below 8%, or 80k | **Budget deadline.** §8.4's finish-or-abandon test, exactly as at 08:00. |
+| below 4%, or 40k | **Ceiling.** Abandon whatever is in flight and write the report now. Mirrors 08:30. |
+
+Measured on the 2026-09-15 run, as the only data that exists so far: the whole
+run — preflight, three tasks each with a `reviewer` dispatch, and the report —
+cost roughly **195k tokens**. Preflight was around 80k of that, because it
+carries the fixed cost of the system prompt and `AGENTS.md`; each task ran
+40–55k; the report itself 10–15k. Subagent usage is billed separately and does
+not draw down this figure at the same rate — the reviewer reported 60–80k of its
+own while the parent moved far less.
+
+**In that run the budget was never close to binding.** It started at 15,000,000
+and used about 1.3%; the clock was the constraint throughout. So do not
+contort the night around this — but do check it, because the one run that ends
+early for budget is the one that most needs a report and will have least left to
+write it with.
+
+#### When no figure is visible
+
+If the harness surfaces nothing, fall back to proxies and say in the report that
+you were flying blind:
+
+- **Task count.** Five completed tasks is well past the measured shape of a run;
+  treat it as approaching the first threshold.
+- **Context compaction.** If the conversation has been summarised, older detail
+  is already gone. That is both a budget signal and an accuracy one.
+
+#### Why the state files are the defence
+
+`progress.md` is what makes the report cheap enough to write from a nearly-empty
+budget. Kept current — the entry written on the task branch before each commit
+(§2 step 5) — the report is assembled from files and `git log`, not from memory.
+
+That matters most precisely when memory is the thing running out. A run whose
+records are current can still produce an accurate report on its last tokens; a
+run that was holding it all in context cannot, and compaction will have quietly
+taken the verification output it needed to quote.
+
+Under a tight budget the report may be terse. **A short accurate report is a
+success; no report is not.** Cut the prose, never the facts: what landed, which
+branches, what was actually verified, what was left undone.
 ---
 
 ## 9. Discretionary work: the visual layer

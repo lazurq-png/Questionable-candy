@@ -464,9 +464,12 @@ see §13 for when to run it.
 Use `.claude/skills/night-run/` when this session is running unattended (no
 human available to answer). It defines the preflight, the branch-per-task and
 commit cadence, when a finished task's branch may be pushed and to where, the
-durable state files, the forbidden operations, the 08:00 Europe/Stockholm
-deadline — at which a nearly-finished task runs to completion rather than being
-discarded, bounded by an 08:30 ceiling — and the stop conditions for that mode. It also
+durable state files, the forbidden operations, two deadlines — 08:00
+Europe/Stockholm and the session budget, whichever comes first, at which a
+nearly-finished task runs to completion rather than being discarded, each
+bounded by a ceiling — and the stop conditions for that mode. The morning report
+is reserved for on both axes, because a run that spends its last tokens on a
+commit leaves branches nobody can interpret. It also
 carries the single bounded exception to "do not invent work": once the requested
 list is done, §9 permits visual work under fixed constraints, with only the four
 properties that can actually be measured treated as verified.
