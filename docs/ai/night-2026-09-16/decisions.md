@@ -85,3 +85,71 @@ the element must already exist.
 - An e2e test asserts the live region's text changes. Whether a screen reader
   actually speaks it has **not** been verified; no assistive technology is
   available to the run.
+
+## D6. Visual reference: Pico CSS's look, rebuilt by hand
+
+Research: read-only, about five minutes of the ~30 granted, 15:20–15:25.
+Candidates, with what each needs to run:
+
+| Candidate | URL | License | Needs | Verdict |
+| --------- | --- | ------- | ----- | ------- |
+| Cartzio (fashion store) | https://adminlte.io/blog/django-website-templates/ | paid | Tailwind v4, build | rejected: Tailwind, build, paid |
+| Ecommerce Marketplace Template | https://github.com/Zadigo/ecommerce_marketplace_template | not stated | Bootstrap | rejected: Bootstrap |
+| django-oscar storefront | https://github.com/django-oscar/django-oscar | BSD | Bootstrap (sandbox "built with Twitter's Bootstrap") | rejected: Bootstrap |
+| Saleor storefront | https://adminlte.io/blog/django-website-templates/ | BSD | GraphQL + Next.js | rejected: React/Next build |
+| CodeRed CMS, Vany, Incrave, Cuba, Vuexy | same list | free/paid | Bootstrap 5, build | rejected: Bootstrap |
+| daisyUI, Flowbite, FlyonUI, SaaS Pegasus, Apex/Zenith (Tailwind + HTMX) | same list | MIT/paid | Tailwind, build | rejected: Tailwind |
+| Wagtail bakerydemo | https://github.com/wagtail/bakerydemo | BSD-3 | Wagtail; front-end tooling config, CSS approach not stated | rejected: a CMS, and its CSS approach could not be confirmed from the page |
+| **Pico CSS** | https://picocss.com/docs/color-schemes, https://picocss.com/docs/css-variables | MIT | nothing: plain CSS, no build | **chosen as the reference** |
+
+Every Django-specific template on the lists found needs Bootstrap, Tailwind or
+a JS build, which the stack rules out. Pico is not a Django template, but it is
+what those sites' clean, card-based storefront look reduces to, and it runs on
+plain CSS.
+
+What was taken is the *look*: system font stack, generous spacing, quiet
+bordered cards, one accent colour. Also the *mechanism* the human had already
+settled: `data-theme` on `<html>` overriding `prefers-color-scheme`. **No Pico
+code, variable names or values were copied.** The palette is this site's own
+(a candy magenta/pink accent), chosen to pass the contrast check in both
+themes.
+
+## D7. Styling conventions set by T5
+
+- **One stylesheet**, `shop/static/shop/site.css`, loaded from `base.html` via
+  `{% static %}` (night-run §9.3). Colours are custom properties; the dark
+  values are written twice, once under the media query (system) and once for
+  `[data-theme="dark"]` (toggle), because CSS cannot share a rule block
+  between a media query and an attribute selector without a preprocessor.
+- **Theme JavaScript** is `shop/static/shop/theme.js` (the toggle) plus a
+  six-line inline script in `<head>` that applies a stored choice before first
+  paint. No Alpine: the toggle needs no reactivity, and vanilla keeps the theme
+  working if the Alpine CDN is slow.
+- **No-JS behaviour:** the toggle ships `hidden` and is revealed by theme.js;
+  without it the page still follows the system setting. `[hidden]` is forced
+  to `display: none !important`, because the toggle's own `display` rule had
+  beaten the browser's default and shown the hidden button (caught by an e2e
+  test).
+- **No "back to system" control.** Once toggled, the stored choice wins until
+  toggled again; clearing it needs clearing site data. Raised as Q3.
+- **The sun/moon glyph** is CSS generated content with empty alt text
+  (`content: "..." / ""`), so the button is named "Dark theme", not
+  "☼ Dark theme" (a test asserts the name). Below 30rem only the glyph shows;
+  the label stays in the accessibility tree.
+- **Markup changes beyond adding classes**, none touching an element with a
+  `data-testid`, role or heading:
+  - the catalog price is wrapped in a `<span>` and the " — " separator
+    dropped;
+  - the toggle's label is a `<span>` inside its button;
+  - `base.html` gained a `main_class` block;
+  - `announcer.html`'s inline style became the `.visually-hidden` class.
+  - A wrapper `<div>` briefly added around the empty-cart message was taken
+    out again, because it moved a `data-testid` element.
+- **Standalone links are controls.** Candy names on cards and cart lines and
+  `.page-actions` links get a 44px tap box. The first version measured only
+  buttons, inputs and header links; the reviewer found the body links at
+  about 24px high, masked in the test by a long candy name that wrapped. The
+  check now covers every link in `main`, and the fixture includes a one-word
+  name.
+- **Two columns on phones** (from `minmax(9.5rem, 1fr)`), wider cards from
+  48rem. One card per screen made 22 candies a very long scroll.

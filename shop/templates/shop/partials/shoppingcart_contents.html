@@ -12,36 +12,36 @@ browser with a native tooltip, and the server's cap and its message (UC-04
 ext. 2a) would never be reached or shown.
 {% endcomment %}
 <section id="cart" data-testid="shoppingcart">
-  <div data-testid="shoppingcart-messages">
+  <div data-testid="shoppingcart-messages" class="notices">
     {% for notice in cart_notices %}<p>{{ notice }}</p>{% endfor %}
     {% for message in messages %}<p>{{ message }}</p>{% endfor %}
   </div>
   {% if lines %}
-    <ul>
+    <ul class="cart-lines">
       {% for line in lines %}
-        <li data-testid="shoppingcart-line">
-          <a href="{% url 'candy_detail' line.candy.pk %}">{{ line.candy.name }}</a>
-          <span>${{ line.candy.price }} each</span>
-          <form method="post" action="{% url 'update_shoppingcart' line.candy.pk %}"
+        <li data-testid="shoppingcart-line" class="cart-line">
+          <a href="{% url 'candy_detail' line.candy.pk %}" class="cart-line-name">{{ line.candy.name }}</a>
+          <span class="cart-line-unit">${{ line.candy.price }} each</span>
+          <form method="post" class="cart-line-quantity" action="{% url 'update_shoppingcart' line.candy.pk %}"
                 hx-post="{% url 'update_shoppingcart' line.candy.pk %}" hx-target="#cart" hx-swap="outerHTML">
             {% csrf_token %}
             <label for="quantity-{{ line.candy.pk }}">Quantity of {{ line.candy.name }}</label>
             <input id="quantity-{{ line.candy.pk }}" name="quantity" type="number" inputmode="numeric" value="{{ line.quantity }}">
             <button type="submit" id="update-{{ line.candy.pk }}" aria-label="Update quantity of {{ line.candy.name }}">Update</button>
           </form>
-          <span data-testid="shoppingcart-line-total">${{ line.total }}</span>
-          <form method="post" action="{% url 'remove_from_shoppingcart' line.candy.pk %}"
+          <span data-testid="shoppingcart-line-total" class="cart-line-total">${{ line.total }}</span>
+          <form method="post" class="cart-line-remove" action="{% url 'remove_from_shoppingcart' line.candy.pk %}"
                 hx-post="{% url 'remove_from_shoppingcart' line.candy.pk %}" hx-target="#cart" hx-swap="outerHTML">
             {% csrf_token %}
-            <button type="submit" aria-label="Remove {{ line.candy.name }}">Remove</button>
+            <button type="submit" class="button-secondary" aria-label="Remove {{ line.candy.name }}">Remove</button>
           </form>
         </li>
       {% endfor %}
     </ul>
-    <p>Total: <span data-testid="shoppingcart-total">${{ total }}</span></p>
+    <p class="cart-total">Total: <span data-testid="shoppingcart-total">${{ total }}</span></p>
   {% else %}
-    <p data-testid="shoppingcart-empty">Your cart is empty.</p>
-    <p><a href="{% url 'candy_list' %}">Browse the candy</a></p>
+    <p data-testid="shoppingcart-empty" class="empty-state">Your cart is empty.</p>
+    <p class="page-actions"><a href="{% url 'candy_list' %}">Browse the candy</a></p>
   {% endif %}
 </section>
 {% comment %}

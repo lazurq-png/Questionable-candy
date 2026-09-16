@@ -2,4 +2,4 @@
 The header's cart link. With oob, htmx swaps it into place out of band, so the
 count follows every add, update and removal without reloading the page.
 {% endcomment %}
-<a href="{% url 'shoppingcart' %}" id="shoppingcart-link" data-testid="shoppingcart-link"{% if oob %} hx-swap-oob="true"{% endif %}>Cart (<span data-testid="shoppingcart-count">{{ shoppingcart_count }}</span>)</a>
+<a href="{% url 'shoppingcart' %}" id="shoppingcart-link" class="site-cart" data-testid="shoppingcart-link"{% if oob %} hx-swap-oob="true"{% endif %}>Cart (<span data-testid="shoppingcart-count">{{ shoppingcart_count }}</span>)</a>

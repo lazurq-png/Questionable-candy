@@ -1,9 +1,28 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
     <title>{% block title %}Candy shop{% endblock %}</title>
+    {% comment %}
+    Before the stylesheet, and inline, so a theme the visitor chose is on <html>
+    before anything is painted -- otherwise a dark choice flashes light on every
+    page load. With no stored choice it does nothing and site.css follows the
+    system setting. theme.js holds the toggle itself.
+    {% endcomment %}
+    <script>
+        (function () {
+            try {
+                var theme = window.localStorage.getItem("theme");
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                }
+            } catch (error) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'shop/site.css' %}">
+    <script defer src="{% static 'shop/theme.js' %}"></script>
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
@@ -17,14 +36,15 @@ with enforce_csrf_checks=True.
 one is not recognised as a tag and is printed to the page as text.
 {% endcomment %}
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <header>
-        <nav aria-label="Site">
-            <a href="{% url 'candy_list' %}">Candy shop</a>
+    <header class="site-header">
+        <nav aria-label="Site" class="site-nav">
+            <a href="{% url 'candy_list' %}" class="site-brand">Candy shop</a>
+            <button type="button" class="theme-toggle" data-theme-toggle data-testid="theme-toggle" aria-pressed="false" hidden><span class="theme-toggle-label">Dark theme</span></button>
             {% include "shop/partials/shoppingcart_link.html" %}
         </nav>
     </header>
     {% include "shop/partials/announcer.html" %}
-    <main>
+    <main class="site-main {% block main_class %}{% endblock %}">
     {% block content %}{% endblock %}
     </main>
 </body>

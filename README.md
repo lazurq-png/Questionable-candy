@@ -24,7 +24,9 @@ at 0.2.
 | Database      | PostgreSQL                                                 |
 | Tests         | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
 
-No CSS has been written yet. CI runs the ADR guards and the test suite on every
+Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
+and dark themes that follow the system setting and a toggle to override it;
+no CSS framework or build step. CI runs the ADR guards and the test suite on every
 push and pull request to `master` and `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it

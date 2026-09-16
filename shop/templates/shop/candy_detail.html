@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{{ candy.name }} — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
 {% block content %}
 <h1>{{ candy.name }}</h1>
 
-<img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="240" height="240" data-testid="candy-image">
+<img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="240" height="240" data-testid="candy-image" class="candy-detail-image">
 
-<p data-testid="candy-price">${{ candy.price }}</p>
+<p data-testid="candy-price" class="candy-price">${{ candy.price }}</p>
 
 <p data-testid="candy-description">{{ candy.description }}</p>
 
@@ -19,7 +20,7 @@ Before the add-to-cart button, deliberately: UC-06's success guarantee is that
 every detail view shows a flaw, which is worth little if the customer has
 already clicked past it.
 {% endcomment %}
-<section data-testid="candy-flaw">
+<section data-testid="candy-flaw" class="flaw">
   <h2>Known flaw</h2>
   <p>{{ candy.flaw }}</p>
 </section>
@@ -31,5 +32,5 @@ UC-03 step 3: the customer returns to the catalog or adds to the cart, so both
 ways out are on the page. A plain link rather than history.back() -- the detail
 page is reachable by its own URL, not only by having come from the catalog.
 {% endcomment %}
-<p><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+<p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
 {% endblock %}

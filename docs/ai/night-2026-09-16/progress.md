@@ -215,3 +215,93 @@
   - `lint:workflows` not run: no workflow changed.
 - **Review:** reviewer approved with one low finding: the changelist assertion
   matched the list filter's links too. Fixed and negative-controlled as above.
+
+### T5 — Professional interface, light and dark themes (UC-01) — complete
+
+**Built and measured, not reviewed by a person.** Nothing here says the pages
+look good; that needs a human looking at the screenshots below.
+
+- **Branch:** `night-2026-09-16-t5-interface-themes`. Clock at start 15:20;
+  budget 14,821,220.
+- **a. Research** (15:20–15:25, read-only): all Django storefront templates
+  found need Bootstrap, Tailwind or a JS build. Pico CSS (MIT, plain CSS) chosen
+  as the visual reference and re-implemented; no code copied (decisions.md D6).
+- **b. Before screenshots:** `screenshots/before/` — catalog, detail, cart,
+  empty cart, no-longer-available, at 375px and 1280px (10 JPEGs).
+- **c. CSS:** `shop/static/shop/site.css`, hand-written:
+  - custom properties for both themes, mobile-first;
+  - catalog card grid, two across on phones;
+  - detail page with a flaw callout;
+  - cart lines, notices, empty states, sticky header.
+  - Templates gained classes only, plus the additions listed in D7; nothing
+    with a `data-testid`, role or heading moved.
+- **d. Theme** (D7):
+  - CSS follows `prefers-color-scheme` when nothing is stored.
+  - `theme.js` toggle: a real button named "Dark theme", `aria-pressed`,
+    `data-theme` on `<html>`, localStorage.
+  - An inline `<head>` script applies a stored choice before paint.
+  - The button is hidden without JS; icon-only on phones.
+  - README's "No CSS has been written yet" corrected.
+- **e. Tests** (`tests/e2e/test_theme.py`, 11):
+  - The four measurable checks on the empty catalog, catalog, catalog after
+    adding, detail, empty cart, cart with a notice, and no-longer-available, at
+    375px:
+    - no horizontal overflow;
+    - the header on one row;
+    - buttons, inputs and every link in the header and `main` ≥ 44×44;
+    - text contrast ≥ 4.5:1 against the composited painted background;
+    - fully rendered.
+  - Those checks run for the system light and dark themes and for a stored
+    override in each direction.
+  - Theme behaviour: the system decides with nothing stored; an OS switch
+    applies live; the toggle overrides and survives a reload both ways; the
+    head script applies a stored choice even with `theme.js` blocked (and the
+    toggle stays hidden); the icon is not part of the button's name.
+  - The contrast checker reports a page with nothing painted behind the text.
+- **f. After screenshots:** `screenshots/after/`, both themes, both widths (20
+  JPEGs, retaken after the last CSS change).
+- **g.** No ADR written; raised as Q2. Also raised: Q3 (no "back to system"
+  control), Q4 (ADRs 0001 and 0006 and night-run §9 still say no CSS exists).
+- **Negative controls:** each restored byte-for-byte afterwards.
+  - Muted text at 1.37:1 failed contrast.
+  - `--tap: 2rem` failed tap targets (139×40).
+  - A 30rem card failed overflow (121px).
+  - No painted background failed.
+  - Allowing wrap failed the header check (3 rows).
+  - The card name without its tap box failed ("Taffy" 138×25).
+  - Low contrast in only the toggle-set dark copy failed (1.30:1).
+  - A positive control that passed — hiding the phone label with `nowrap`
+    kept — showed the label was not the cause of the wrap; the control was
+    redone against the real cause.
+- **Found by the tests during the task:**
+  - `.theme-toggle`'s `display` overrode `[hidden]`, showing a dead button
+    without JS.
+  - The CSS glyph leaked into the button's accessible name.
+  - The phone header wrapped "Cart (" / "0)".
+  - All fixed.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 169 passed, coverage 97%.
+  - `python scripts/dev.py lint` exit 0 — 9.77/10, no messages beyond the
+    baseline (two new refactor messages from a six-argument test were fixed).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** the reviewer requested changes:
+  1. **Medium:** body links (candy names, cart names, back links) measured
+     about 24px high, and the tap check skipped them.
+  2. **Low:** the phone icon margin rule was overridden.
+  3. **Low:** the toggle-set theme was never measured.
+  4. **Low:** the empty catalog was never measured.
+  5. **Low:** no test of the checker's transparent-background refusal.
+
+  All five fixed and negative-controlled where testable. The re-review
+  approved, with one new low finding (a test picked "Add to cart" by position
+  in an unordered catalog), fixed by selecting within the candy's card.
+- **Not verifiable here:**
+  - How it looks: taste, hierarchy, whether the flaw reads as a warning.
+  - Whether a screen reader speaks the toggle state as intended.
+  - Rendering in browsers other than Chromium.
+  - Whether the `content: "..." / ""` alt syntax is honoured in Firefox
+    versions that predate it (they would show the glyph's name).
+- **Noticed for later:** `candy_list` has no ordering, so catalog order is
+  whatever PostgreSQL returns.

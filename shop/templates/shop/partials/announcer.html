@@ -5,8 +5,7 @@ changes -- not when it arrives already filled, which is what swapping in a
 fresh role="status" element does. So responses fill this one out of band with
 innerHTML, and the element itself is never replaced.
 
-Visually hidden inline, because the message is also shown on the page where it
-happened; the site stylesheet can take the rule over.
+Visually hidden, because the message is also shown on the page where it
+happened.
 {% endcomment %}
-<div id="announcer" role="status" data-testid="announcer"{% if oob %} hx-swap-oob="innerHTML"{% endif %}
-     style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0">{{ announcement }}</div>
+<div id="announcer" role="status" data-testid="announcer" class="visually-hidden"{% if oob %} hx-swap-oob="innerHTML"{% endif %}>{{ announcement }}</div>
