@@ -222,13 +222,23 @@ In this repository the checks that exist are:
 | Targeted tests     | `python scripts/dev.py test:unit` / `test:int` / `test:e2e` |
 | Full suite (+ coverage) | `python scripts/dev.py test`              |
 | Lint               | `python scripts/dev.py lint`                   |
+| Workflow lint (conditional) | `python scripts/dev.py lint:workflows` |
 | ADR guards         | `python scripts/adr_guards.py`                 |
 | Browser            | `python scripts/dev.py run`, then open the page |
 
 Every `dev.py` task runs `makemigrations` and `migrate` first, so the database
 always matches the models. The cluster must already be running — `dev.py` no
-longer starts it. The one exception is `lint`, which reads source only and runs
-with the cluster down.
+longer starts it. The exceptions are the two `lint` tasks, which read source
+only and run with the cluster down.
+
+`lint:workflows` is actionlint over `.github/workflows/`, with shellcheck for
+the shell in `run:` steps and pyflakes for `shell: python` steps. They are
+standalone tools under `%USERPROFILE%\Binaries\`, not Python requirements, and
+CI does not run them. Run it **only** when the change touches
+`.github/workflows/`, or when a workflow run is known to have failed. Otherwise
+skip it and don't list it as verification. It fails with exit 2 if any of the
+three is missing rather than running with fewer rules — actionlint on its own
+quietly skips a rule whose tool it cannot find and still reports clean.
 
 `lint` is pylint with the Django plugin (`.pylintrc`, `requirements-dev.txt`).
 **Errors fail; warnings, refactors and conventions print without failing** — so
@@ -452,8 +462,9 @@ This repository's `.claude/` directory is structured as follows:
 
 **There is no `scripts/validate` and no `dev.py validate` task.** Both were
 removed; `dev.py validate` now exits 2 with `Unknown task`. Verification is the
-two commands in §9's table — `python scripts/dev.py test` and
-`python scripts/adr_guards.py` — run separately. `scripts/dev.py` is the task
+commands in §9's table — `python scripts/dev.py test`, `lint` and
+`python scripts/adr_guards.py`, plus `lint:workflows` when §9's condition
+holds — run separately. `scripts/dev.py` is the task
 runner for everything else too: `run` and the four test suites, each preceded by
 `makemigrations` + `migrate`. It no longer starts or stops the PostgreSQL
 cluster; that must already be accepting connections.

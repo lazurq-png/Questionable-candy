@@ -133,9 +133,12 @@ not `django.test.Client`, which is the thing that let the 403 through.
 the browser binaries are installed. `tests/e2e/` holds the catalog and detail
 tests; follow their shape rather than inventing a second one.
 
-Two things there are load-bearing and easy to lose. `tests/e2e/conftest.py` sets
-`DJANGO_ALLOW_ASYNC_UNSAFE` — without it Playwright's event loop makes Django
-refuse every database call in the test thread. And every browser test calls the
+Two things there are load-bearing and easy to lose. `tests/e2e/conftest.py` lifts
+`DJANGO_ALLOW_ASYNC_UNSAFE` for the lifetime of `transactional_db` only, and
+creates the test database before Playwright starts — without both, Playwright's
+event loop makes Django refuse database calls in the test thread. A browser test
+touches the database through `live_server`, which requests `transactional_db`;
+don't reach it any other way, or the opt-out won't apply. And every browser test calls the
 `assert_page_is_fully_rendered` fixture, because Django's `{# ... #}` comment is
 single-line only: a multi-line one is printed to the page as text, and an
 assertion on what you expect to see passes straight over it.

@@ -22,11 +22,12 @@ CLAUDE.md               Claude Code operating model — always loaded by the ext
 This repository has **no single validation entry point.** `scripts/validate`,
 `scripts/validate.cmd` and the `dev.py validate` task all existed once and were
 removed; anything still telling you to run them is stale. Verification is three
-commands, run separately:
+commands, plus a fourth when workflows changed, run separately:
 
 ```text
 python scripts/dev.py test        # migrations + full suite + coverage
 python scripts/dev.py lint        # pylint; errors fail, the rest is advisory
+python scripts/dev.py lint:workflows  # only if .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR 0003 / 0005 guards, no deps, seconds
 ```
 

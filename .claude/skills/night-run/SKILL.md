@@ -196,6 +196,9 @@ python scripts/dev.py test
 All three must pass before any new work begins. Without a green baseline, every
 "passed" reported afterwards is meaningless.
 
+`python scripts/dev.py lint:workflows` is deliberately **not** part of the
+baseline. It is conditional, and §2 step 1 says when it runs.
+
 `lint` needs one extra step. It exits 0 while still printing warnings — errors
 are the only failing class — so its exit code alone tells you nothing about what
 it found. Save the report somewhere it can be diffed later:
@@ -254,9 +257,42 @@ review — with these additions:
 
 1. **Verify before committing, always.** Run the narrowest relevant suite during
    the work itself; before the commit, `python scripts/dev.py test`,
-   `python scripts/dev.py lint` and `python scripts/adr_guards.py` must all
-   exit 0. **Never commit on a failing or unrun check** — a pylint error blocks
-   a commit exactly as a failing test does.
+   `python scripts/dev.py lint` and `python scripts/adr_guards.py` must all exit
+   0. **Never commit on a failing or unrun check** — a pylint error blocks a
+   commit exactly as a failing test does.
+
+   **`python scripts/dev.py lint:workflows` joins that list only when one of two
+   things is true**, and then it must exit 0 like the rest:
+
+   - **The task changed a workflow.** Decide from git, not from memory of what
+     you edited — before the commit, on the task branch:
+
+     ```bash
+     git diff --name-only night-<YYYY-MM-DD> -- .github/workflows/
+     git ls-files --others --exclude-standard -- .github/workflows/
+     ```
+
+     The first lists committed and uncommitted changes against the run branch;
+     the second, new files git does not track yet. Any output at all means run
+     it.
+   - **A workflow has explicitly failed**: the task, `plan.md` or a human says a
+     CI run crashed or failed. Run it before diagnosing anything else, since a
+     broken workflow file is the cheapest cause to rule out. This session cannot
+     see CI results itself (`CLAUDE.md` §9), so do not go looking for a failure
+     to trigger this.
+
+   Otherwise do not run it, and do not list it as verification in `progress.md`
+   or the commit message.
+
+   When it does run, it is actionlint over `.github/workflows/`, with shellcheck
+   for the shell in `run:` steps and pyflakes for `shell: python` steps. CI does
+   not run it, so a mistake it would catch otherwise reaches GitHub first, on a
+   branch §2.6 is about to push. The three tools are standalone executables
+   under `%USERPROFILE%\Binaries\`. If the task exits 2 with `not found`, that
+   task cannot be verified and installing software is forbidden (§3), so abandon
+   the task as §3 directs and record which tool was missing. Do not work around
+   it by calling `actionlint` directly: without the other two tools it silently
+   skips their rules and still exits 0.
 
    Lint then needs the comparison its exit code does not give you: diff its
    output against `lint-baseline.txt` from §1.6. A warning your task introduced

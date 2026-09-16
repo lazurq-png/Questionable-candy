@@ -40,6 +40,26 @@ The guard protects against blocking an event loop that is serving other work.
 Playwright's loop is serving only this test, and blocking it is how the sync API
 is designed to work, so the condition does not arise.
 
+**Revised 2026-09-16 (supervised): (a) replaced by a fixture-scoped opt-out.**
+The reason for rejecting (b) was wrong. `django_db_setup` is session-scoped but
+*lazy*: `live_server`'s function-scoped `_live_server_helper` pulls it in
+(pytest_django/fixtures.py:660), after the session-scoped `playwright` fixture
+has already started its loop. The failure was a fixture-*ordering* problem, not
+proof that the work can't be wrapped. `tests/e2e/conftest.py` now:
+
+- requests `django_db_setup` from a session-scoped autouse fixture, so the
+  database is created before the loop starts and destroyed after it stops;
+- overrides `transactional_db` to set the variable (via `monkeypatch`) for its
+  lifetime, covering factories in the test body and the teardown flush.
+
+Checked with a probe plugin, running `tests/e2e tests/unit tests/integration`
+in that order: the variable was `'1'` during all 7 e2e tests, `None` during all
+24 unit and integration tests, and `None` at session end. Removing each fixture
+in turn: without the setenv, 7 failed and 7 errored with
+`SynchronousOnlyOperation`; without the ordering fixture the run still passed,
+but pytest-django warned that it could not tear down the test database. That
+failure mode is silent enough to be recorded in the fixture's docstring.
+
 ## D2. Multi-line `{# ... #}` comments were rendering to the page
 
 Found by the `reviewer` subagent, then confirmed directly: Django compiles
@@ -72,6 +92,15 @@ fixture, no launch — and this commit is what puts it on the critical path.
 Not verifiable from here: CI runs on GitHub (`CLAUDE.md` §9), and PyYAML is not
 installed, so the workflow file was checked by eye against the indentation of
 the steps around it, not parsed. **The first push is the test of D3.**
+
+**Update 2026-09-16 (supervised):** `actionlint` 1.7.12 (release binary,
+checksum verified, not added to the repo) reports 0 errors on `ci.yml`. It
+flagged a deliberately broken copy (`run:` → `runs:` on this step), so the clean
+result is not vacuous. Its `shellcheck` and `pyflakes` rules were skipped
+because neither tool was installed, so the shell inside `run:` blocks was not
+checked. (Both are now installed and enforced; see D10.) The workflow's
+syntax and schema are now verified. Whether `playwright install --with-deps`
+succeeds on the runner is still only testable by pushing.
 
 ## D4. `description` is not null but not mandatory
 
@@ -170,3 +199,40 @@ and the precondition plus its triage query went into `docs/data-model.md` §3.4.
 
 That informs a reader. It does not stop a deployment. **This is the most
 consequential thing left undone in this run.**
+
+## D10. Workflow lint is a local verification gate, not a CI job (supervised, 2026-09-16)
+
+**Context.** D3's `ci.yml` change could only be checked by eye. actionlint then
+checked it (see D3's update), but with its shellcheck and pyflakes rules
+disabled because neither tool was installed.
+
+**Decision.** `python scripts/dev.py lint:workflows` runs actionlint 1.7.12 with
+shellcheck 0.11.0 and pyflakes 3.4.0, all installed under
+`%USERPROFILE%\Binaries\` (the two release zips checksum-verified; pyflakes in
+its own venv). It is part of the verification that must pass before a task is
+done, **when it applies**: `CLAUDE.md` §9 and night-run §2 step 1.
+
+- **Always resolved and passed explicitly, never left to actionlint.** Given a
+  missing `shellcheck` or `pyflakes`, actionlint disables that rule and still
+  exits 0. The task exits 2 instead, so a clean result always means all three
+  checks ran. Unattended, a missing tool abandons the task that needed it,
+  because installing software is forbidden (night-run §3).
+- **Not folded into `lint`.** CI's lint job runs `dev.py lint` and has none of
+  these tools, so adding them there would break CI. Adding them to CI as well
+  was not asked for, and it changes what a push to GitHub runs, so that is left
+  as a human decision.
+- **Conditional, by the user's instruction.** It runs only when the change
+  touches `.github/workflows/` (night-run decides this from `git diff` against
+  the run branch plus untracked files, not from memory), or when a workflow run
+  is known to have failed. It is not in the §1.6 baseline, so on a machine
+  without the tools the run can still proceed, and only a task that needs the
+  check is abandoned. An earlier draft ran it on every task; that was replaced.
+
+**Evidence.** On the real `ci.yml`: exit 0. On a scratch workflow with an
+unquoted `rm $files` and a `shell: python` step using an undefined name: SC2035,
+SC2086 and pyflakes' `undefined name`, exit 1. With the tools unavailable
+(`USERPROFILE` pointed elsewhere): `not found: actionlint, shellcheck,
+pyflakes`, exit 2.
+
+`ci.yml` has no `shell: python` step today, so pyflakes currently checks
+nothing. It is included so that such a step cannot be added unchecked.

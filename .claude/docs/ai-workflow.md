@@ -324,7 +324,7 @@ It triggers on pull requests to `master` and `dev`, and on pushes to `master`, `
 
 CI runs on GitHub. A local agent cannot observe its result and must never report one as evidence.
 
-Locally, verification is `python scripts/dev.py test`, `python scripts/dev.py lint` and `python scripts/adr_guards.py`, run separately. There is no `scripts/validate` and no `dev.py validate` task — both were removed. Lint is pylint plus pylint-django (pinned in `requirements-dev.txt`, configured in `.pylintrc`), gated on the error class only. There is still no formatting or type-checking stage, because this repository installs no such tools; a stage that prints success without checking anything is worse than no stage.
+Locally, verification is `python scripts/dev.py test`, `python scripts/dev.py lint` and `python scripts/adr_guards.py`, run separately, plus `python scripts/dev.py lint:workflows` when a change touches `.github/workflows/` or a workflow run is known to have failed. `lint:workflows` (actionlint, with shellcheck and pyflakes) is local-only: the tools are standalone executables under `%USERPROFILE%\Binaries\`, and CI does not install them. There is no `scripts/validate` and no `dev.py validate` task — both were removed. Lint is pylint plus pylint-django (pinned in `requirements-dev.txt`, configured in `.pylintrc`), gated on the error class only. There is still no formatting or type-checking stage, because this repository installs no such tools; a stage that prints success without checking anything is worse than no stage.
 
 The deterministic requirements still *not* mechanically enforced anywhere:
 

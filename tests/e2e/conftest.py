@@ -2,30 +2,66 @@
 
 Playwright's *synchronous* API is not really synchronous: it drives a greenlet
 over an asyncio event loop that stays running in the main thread for as long as
-any Playwright fixture is alive. Django notices that loop and refuses every
-database call from that thread -- `@async_unsafe` raises SynchronousOnlyOperation
--- so without the setting below, an e2e test fails before it reaches its body:
+the session-scoped ``playwright`` fixture is alive. Django notices that loop and
+refuses every database call from that thread -- ``@async_unsafe`` raises
 
     django.core.exceptions.SynchronousOnlyOperation:
         You cannot call this from an async context - use a thread or sync_to_async
 
 The guard exists to stop blocking code from stalling an event loop that is
-serving other work. Here the loop belongs to Playwright, blocking it is how the
-sync API is designed to work, and nothing else is being served -- so the
-condition the guard protects against does not arise, and Django's documented
-opt-out is the correct answer rather than a workaround.
+serving other work. Playwright's loop serves only the test, and blocking it is
+how the sync API is designed to work, so Django's documented opt-out,
+``DJANGO_ALLOW_ASYNC_UNSAFE``, is correct here -- but only here. It is set by
+the two fixtures below, for exactly the stretch of each e2e test that touches
+the database with the loop running, and is unset again afterwards so the guard
+stays armed for every other suite, async tests included.
 
-Set at import time rather than in a fixture because the first thing to trip the
-guard is the *session-scoped* creation of the test database, which happens
-during fixture setup and cannot be wrapped from here. It reaches the whole test
-session as a result, which is harmless: the guard only fires when an event loop
-is running in the calling thread, and no suite outside tests/e2e/ starts one.
+Two separate fixtures, because the database work falls into two lifetimes:
+
+* The test database is created and destroyed once per session.
+  ``django_db_setup`` is session-scoped but *lazy*: ``live_server`` pulls it in
+  from a function-scoped autouse fixture, after ``playwright`` has already
+  started its loop -- which is where the original failure came from.
+  ``_test_database_before_browser`` requests it up front instead, so creation
+  happens before the loop exists and, by fixture teardown order, destruction
+  after it has stopped. No opt-out is needed for either.
+
+* Each test's own database work -- factories in the test body, and the flush
+  ``transactional_db`` runs on teardown -- happens with the loop running. The
+  ``transactional_db`` override lists ``_allow_async_unsafe`` *before* the
+  original, so the variable is set before the original's setup and, fixtures
+  being torn down in reverse, removed only after its flush.
 """
-import os
-
 import pytest
 
-os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "1")
+
+@pytest.fixture(scope="session", autouse=True)
+def _test_database_before_browser(django_db_setup):  # pylint: disable=unused-argument
+    """Create the test database before Playwright's loop starts.
+
+    Session-scoped autouse fixtures are set up before the session fixtures a
+    test merely names, so this runs ahead of ``playwright``. Without it, running
+    ``tests/e2e`` on its own still *passes* -- creation happens inside
+    ``transactional_db``'s opt-out -- but destroying the database at session end
+    runs with the loop alive and the variable gone. pytest-django reports that
+    as a mere warning and leaves the test database behind.
+    """
+
+
+@pytest.fixture
+def _allow_async_unsafe(monkeypatch):
+    monkeypatch.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "1")
+
+
+@pytest.fixture
+def transactional_db(_allow_async_unsafe, transactional_db):  # pylint: disable=redefined-outer-name
+    """``transactional_db``, with the async-safety guard lifted for its lifetime.
+
+    Every browser test gets this: ``live_server`` requests ``transactional_db``
+    by name (pytest_django/fixtures.py:660) and resolves to this override. The
+    argument order is load-bearing -- see the module docstring.
+    """
+    return transactional_db
 
 
 @pytest.fixture
