@@ -33,7 +33,7 @@ ext. 2a) would never be reached or shown.
           <form method="post" class="cart-line-remove" action="{% url 'remove_from_shoppingcart' line.candy.pk %}"
                 hx-post="{% url 'remove_from_shoppingcart' line.candy.pk %}" hx-target="#cart" hx-swap="outerHTML">
             {% csrf_token %}
-            <button type="submit" class="button-secondary" aria-label="Remove {{ line.candy.name }}">Remove</button>
+            <button type="submit" class="button-secondary" aria-label="Remove {{ line.candy.name }}"{% if removed and line.candy.pk == focus %} autofocus{% endif %}>Remove</button>
           </form>
         </li>
       {% endfor %}
@@ -41,13 +41,15 @@ ext. 2a) would never be reached or shown.
     <p class="cart-total">Total: <span data-testid="shoppingcart-total">${{ total }}</span></p>
   {% else %}
     <p data-testid="shoppingcart-empty" class="empty-state">Your cart is empty.</p>
-    <p class="page-actions"><a href="{% url 'candy_list' %}">Browse the candy</a></p>
+    <p class="page-actions"><a href="{% url 'candy_list' %}"{% if removed %} autofocus{% endif %}>Browse the candy</a></p>
   {% endif %}
 </section>
 {% comment %}
 Swapping #cart replaces the button that was just pressed. htmx restores focus
 to the element with the same id after the swap, which is why Update carries
-one; a removed line's Remove button has nothing left to return focus to.
+one. A removed line's Remove button no longer exists, so the view names what
+should take focus instead and the markup marks it autofocus, which htmx honours
+in swapped content -- no JavaScript of ours.
 {% endcomment %}
 {% if oob %}
 {% include "shop/partials/shoppingcart_link.html" with oob=True %}

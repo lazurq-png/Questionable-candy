@@ -204,6 +204,40 @@ def test_removing_the_last_item_shows_the_empty_state(shopper):
     assert b'data-testid="shoppingcart-count">0<' in response.content
 
 
+def test_removing_a_line_still_reports_what_changed_in_a_stale_cart(shopper):
+    """A remove must not swallow the notices for entries dropped or capped."""
+    kept = CandyFactory(name="Sour Bricks", stock=5)
+    capped = CandyFactory(name="Hollow Humbug", stock=5)
+    withdrawn = CandyFactory(name="Withdrawn Toffee")
+    for candy in (kept, capped, withdrawn):
+        add(shopper, candy)
+    update(shopper, capped, "5")
+    capped.stock = 2
+    capped.save()
+    withdrawn.is_published = False
+    withdrawn.save()
+
+    content = post(shopper, reverse("remove_from_shoppingcart", args=[kept.pk])).content.decode()
+
+    assert "1 item is no longer available" in content
+    assert "Only 2 of Hollow Humbug left in stock" in content
+
+
+def test_a_plain_remove_reports_a_stale_cart_on_the_page_it_redirects_to(shopper):
+    """The same, without htmx: the notice must survive the redirect."""
+    kept = CandyFactory(name="Sour Bricks")
+    withdrawn = CandyFactory(name="Withdrawn Toffee")
+    add(shopper, kept)
+    add(shopper, withdrawn)
+    withdrawn.is_published = False
+    withdrawn.save()
+
+    response = post(shopper, reverse("remove_from_shoppingcart", args=[kept.pk]), htmx=False)
+
+    assert response.status_code == 302
+    assert b"no longer available" in shopper.get(response.url).content
+
+
 # --- The shop changed since the cart was filled -------------------------------
 
 def test_unpublished_and_deleted_candy_leave_the_cart_with_a_notice(shopper):

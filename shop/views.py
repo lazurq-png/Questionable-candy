@@ -68,17 +68,43 @@ def update_shoppingcart(request, pk):
 
 @require_POST
 def remove_from_shoppingcart(request, pk):
-    """UC-04 step 4: take an item out; ext. 4a is the empty state that follows."""
+    """UC-04 step 4: take an item out; ext. 4a is the empty state that follows.
+
+    The pressed Remove button disappears with its line, so keyboard focus is
+    handed on: to the line that moved into its place (or the new last line), or
+    to "Browse the candy" once the cart is empty. Lines are sorted by name, so
+    the removed candy's name locates that place -- looked up without the
+    published filter, so a candy unpublished while the page was open still has
+    one.
+    """
     cart.remove(request, pk)
-    return _cart_response(request, "")
+    removed_name = Candy.objects.filter(pk=pk).values_list("name", flat=True).first()
+    return _cart_response(request, "", removed_name=removed_name, removed=True)
 
 
-def _cart_context(request, notices=()):
+def _cart_context(request, notices=(), removed_name=None):
+    """The cart for a template. Calls cart.lines() once: it reports each change
+    it makes to a stale cart only once, so a second call would lose the notices.
+
+    After a removal, focus goes to the first remaining line whose name sorts at
+    or after the removed one -- the line now in its place -- else the last line.
+    A candy deleted while the page was open has no name to look up, so focus
+    goes to the last line.
+    """
     lines, total, cart_notices = cart.lines(request)
-    return {"lines": lines, "total": total, "cart_notices": [*notices, *cart_notices]}
+    focus = None
+    if lines:
+        later = [line for line in lines if removed_name is not None and line.candy.name >= removed_name]
+        focus = (later[0] if later else lines[-1]).candy.pk
+    return {
+        "lines": lines,
+        "total": total,
+        "cart_notices": [*notices, *cart_notices],
+        "focus": focus,
+    }
 
 
-def _cart_response(request, notice):
+def _cart_response(request, notice, removed_name=None, removed=False):
     """htmx gets the cart partial back; a plain form post is redirected.
 
     The redirect keeps the page working without JavaScript and keeps a reload
@@ -86,8 +112,8 @@ def _cart_response(request, notice):
     """
     notices = [notice] if notice else []
     if request.headers.get("HX-Request") == "true":
-        context = _cart_context(request, notices)
-        context["oob"] = True
+        context = _cart_context(request, notices, removed_name)
+        context.update(oob=True, removed=removed)
         return render(request, "shop/partials/shoppingcart_contents.html", context)
     for text in notices:
         messages.info(request, text)

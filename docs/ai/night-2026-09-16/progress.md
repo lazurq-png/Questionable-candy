@@ -343,3 +343,54 @@ look good; that needs a human looking at the screenshots below.
      that rule.
 
   The reviewer also spotted ADR 0005's stale "e2e is empty" line, added to Q4.
+
+### T7 — Keyboard focus after removing a cart line — complete (derived)
+
+- **Branch:** `night-2026-09-16-t7-remove-focus`. Clock at start 15:57; budget
+  14,686,461.
+- **Source:** T3's "Remaining, known" (focus fell back to the page after
+  Remove); `.claude/rules/frontend.md` §Accessibility, focus restoration.
+- **Changed:**
+  - `remove_from_shoppingcart` removes, looks up the removed candy's name (no
+    published filter), and `_cart_context` marks the next control `autofocus`:
+    - the first remaining line whose name sorts at or after the removed one,
+      else the last line;
+    - "Browse the candy" when the cart is empty.
+  - htmx 2.0.3 focuses `autofocus` in swapped content, so no JavaScript was
+    added.
+  - `autofocus` only renders on the remove path; a normal page load never
+    carries it.
+- **Tests added:**
+  - e2e with three lines: remove the first → the second focused; remove the
+    middle → the third; remove the last → the new last; empty the cart →
+    "Browse the candy".
+  - Integration: a remove in a stale cart still reports "no longer available"
+    and stock caps, over htmx and after a plain-post redirect.
+- **Negative controls:**
+  - Without `autofocus`, all focus tests failed.
+  - "Always focus the first line" failed 2.
+  - "Always focus the last line" failed the first-line case.
+  - An extra `cart.lines()` call before removing failed both notice tests.
+  - All restored byte-for-byte.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 179 passed, coverage 97%
+    (`views.py` 100%).
+  - `python scripts/dev.py lint` exit 0 — 9.79/10, no messages beyond the
+    baseline.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** the first review requested changes:
+  1. **Medium, a regression:** an extra `cart.lines()` call used up the
+     stale-cart notices, so a remove hid "no longer available" and stock caps.
+  2. **Low:** the tests couldn't tell the position logic from "always first".
+  3. **Low:** a candy unpublished mid-page mis-positioned focus.
+
+  All fixed and negative-controlled. The re-review confirmed 1 and 3 and
+  requested two small items: a case catching "always last", and `>=` for
+  candies sharing a name. Both were applied exactly as recommended and proven
+  by the control above. A third review pass was not run, as those two changes
+  are the reviewer's own wording.
+- **Accepted limitation:** a candy hard-deleted while the cart page was open has
+  no name to look up, so focus goes to the last line (documented in
+  `_cart_context`).
