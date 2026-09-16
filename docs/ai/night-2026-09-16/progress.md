@@ -181,3 +181,37 @@
   (there is no button left to return to). Fixing it needs JavaScript or
   restructuring the swap, neither in this task's bounds. Whether a screen reader
   actually speaks the live region is unverified; only its text change is tested.
+
+### T4 — Flaw on the admin side (UC-06 steps 1–2, ext. 2a) — complete
+
+- **Branch:** `night-2026-09-16-t4-admin-flaw`. Clock at start 15:13; budget
+  14,836,148.
+- **Changed:** `shop/admin.py` registers `Candy`:
+  - `CandyAdminForm` replaces the generic "This field is required." on `flaw`
+    with a prompt that says why (`FLAW_REQUIRED`), and adds help text.
+  - `CandyAdmin` lists name, price, stock and publication, filters by
+    publication, searches name and flaw, and puts `flaw` second in the form.
+  - The `candy_flaw_is_not_blank` database constraint still guards every
+    non-form path.
+  - Answers night-2026-09-15 Q4.
+- **Tests added:**
+  - Integration (`admin_client`): create with a flaw saves; a new candy with a
+    flaw of `""`, `"   "` or `"\t\n"` is refused with the prompt and nothing
+    saved; editing a flaw to blank is refused and keeps the old flaw; the
+    changelist shows the publication column.
+  - e2e: logs in through the real admin login form (CSRF enforced), a
+    whitespace flaw is refused with the prompt visible, then a real flaw saves.
+- **Negative controls:**
+  - Without the custom error message, 4 integration tests failed.
+  - Without `is_published` in `list_display`, the tightened changelist test
+    failed.
+  - Both restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 158 passed, coverage 97%
+    (`shop/admin.py` 100%).
+  - `python scripts/dev.py lint` exit 0 — no messages beyond the baseline.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved with one low finding: the changelist assertion
+  matched the list filter's links too. Fixed and negative-controlled as above.
