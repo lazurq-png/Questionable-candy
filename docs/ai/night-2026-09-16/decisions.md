@@ -153,3 +153,22 @@ themes.
   name.
 - **Two columns on phones** (from `minmax(9.5rem, 1fr)`), wider cards from
   48rem. One card per screen made 22 candies a very long scroll.
+
+## D8. The catalog is ordered by name in the view, and follows the database collation
+
+- **Chosen:** `candy_list` uses `.order_by("name", "pk")`. The primary key
+  breaks ties because names are not unique.
+- **Rejected — `Meta.ordering`:** it adds a migration and an `ORDER BY` to
+  every query, including the cart's `in_bulk` and the admin, for one page that
+  needs it. The catalog is the only customer-facing list of candy.
+- **Alphabetical, not "newest first" or by price:** no requirement names an
+  order. Alphabetical is the least surprising, and one line to change.
+- **Collation, recorded not fixed** (from the reviewer):
+  - The order follows the database collation, which nothing sets. The local
+    cluster is `Swedish_Sweden.1252`, where Å/Ä/Ö sort after Z; CI's
+    `postgres:17` is probably `en_US.utf8`.
+  - The cart sorts in Python by code point, so for mixed-case or non-ASCII
+    names the two can disagree.
+  - All 22 seeded names are ASCII Title Case, and the tests use names that sort
+    the same under any collation, so nothing differs today or between local and
+    CI.

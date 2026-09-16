@@ -1,6 +1,8 @@
 import pytest
 from django.test import Client
 from django.urls import reverse
+
+from shop.models import Candy
 from tests.factories.candy_factory import CandyFactory
 
 pytestmark = pytest.mark.django_db
@@ -98,6 +100,35 @@ def test_add_to_shoppingcart_rejects_post_without_csrf_token():
     response = csrf_client.post(reverse("add_to_shoppingcart", args=[candy.id]))
 
     assert response.status_code == 403
+
+def test_the_catalog_lists_candy_alphabetically(client):
+    """UC-01: a stable order. Created out of order, so insertion order cannot pass."""
+    for name in ("Zesty Lime Drops", "Anise Twists", "Mint Humbugs"):
+        CandyFactory(name=name)
+
+    content = client.get(reverse("candy_list")).content.decode()
+
+    positions = [content.index(name) for name in ("Anise Twists", "Mint Humbugs", "Zesty Lime Drops")]
+    assert positions == sorted(positions)
+
+
+def test_candy_sharing_a_name_keep_a_stable_order(client):
+    """Names are not unique; the older row comes first, every time.
+
+    Updating `first` moves it behind `second` in PostgreSQL's physical row
+    order, so without the primary-key tie-break the two come out reversed --
+    otherwise insertion order alone would pass this test.
+    """
+    first = CandyFactory(name="Gum", description="first")
+    second = CandyFactory(name="Gum", description="second")
+    Candy.objects.filter(pk=first.pk).update(description="first, edited")
+
+    content = client.get(reverse("candy_list")).content.decode()
+
+    first_link = f'href="{reverse("candy_detail", args=[first.pk])}"'
+    second_link = f'href="{reverse("candy_detail", args=[second.pk])}"'
+    assert content.index(first_link) < content.index(second_link)
+
 
 # --- UC-03: candy detail ---------------------------------------------------
 

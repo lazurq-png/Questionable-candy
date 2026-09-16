@@ -157,7 +157,7 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     expect(page.get_by_test_id("theme-toggle")).to_be_visible()
     check_page(page, "catalog", assert_page_is_fully_rendered)
 
-    # By card, not by position: the catalog query has no ordering.
+    # By card, not by position, so the test does not depend on catalog order.
     page.get_by_role("listitem").filter(has_text="Strawberry Cloud Marshmallows").get_by_role(
         "button", name="Add to cart"
     ).click()

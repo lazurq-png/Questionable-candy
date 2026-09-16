@@ -8,7 +8,13 @@ from .models import Candy
 
 
 def candy_list(request):
-    candies = Candy.objects.published()
+    """UC-01: the published candy, alphabetically.
+
+    Without an ORDER BY, PostgreSQL returns rows in whatever order is cheapest,
+    which can change between requests. The primary key breaks ties between
+    candies that share a name, since names are not unique.
+    """
+    candies = Candy.objects.published().order_by("name", "pk")
     return render(request, "shop/candy_list.html", {"candies": candies})
 
 

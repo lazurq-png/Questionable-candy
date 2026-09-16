@@ -394,3 +394,38 @@ look good; that needs a human looking at the screenshots below.
 - **Accepted limitation:** a candy hard-deleted while the cart page was open has
   no name to look up, so focus goes to the last line (documented in
   `_cart_context`).
+
+### T8 — A deterministic catalog order — complete (derived)
+
+- **Branch:** `night-2026-09-16-t8-catalog-order`. Clock at start 16:10; budget
+  14,662,578.
+- **Source:** UC-01 step 3; the catalog query had no ordering (T5 review).
+- **Changed:**
+  - `candy_list` orders by name, then primary key (decisions.md D8).
+  - A stale comment in `tests/e2e/test_theme.py` corrected.
+- **Tests added** (integration):
+  - Candy created as Z, A, M is listed A, M, Z.
+  - Two candies sharing a name keep creation order, after an update moves the
+    first behind the second physically, so insertion order alone cannot pass.
+- **Negative controls:**
+  - With no ordering, the alphabetical test failed.
+  - With the tie-break reversed (`-pk`), the tie test failed.
+  - With the tie-break dropped (`order_by("name")`), the tie test failed after
+    the reviewer's fix; before that fix it had passed, which was the finding.
+  - All restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 181 passed, coverage 97%.
+  - `python scripts/dev.py lint` exit 0 — 9.80/10, no messages beyond the
+    baseline (the new docstring also cleared a baseline warning).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer requested changes:
+  1. The tie test passed without the tie-break, because PostgreSQL returned
+     insertion order.
+  2. A stale e2e comment.
+
+  Both fixed exactly as recommended; the tie test is now proven by the control
+  above. Not re-reviewed a second time, as the fixes are the reviewer's own
+  wording. The reviewer also confirmed ordering belongs on the view, found no
+  other unordered customer list, and noted collation (D8).
