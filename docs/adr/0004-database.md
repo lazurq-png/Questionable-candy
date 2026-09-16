@@ -34,7 +34,7 @@ Unlike the other ADRs in this set, this one is not started on the Django default
 
 Because `pytest-django` derives the test database from the same setting, the suite runs on PostgreSQL too, which is what makes the `ArrayField` decision below testable rather than merely intended.
 
-Not enforced: nothing checks the *version* of PostgreSQL, and nothing prevents a developer pointing `DATABASE_URL` at a non-PostgreSQL URL by hand. A CI job pinning the engine would close that gap when CI exists.
+Since 2026-09-16 `tests/integration/test_database_engine.py` fails if the test database is not PostgreSQL 17 or newer; CI's test job runs against a `postgres:17` service. Not enforced: nothing stops the application itself being started against another `DATABASE_URL` — only the suite catches it.
 
 ## Pros and Cons of the Options
 

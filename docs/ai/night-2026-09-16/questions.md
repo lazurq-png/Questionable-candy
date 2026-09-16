@@ -58,5 +58,45 @@ Each wants a human's one-line correction:
   "exploration, not CSS") assumes a site with no styling; a future run will
   start from a false picture.
 
-The README's equivalent sentence was corrected in T5, since it is a status
-description, not a decision record.
+- `docs/adr/0005-testing.md:76` — "`tests/e2e/` exists but is still empty",
+  in an update dated 2026-09-14 (found by T6's reviewer).
+
+The README's equivalent sentences were corrected in T5 and T6, since they are
+status descriptions, not decision records.
+
+## Q5. Out of scope, logged as the run request directed
+
+- **`Candy.sugar_content_g` and `Candy.allergens`** (`data-model.md` §3.3).
+  The model says they feed the UC-07 checkout health warning; UC-07 is out of
+  scope, so neither was added.
+- **Payment, orders, carts in tables** — UC-05, UC-07, UC-08 excluded.
+
+## Q6. HTTPS enforcement (requirements §3)
+
+- **The question:** §3 says authentication and payment happen over HTTPS. The
+  secure-cookie flags follow `DEBUG` and are tested; `SECURE_SSL_REDIRECT` and
+  `SECURE_HSTS_SECONDS` are not set.
+- **Why not built:** both depend on the deployment. Behind a TLS-terminating
+  proxy, a redirect without `SECURE_PROXY_SSL_HEADER` loops forever, and HSTS
+  is hard to take back once browsers have cached it. No deployment exists to
+  decide against.
+- **Recommendation:** decide when a host is chosen; then derive both from
+  `DEBUG` like the cookie flags, with the same kind of settings test.
+
+## Q7. Subresource integrity for the htmx and Alpine CDN scripts
+
+- **The question:** ADR 0006 notes the scripts are pinned only by URL. An
+  `integrity` hash would make a tampered file fail to load.
+- **Why not built:** computing the hashes means fetching the files from the
+  CDN, and the run may not contact external services outside T5's grant.
+- **Exact change, for a human to run and approve:** for each `<script src>` in
+  `templates/base.html`, add
+  `integrity="sha384-<base64 of sha384 of the file>" crossorigin="anonymous"`,
+  with the hash produced by
+  `curl -s <url> | openssl dgst -sha384 -binary | openssl base64 -A`.
+
+## Q8. A coverage threshold (ADR 0005)
+
+- ADR 0005: "add `--cov-fail-under` in `scripts/dev.py` once a target is
+  agreed". Coverage after this run is 97%. A target is a human's to agree;
+  nothing was changed.

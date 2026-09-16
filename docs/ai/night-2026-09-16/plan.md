@@ -114,3 +114,44 @@ column is forbidden (§3) and goes to `questions.md`; open product decisions are
 parked (§4).
 
 ### Last — Morning report (§7)
+
+## Derived tasks (added in T6, after T1–T5 completed)
+
+Each is traced to the line it comes from and stays within Scope.
+
+### T6 — Enforce two decisions whose ADRs say nothing checks them
+
+- ADR 0002 §Confirmation: "**Nothing enforces this decision.** `MIDDLEWARE` …
+  no test or check asserts that". → Unit test of the middleware stack and the
+  order Django requires.
+- ADR 0004 §Confirmation: "Not enforced: nothing checks the *version* of
+  PostgreSQL". → Integration test: vendor is PostgreSQL, version ≥ 17.
+- README "Known open items": "`tests/e2e/` is empty" is false. → Remove it.
+
+### T7 — Keyboard focus after removing a cart line
+
+- `progress.md` T3 "Remaining, known": focus falls back to the page after
+  Remove; `.claude/rules/frontend.md` §Accessibility lists focus restoration.
+- Without new JavaScript (the grant was for the theme toggle only): htmx
+  focuses an `autofocus` element in swapped content.
+
+### T8 — A deterministic catalog order
+
+- UC-01 step 3 renders the published items; the query has no ordering, so
+  their order is whatever PostgreSQL returns (found in T5's review).
+- Smallest reversible: order by name.
+
+### T9 — Candy timestamps
+
+- `data-model.md` §3.3 gap table, Missing: "timestamps".
+- Additive columns are allowed by the run request. Rows that exist get NULL
+  (unknown) rather than an invented date.
+
+### Logged, not built
+
+- `sugar_content_g`, `allergens` (data-model §3.3): exist to feed the UC-07
+  checkout warning, which is out of scope.
+- HTTPS redirect / HSTS (requirements §3): depend on how the site is deployed.
+- Subresource integrity for the CDN scripts (ADR 0006): needs fetching from the
+  CDN, which the run may not contact.
+- A coverage threshold (ADR 0005): "once a target is agreed", by a human.

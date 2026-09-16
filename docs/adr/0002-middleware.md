@@ -29,7 +29,7 @@ Chosen option: "Django built-in session-based authentication (SessionMiddleware 
 
 ### Confirmation
 
-**Nothing enforces this decision.** `MIDDLEWARE` in `mysite/settings.py` is Django's stock seven, including `SessionMiddleware`, `AuthenticationMiddleware` and `CsrfViewMiddleware`, but no test or check asserts that, and no custom middleware has been written.
+`MIDDLEWARE` in `mysite/settings.py` is Django's stock seven, including `SessionMiddleware`, `AuthenticationMiddleware` and `CsrfViewMiddleware`. Since 2026-09-16 `tests/unit/test_middleware.py` fails if any of six is missing — `SecurityMiddleware`, `SessionMiddleware`, `CsrfViewMiddleware`, `AuthenticationMiddleware`, `MessageMiddleware`, `XFrameOptionsMiddleware` — or if `SessionMiddleware` stops preceding authentication and messages; until then nothing asserted it. `CommonMiddleware` and the rest of the order are not checked. No custom middleware has been written.
 
 CSRF protection is the one part with coverage: `tests/integration/test_views.py` asserts that a POST without a token is rejected and that the catalog page supplies one, using `enforce_csrf_checks=True` because the default test client bypasses CSRF entirely.
 

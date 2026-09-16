@@ -305,3 +305,41 @@ look good; that needs a human looking at the screenshots below.
     versions that predate it (they would show the glyph's name).
 - **Noticed for later:** `candy_list` has no ordering, so catalog order is
   whatever PostgreSQL returns.
+
+### T6 — Enforce ADR 0002 and ADR 0004 — complete (derived)
+
+- **Branch:** `night-2026-09-16-t6-enforce-adrs`. Clock at start 15:48; budget
+  14,701,425.
+- **Source:** ADR 0002 §Confirmation ("Nothing enforces this decision") and ADR
+  0004 §Confirmation ("nothing checks the version of PostgreSQL"); README's
+  false "`tests/e2e/` is empty" open item. `plan.md` gained the derived-task
+  list (T6–T9) and what was logged instead of built.
+- **Changed:**
+  - `tests/unit/test_middleware.py`: six middleware present, and
+    `SessionMiddleware` before authentication and messages.
+  - `tests/integration/test_database_engine.py`: the test database is
+    PostgreSQL, version ≥ 17.
+  - ADR 0002 and 0004 confirmation sections now name exactly what is enforced
+    and what is not.
+  - README open item removed.
+  - Questions Q5–Q8 logged: out-of-scope UC-07 fields, HTTPS redirect/HSTS,
+    SRI for CDN scripts, coverage threshold.
+- **Negative controls:**
+  - With `CsrfViewMiddleware` removed from settings, the presence test failed.
+  - With the minimum at 99, the version test failed (170002 < 990000).
+  - Both restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 173 passed, coverage 97%.
+  - `python scripts/dev.py lint` exit 0 — 9.78/10, no messages beyond the
+    baseline (a trailing-newline warning fixed).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved with two low wording findings, both acted on:
+  1. ADR 0004's new text implied the app itself is prevented from using
+     another engine; reworded to "only the suite catches it".
+  2. ADR 0002's text did not match the test; it now names the six middleware.
+     A "security middleware first" test was removed, as ADR 0002 never chose
+     that rule.
+
+  The reviewer also spotted ADR 0005's stale "e2e is empty" line, added to Q4.
