@@ -6,9 +6,23 @@ triple-confirms that you really do want to buy candy.
 
 ## Status
 
-Early. A Django project runs, with one app (`shop`) serving a catalog page and a
-session-backed cart. Most of what the specification describes — accounts, orders,
-payment, the health warning and the triple-confirmation gate — is not built yet.
+A customer can browse the catalog, read a candy's disclosed flaw, fill a
+session-backed cart and place an order. Two apps: `shop` (catalog, cart,
+checkout, orders) and `accounts` (a custom user model, sign-up, login, and the
+allergies the checkout warning matches against).
+
+Built: the catalog and detail pages (UC-01, UC-03), the cart (UC-04), the flaw
+disclosure (UC-06), the health warning (UC-07), the triple confirmation
+(UC-08), username/password sign-up and login (UC-09, without the email
+verification its step 3 describes), and orders up to — but not including —
+payment (UC-05 steps 1-4, and step 7 in part: the order is created and the cart
+cleared, but as `pending` and with nothing to track it from).
+
+Not built: **payment**, so an order stays `pending` and nothing is ever
+charged; Google sign-in (UC-02); and any order history — nothing lists or links
+to past orders, only the receipt at its own address, which stays there for the
+customer who placed it.
+
 [`docs/data-model.md`](docs/data-model.md) §3 marks which entities exist.
 
 The specification documents are drafts: requirements at version 0.3, data model
@@ -24,10 +38,14 @@ at 0.2.
 | Database      | PostgreSQL                                                 |
 | Tests         | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
 
+The suite is gated at 95% coverage (`scripts/dev.py`), and `tests/e2e/` drives
+a real browser over every customer-facing page.
+
 Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
 and dark themes that follow the system setting and a toggle to override it;
-no CSS framework or build step. CI runs the ADR guards and the test suite on every
-push and pull request to `master` and `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+no CSS framework or build step. CI runs the ADR guards, lint and the test suite
+on every pull request to `master` and `dev`, and on every push to `master`,
+`dev` and `night-**` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
 
@@ -148,5 +166,7 @@ New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 ## Known open items
 
 - Media storage for candy pictures is undecided — [ADR 0004](docs/adr/0004-database.md)
-- No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md)
-- `shop.Candy` is a partial implementation of the target `Candy` entity — [data model §3.3](docs/data-model.md)
+- No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md). Sign-up and login exist; the specification has not been updated to say whether they are the launch path
+- `shop.Candy` differs from the target `Candy` entity in what it calls `stock`, in the type of `flaw`, and in the extra `flavor` and `image` fields — [data model §3.3](docs/data-model.md)
+- Payment is not connected, so `Order.status` never leaves `pending`
+- [ADR 0008](docs/adr/0008-hand-written-css-themes.md), on the CSS and theme conventions, is *proposed* and awaits a decision

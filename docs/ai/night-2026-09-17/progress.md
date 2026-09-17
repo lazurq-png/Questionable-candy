@@ -680,3 +680,35 @@ Green. Requested work starts.
   The re-review's own two Low items are done: the button assertion is anchored
   to the button's tag rather than the whole page, and this entry was refreshed
   to match the diff it describes.
+
+### T14 — F4: the README describes the site as it now is — done
+
+- **Branch:** `night-2026-09-17-t14-readme`. Clock at start 01:49; budget
+  14,378,090.
+- **Changed:** `README.md` only. The Status section said most of the
+  specification was unbuilt and named one app; it now says what is built, per
+  use case, and what is not (payment, Google sign-in, order history). Also: the
+  95% coverage gate and the browser suite, CI's three jobs and its `night-**`
+  trigger, the narrowed `shop.Candy` difference, and two more open items
+  (payment never leaving `pending`, ADR 0008 awaiting a decision).
+- **Verification actually run:** `python scripts/dev.py test` exit 0, **424
+  passed**, coverage 98.80%; lint exit 0 with no new messages; `adr_guards`
+  exit 0; drift 0. A documentation change cannot move any of them; they were
+  run because the commit gate asks for them.
+- **Review:** request changes, then all five corrections made. It checked every
+  claim against the code and found the new text wrong in four places and silent
+  in a fifth:
+  1. "UC-05 steps 1-4 and 7" — step 7 says the order is created **as Paid**
+     and **links to order tracking**, neither of which exists. Now "step 7 in
+     part", spelled out.
+  2. "no way to look back at an order once they leave its receipt" — the
+     receipt has a stable URL scoped to its owner, so this denied access the
+     code grants. The real gap is that nothing lists or links to past orders.
+  3. UC-09 was in neither list, although sign-up and login implement it bar the
+     email verification. Added.
+  4. The `shop.Candy` item dropped the extra `flavor` and `image` fields the
+     data model names — `image` being what the media-storage open item above it
+     will replace. Restored.
+  5. A sentence the diff passed over said CI runs the guards and the suite on
+     `master` and `dev`; it runs three jobs including lint, and on `night-**`
+     pushes too — which is what checks this run's own branches.
