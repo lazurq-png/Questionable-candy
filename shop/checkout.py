@@ -1,7 +1,10 @@
-"""Checkout past the review page: the health warning (UC-07).
+"""Checkout past the review page: the health warning (UC-07) and the
+confirmations (UC-08).
 
 Kept in the session beside the cart (ADR 0002), as `cart.py` keeps the cart:
-`request.session["checkout"]` records what the customer has acknowledged.
+`request.session["checkout"]` records what the customer has acknowledged, the
+order last shown for confirmation, and the order they confirmed. Any change to
+the cart clears all of it (cart._save).
 
 An acknowledgment is tied to a fingerprint of exactly what the warning showed
 -- each line's candy, quantity, sugar and allergens, and the customer's own
@@ -105,14 +108,62 @@ def _fingerprint(lines, your_allergies):
 
 
 def acknowledge(request, warning):
-    """Record that the customer acknowledged exactly this warning, and when."""
+    """Record that the customer acknowledged exactly this warning, and when.
+
+    Starts checkout progress afresh: a confirmation made before acknowledging
+    this warning does not carry over.
+    """
     request.session[SESSION_KEY] = {
         "warning": {"fingerprint": warning.fingerprint, "at": timezone.now().isoformat()},
     }
 
 
+def _stored(request):
+    stored = request.session.get(SESSION_KEY, {})
+    return stored if isinstance(stored, dict) else {}
+
+
+def _save(request, **changes):
+    request.session[SESSION_KEY] = {**_stored(request), **changes}
+
+
 def is_acknowledged(request, warning):
     """Whether this warning, as it now stands, has been acknowledged."""
-    stored = request.session.get(SESSION_KEY, {})
-    acknowledged = stored.get("warning", {}) if isinstance(stored, dict) else {}
+    acknowledged = _stored(request).get("warning", {})
     return isinstance(acknowledged, dict) and acknowledged.get("fingerprint") == warning.fingerprint
+
+
+def order_snapshot(lines, total):
+    """Exactly what the confirmation page shows: each line's candy, quantity and
+    unit price, and the total. JSON-safe, so it can live in the session.
+    """
+    return {
+        "lines": [[line.candy.pk, line.quantity, str(line.candy.price)] for line in lines],
+        "total": str(total),
+    }
+
+
+def snapshot_fingerprint(snapshot):
+    """A short hash of a snapshot, for the page to post back as what it showed."""
+    return hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest()
+
+
+def show_for_confirmation(request, snapshot):
+    """Remember the order the confirmation page is showing."""
+    _save(request, showing=snapshot)
+
+
+def shown_for_confirmation(request):
+    """The order the confirmation page last showed, or None."""
+    return _stored(request).get("showing")
+
+
+def confirm(request, snapshot):
+    """Record that the customer confirmed exactly this order, three times, and when."""
+    _save(request, confirmed={"snapshot": snapshot, "at": timezone.now().isoformat()})
+
+
+def confirmed_order(request):
+    """The confirmed snapshot and when, as stored, or None."""
+    confirmed = _stored(request).get("confirmed")
+    return confirmed if isinstance(confirmed, dict) else None

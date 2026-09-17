@@ -125,20 +125,21 @@ def test_continuing_without_ticking_the_box_is_refused(ada, order):
     assert SESSION_KEY not in client.session
 
 
-def test_ticking_the_box_acknowledges_this_warning(ada, order):
-    """UC-07 steps 3-4: recorded, with when, and the page says so."""
+def test_ticking_the_box_acknowledges_this_warning_and_moves_on_to_confirming(ada, order):
+    """UC-07 steps 3-4: recorded, with when, then on to UC-08; coming back says so."""
     client = browser(ada)
     add(client, order["fudge"])
 
     response = acknowledge(client)
 
     assert response.status_code == 302
-    assert response["Location"] == WARNING
+    assert response["Location"] == reverse("checkout_confirm")
     stored = client.session[SESSION_KEY]["warning"]
     assert stored["fingerprint"] == client.get(WARNING).context["warning"].fingerprint
     assert stored["at"]
     page = client.get(WARNING).content.decode()
     assert 'data-testid="warning-acknowledged"' in page
+    assert f'href="{reverse("checkout_confirm")}" class="button" data-testid="warning-continue"' in page
     assert 'data-testid="warning-form"' not in page
 
 

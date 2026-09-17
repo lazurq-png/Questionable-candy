@@ -132,3 +132,40 @@ write does not, namely an administrator changing a candy's sugar or allergens,
 and the customer changing their own allergies. One effect: an Update with an
 unchanged quantity also clears it, because `set_quantity` always saves. That is
 the conservative direction.
+
+## D11. T5: how the three confirmations are made distinct, and what is enforced where
+
+The plan settles one page with three controls: a checkbox worded with the
+item count and total, the total typed back, and the Place my order button.
+Choices made building it:
+
+- **Server-side, all three always.** `ConfirmOrderForm` requires the checkbox,
+  a typed total equal to the total shown, and `place_order=yes` (which only
+  the button sends). Alpine's unlocking is presentation; without JavaScript
+  all three controls are usable, and still all required.
+- **Typed total leniency:** a leading `$`, a decimal comma and a dropped
+  trailing zero are accepted ("$12,4" is 12.40); anything else, including
+  NaN/Infinity, is refused, with the right amount named in the message.
+- **Enter in the total field does not submit.** Otherwise, once the button
+  unlocks, typing the total and pressing Enter would make controls 2 and 3 one
+  keystroke. The first version used Alpine's `keydown.enter.prevent`, which
+  fails before Alpine loads and without JavaScript. The reviewer's fix
+  replaced it: the form's first submit button, its default button, is hidden
+  and disabled, and HTML submits nothing through a disabled default button. A
+  browser test with JavaScript switched off confirms it.
+- **What was confirmed:** GET stores the shown order in
+  `session["checkout"]["showing"]` (each line's candy, quantity, unit price,
+  plus the total), and the page posts back its fingerprint (`shown`). A POST
+  is refused with a notice if either differs from the order as it now stands,
+  for example a price change or another tab showing another order. A valid
+  POST stores `confirmed = {snapshot, at}`. T6 compares against the confirmed
+  snapshot.
+- **A stock cap or withdrawn candy while confirming** is a cart correction,
+  which is a cart write, which clears checkout progress (D10). The customer is
+  sent back to the warning, and the cart's notices go with them as messages,
+  which the warning page now renders. (The first version dropped them; the
+  reviewer found it.)
+- **D9 superseded:** acknowledging the warning now redirects to
+  `/checkout/confirm/`. Coming back to the warning after acknowledging shows
+  "acknowledged" with a Continue link. Two T4 tests were updated to that
+  behaviour: the redirect target, and the e2e path after Continue.

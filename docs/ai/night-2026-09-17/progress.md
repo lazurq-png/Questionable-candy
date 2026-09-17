@@ -245,3 +245,57 @@ Green. Requested work starts.
   1. An undone cart change re-validated the acknowledgment (D10).
   2. An unticked submit of a changed warning gave no notice and kept the stale
      fingerprint: the fingerprint is now checked first.
+
+### T5 — UC-08 triple confirmation, one page — done
+
+- **Branch:** `night-2026-09-17-t5-confirmation`. Clock at start 17:13;
+  budget 14,748,013.
+- **Changed:**
+  - `shop/checkout.py`: `order_snapshot`, `show_for_confirmation` /
+    `shown_for_confirmation`, `confirm` / `confirmed_order`. `acknowledge`
+    still starts progress afresh.
+  - `shop/forms.py` `ConfirmOrderForm` (D11).
+  - `shop/views.py` `checkout_confirm` (`/checkout/confirm/`,
+    `@login_required`):
+    - an empty cart goes to the cart page;
+    - without an acknowledged warning, back to the warning;
+    - the shown order is remembered, and a POST for a changed order is refused
+      with a notice;
+    - a valid POST records the confirmation (post/redirect/get) and the page
+      says "Confirmed. Placing orders is not built yet…".
+  - `checkout_warning` now redirects to it (D11 supersedes D9).
+  - Templates: `checkout_confirm.html` (the lines, total and the three
+    controls unlocked by Alpine); the warning's acknowledged state links on.
+  - `site.css`: confirmation line grid, step list, checkbox label, disabled
+    field.
+  - Tests: `tests/unit/test_confirm_order_form.py` (17 cases),
+    `tests/integration/test_checkout_confirm.py` (13 cases),
+    `tests/e2e/test_checkout_confirm.py` (3). Two T4 tests updated to the new
+    next step.
+- **Verification actually run:**
+  - T5 and T4 tests: 43 unit and integration, 6 e2e, all passed. The first
+    e2e Enter check could not fail (a disabled default button blocks implicit
+    submission anyway), so it was moved to after the button unlocks.
+  - Negative controls, each failed as it should, then restored:
+    - Enter not prevented → e2e failed;
+    - the button's `x-bind:disabled` removed → e2e failed;
+    - any `place_order` value accepted → 1 unit failed;
+    - no snapshot comparison → the price-change test failed;
+    - the acknowledgment precondition removed → 2 failed.
+  - First review: **request changes**. One Medium and two Low findings, all
+    fixed and negative-controlled:
+    1. Medium: a stock cap while confirming sent the customer to the warning
+       without the reason. Notices now travel as messages; 2 tests, GET and
+       POST. Control: 2 failed.
+    2. Low: before or without Alpine, Enter placed the order. Now a hidden,
+       disabled default submit button; new e2e test with JavaScript off.
+       Control: 2 failed.
+    3. Low: a POST was judged only against the session's last-shown order. The
+       page now posts its fingerprint. Control: 1 failed.
+  - T5 and T4 tests after the fixes: 54 passed.
+  - **Re-review: approved.** All three findings confirmed resolved (the
+    reviewer ran 358 passed itself). Its nit, closing the no-JavaScript
+    browser context in a `finally`, was fixed.
+  - Commit gate after the nit: `python scripts/dev.py test` exit 0, **358
+    passed**, coverage 98%; lint exit 0, 9.91/10, no new messages beyond
+    D1/D6; adr_guards exit 0; drift exit 0.

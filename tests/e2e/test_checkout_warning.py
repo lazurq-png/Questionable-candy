@@ -50,8 +50,8 @@ def test_the_warning_is_read_and_acknowledged_after_logging_in(live_server, page
     page.get_by_label("I have read this health warning").check()
     page.get_by_role("button", name="Continue").click()
 
-    expect(page.get_by_test_id("warning-acknowledged")).to_be_visible()
-    expect(page.get_by_test_id("warning-form")).to_have_count(0)
+    page.wait_for_url(f"{live_server.url}/checkout/confirm/")
+    expect(page.get_by_test_id("confirm-form")).to_be_visible()
 
 
 @pytest.mark.parametrize("scheme", ["light", "dark"])
@@ -67,5 +67,7 @@ def test_the_warning_page_meets_the_measurable_checks(live_server, page, assert_
     expect(page.get_by_test_id("warning-form")).to_be_visible()
     page.get_by_label("I have read this health warning").check()
     page.get_by_role("button", name="Continue").click()
+    page.wait_for_url(f"{live_server.url}/checkout/confirm/")
+    page.goto(f"{live_server.url}/checkout/warning/")
     expect(page.get_by_test_id("warning-acknowledged")).to_be_visible()
     check_page(page, f"health warning acknowledged, {scheme}", assert_page_is_fully_rendered)

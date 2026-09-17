@@ -441,6 +441,42 @@ button[disabled] {
   min-height: var(--tap);
 }
 
+/* ---- Checkout: the three confirmations (shop/checkout_confirm.html) ----- */
+
+/* A line being confirmed has nothing to press: name and unit price beside
+   what it comes to. */
+@media (min-width: 40rem) {
+  .cart-line.confirm-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name  total"
+      "unit  total";
+  }
+}
+
+.confirm-steps {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.confirm-steps > li {
+  padding-left: 0.25rem;
+}
+
+.confirm-check {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+}
+
+.confirm-form input[type="text"]:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
 /* ---- Account control in the header (accounts/partials/account_nav.html) -- */
 
 .site-account {

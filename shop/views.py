@@ -5,7 +5,7 @@ from django.utils.cache import patch_vary_headers
 from django.views.decorators.http import require_POST
 
 from . import cart, checkout as checkout_state
-from .forms import HealthWarningForm, QuantityForm, StepperQuantityForm
+from .forms import ConfirmOrderForm, HealthWarningForm, QuantityForm, StepperQuantityForm
 from .models import Candy
 
 # Sent as HX-Trigger on every response that changed the cart. The header's cart
@@ -205,13 +205,73 @@ def checkout_warning(request):
             form = HealthWarningForm(request.POST)
             if form.is_valid():
                 checkout_state.acknowledge(request, warning)
-                return redirect("checkout_warning")
+                return redirect("checkout_confirm")
 
     return render(request, "shop/checkout_warning.html", {
         "warning": warning,
         "form": form,
         "notices": notices,
         "acknowledged": checkout_state.is_acknowledged(request, warning),
+    })
+
+
+@login_required
+def checkout_confirm(request):
+    """UC-08: the order confirmed three times, by three different actions.
+
+    Reached only with the health warning acknowledged for the order as it now
+    stands (UC-08 precondition); otherwise back to the warning. An empty cart
+    goes back to the cart page, as at the warning.
+
+    The page shows exactly what is being confirmed, remembers it
+    (checkout.show_for_confirmation) and posts back a fingerprint of it. A POST
+    is judged against both: if the order it confirms is not the order as it
+    now stands -- a price changed, or another tab showed a different order --
+    the confirmation is refused and the current order shown instead. Otherwise
+    all three controls must pass (ConfirmOrderForm), and the order is recorded
+    as confirmed.
+
+    If cart.lines() had to correct the cart (a quantity capped to stock, a
+    candy withdrawn), that correction is a cart write, which clears checkout
+    progress: the customer goes back to the warning, and what changed goes
+    with them as messages, which the warning page shows.
+
+    Placing the order itself is not built yet, so a confirmed order is only
+    reported as confirmed.
+    """
+    lines, total, notices = cart.lines(request)
+    if not lines:
+        for notice in notices:
+            messages.info(request, notice)
+        return redirect("shoppingcart")
+    warning = checkout_state.health_warning(lines, request.user)
+    if not checkout_state.is_acknowledged(request, warning):
+        for notice in notices:
+            messages.info(request, notice)
+        return redirect("checkout_warning")
+
+    snapshot = checkout_state.order_snapshot(lines, total)
+    shown = checkout_state.snapshot_fingerprint(snapshot)
+    form = ConfirmOrderForm(total=total)
+    if request.method == "POST":
+        if checkout_state.shown_for_confirmation(request) != snapshot or request.POST.get("shown") != shown:
+            notices.append("Your order changed while you were confirming it. Check it again below.")
+        else:
+            form = ConfirmOrderForm(request.POST, total=total)
+            if form.is_valid():
+                checkout_state.confirm(request, snapshot)
+                return redirect("checkout_confirm")
+    checkout_state.show_for_confirmation(request, snapshot)
+
+    confirmed = checkout_state.confirmed_order(request)
+    return render(request, "shop/checkout_confirm.html", {
+        "lines": lines,
+        "total": total,
+        "items": sum(line.quantity for line in lines),
+        "form": form,
+        "notices": notices,
+        "shown": shown,
+        "confirmed": confirmed is not None and confirmed["snapshot"] == snapshot,
     })
 
 

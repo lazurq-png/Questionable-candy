@@ -16,7 +16,7 @@ customer listed under My allergies is marked in words ("You listed this
 allergy") as well as by its styling, so it does not depend on colour.
 {% endcomment %}
 <h1>Before you order: health warning</h1>
-<div class="notices" data-testid="warning-notices">{% for notice in notices %}<p>{{ notice }}</p>{% endfor %}</div>
+<div class="notices" data-testid="warning-notices">{% for message in messages %}<p>{{ message }}</p>{% endfor %}{% for notice in notices %}<p>{{ notice }}</p>{% endfor %}</div>
 
 <section class="warning-section" data-testid="warning-sugar" aria-labelledby="warning-sugar-heading">
   <h2 id="warning-sugar-heading">Sugar</h2>
@@ -64,7 +64,8 @@ allergy") as well as by its styling, so it does not depend on colour.
 </section>
 
 {% if acknowledged %}
-<div class="notices"><p data-testid="warning-acknowledged">You have acknowledged this warning. Confirming your order is the next step, and it is not built yet.</p></div>
+<div class="notices"><p data-testid="warning-acknowledged">You have acknowledged this warning.</p></div>
+<p class="page-actions"><a href="{% url 'checkout_confirm' %}" class="button" data-testid="warning-continue">Continue to confirm your order</a></p>
 {% else %}
 <form method="post" action="{% url 'checkout_warning' %}" class="account-form warning-form" data-testid="warning-form">
   {% csrf_token %}
