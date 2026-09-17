@@ -556,3 +556,31 @@ Green. Requested work starts.
   instruction, and it is **superseded by the plan**, which grants editing a
   decision record to T9 alone. So the correction moved to questions.md Q5,
   with the exact wording to use, rather than being done or dropped.
+
+### T10b — A coverage floor of 95% — done
+
+- **Branch:** `night-2026-09-17-t10b-coverage-floor`. Clock at start 22:20;
+  budget 14,451,949. The last of the plan's requested tasks.
+- **Changed:** `scripts/dev.py` gains `COVERAGE_FLOOR = 95` and passes
+  `--cov-fail-under` to the full `test` task only (D18); its comment now says
+  what the number is for and that lowering it is not a way to pass. ADR 0005's
+  "Not enforced: there is no coverage threshold" became a dated update saying
+  the threshold exists, what it is and why -- the plan directs this task to
+  make that edit.
+- **Verification actually run:**
+  - `python scripts/dev.py test`: exit 0, **411 passed**, "Required test
+    coverage of 95% reached. Total coverage: 98.78%".
+  - Control: the floor temporarily at 100 → exit 1, "Required test coverage of
+    100% not reached", with all 411 tests still passing. Restored; the change
+    was not committed.
+  - `python scripts/dev.py test:unit`: 139 passed, no coverage requirement
+    reported, confirming single suites stay ungated.
+  - Coverage was already 98.78%, so no tests had to be written to reach the
+    floor.
+- **Review:** approved, with three Low informational findings, all taken as
+  comments rather than code: narrowing `dev.py test` with `-k` now fails on
+  coverage (use the per-suite tasks; `--no-cov` is for looking at a failure,
+  not a passing run), the rounding that makes the effective floor 94.5%, and
+  migrations sitting in the measured denominator. The reviewer reproduced the
+  gate's behaviour independently, including that a filtered run, an empty
+  suite and a partial suite all fail closed.

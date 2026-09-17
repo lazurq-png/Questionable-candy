@@ -37,7 +37,7 @@ The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_
 
 Tests now run against PostgreSQL, because `pytest-django` derives the test database from the same `DATABASE_URL` the application uses and [ADR 0004](0004-database.md) leaves no SQLite fallback to fall into.
 
-Not enforced: there is no coverage threshold. `dev test` reports coverage but does not gate on it — add `--cov-fail-under` in `scripts/dev.py` once a target is agreed.
+**Update 2026-09-17 — the threshold exists.** `scripts/dev.py` passes `--cov-fail-under=95` to the full `dev test` run, so coverage is gated as well as reported, in CI too. 95 was chosen against a suite then at 99%: high enough that a new untested module fails the run, with enough slack that a line or two does not. A single suite (`test:unit`, say) is still ungated, because its coverage of the whole application is not a meaningful number.
 
 ## Pros and Cons of the Options
 

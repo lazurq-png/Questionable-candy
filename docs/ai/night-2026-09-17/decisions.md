@@ -338,3 +338,31 @@ Python (`urllib`), and nothing fetched was committed:
 - **Negative controls:** a wrong hash makes the browser refuse the script, and
   the e2e check for it fails; a tag without `integrity` fails the markup test;
   a bare package URL fails the one-file test.
+
+## D18. T10b: the coverage floor is 95, and it gates the full run only
+
+ADR 0005 chose pytest-cov and left the threshold open "once a target is
+agreed"; the plan agreed 95.
+
+- **Why 95 against a suite at 98.78%:** high enough that a new untested module
+  fails the run, with enough slack that a line or two does not, so the gate
+  catches an absence of tests rather than nagging about a branch nobody can
+  reach. The figure is in one place, `COVERAGE_FLOOR` in `scripts/dev.py`.
+- **`dev.py test` only.** A single suite (`test:unit`, `test:int`, `test:e2e`)
+  is not measured against it: what fraction of the whole application the unit
+  tests alone cover is not a number worth gating. CI runs `dev.py test`, so CI
+  is gated.
+- **The direction matters.** Raising the floor is a decision; lowering it to
+  make a run pass is the kind of thing `AGENTS.md` §19 forbids, and the comment
+  in `dev.py` says so.
+- **What "95" means exactly:** coverage rounds the total before comparing
+  (`--cov-precision` defaults to 0), so the effective floor is 94.5% -- 94.6%
+  passes. Found by the reviewer; not worth `--cov-precision=2` at 98.78%, but
+  the ADR's "95%" is precise only from 94.6% up.
+- **The denominator includes migrations** (~100 of 823 statements, all at
+  100%), which predates this task. Each new migration lifts the total slightly
+  and so softens the floor's sensitivity to an untested module.
+- **Controls:** with the floor at 100 the run fails ("Required test coverage of
+  100% not reached. Total coverage: 98.78%", exit 1) while all 411 tests still
+  pass -- so the gate is the coverage number, not the tests; `test:unit` alone
+  reports no coverage requirement.
