@@ -1,10 +1,11 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils.cache import patch_vary_headers
 from django.views.decorators.http import require_POST
 
-from . import cart
-from .forms import QuantityForm, StepperQuantityForm
+from . import cart, checkout as checkout_state
+from .forms import HealthWarningForm, QuantityForm, StepperQuantityForm
 from .models import Candy
 
 # Sent as HX-Trigger on every response that changed the cart. The header's cart
@@ -164,12 +165,54 @@ def checkout(request):
     to show in it -- read after cart.lines() has reconciled the cart with the
     shop, so a capped line's stepper shows what the cart now holds.
 
-    Only the review. The health warning, the confirmations and payment (UC-05,
-    UC-07, UC-08) are not built yet, so this page offers no way to pay.
+    Open to everyone. Its Continue leads to the health warning, which is where
+    logging in is required (checkout_warning).
     """
     context = _cart_context(request)
     _mark_in_cart(request, [line.candy for line in context["lines"]])
     return render(request, "shop/checkout.html", context)
+
+
+@login_required
+def checkout_warning(request):
+    """UC-07: the health warning for this order, acknowledged before going on.
+
+    Login is required from here on: the warning marks the customer's own
+    allergies, and an order needs a customer (UC-05 precondition).
+
+    The acknowledgment is refused unless the box is ticked, and unless the
+    warning the customer read is still the warning for the order -- the cart
+    can change in another tab or from the header's dropdown while this page is
+    open. Either way the page is shown again rather than moving on.
+
+    An empty cart has nothing to warn about, so it goes back to the cart page,
+    taking with it anything cart.lines() had to say about removed items.
+    """
+    lines, _total, notices = cart.lines(request)
+    if not lines:
+        for notice in notices:
+            messages.info(request, notice)
+        return redirect("shoppingcart")
+
+    warning = checkout_state.health_warning(lines, request.user)
+    form = HealthWarningForm(initial={"fingerprint": warning.fingerprint})
+    if request.method == "POST":
+        # The fingerprint first, ticked or not: a customer who read an older
+        # warning is told it changed, and gets a form for the one now shown.
+        if request.POST.get("fingerprint") != warning.fingerprint:
+            notices.append("Your order changed while the warning was open. Read the updated warning below.")
+        else:
+            form = HealthWarningForm(request.POST)
+            if form.is_valid():
+                checkout_state.acknowledge(request, warning)
+                return redirect("checkout_warning")
+
+    return render(request, "shop/checkout_warning.html", {
+        "warning": warning,
+        "form": form,
+        "notices": notices,
+        "acknowledged": checkout_state.is_acknowledged(request, warning),
+    })
 
 
 @require_POST

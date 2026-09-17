@@ -339,6 +339,108 @@ button[disabled] {
   background: var(--surface-2);
 }
 
+/* ---- Checkout: the health warning (shop/checkout_warning.html) ---------- */
+
+.warning-section {
+  margin: 1.5rem 0;
+  padding: var(--space) 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.warning-section h2 {
+  margin-top: 0;
+}
+
+.warning-headline {
+  font-size: 1.125rem;
+}
+
+.warning-note {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Only the table scrolls sideways on a narrow phone, never the page. */
+.warning-table {
+  overflow-x: auto;
+}
+
+.warning-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.warning-table th,
+.warning-table td {
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.warning-table td {
+  white-space: nowrap;
+}
+
+.warning-unknown,
+.warning-match-summary {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem var(--space);
+  background: var(--flaw-bg);
+  border: 1px solid var(--flaw-border);
+  border-radius: var(--radius-sm);
+  color: var(--flaw-text);
+  font-weight: 600;
+}
+
+.warning-allergens {
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.warning-allergens li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.warning-candies {
+  display: block;
+  color: var(--muted);
+}
+
+/* An allergen the customer listed: marked in words, the badge, as well as
+   by the border -- never by colour alone. */
+.warning-allergen-yours {
+  padding-left: 0.75rem !important;
+  border-left: 6px solid var(--flaw-border);
+}
+
+.warning-yours {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0 0.5rem;
+  background: var(--flaw-bg);
+  border: 1px solid var(--flaw-border);
+  border-radius: var(--radius-sm);
+  color: var(--flaw-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.warning-change {
+  margin: 0;
+}
+
+.warning-acknowledge {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+}
+
 /* ---- Account control in the header (accounts/partials/account_nav.html) -- */
 
 .site-account {

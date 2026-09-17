@@ -189,3 +189,59 @@ Green. Requested work starts.
   2. The header departs from the plan's wording, unrecorded: now D5 and Q3.
   3. The account menu was named only by the username: a visually hidden ",
      account menu" was added, and the e2e assertion updated.
+
+### T4 — UC-07 health warning — done
+
+- **Branch:** `night-2026-09-17-t4-health-warning`. Clock at start 16:52;
+  budget 14,794,616.
+- **Changed:**
+  - `shop/checkout.py` (D8): `health_warning(lines, user)` builds the sugar
+    lines, the total (each bag counts as 100 g), candies with unknown sugar by
+    name, the allergens in vocabulary order with their candies, and the
+    customer's matches, plus a sha256 fingerprint of all of it.
+    `acknowledge()` stores the fingerprint and when; `is_acknowledged()`
+    compares.
+  - `shop/views.py` `checkout_warning` (`/checkout/warning/`,
+    `@login_required`):
+    - an empty cart redirects to the cart page, carrying the cart's notices;
+    - a POST with a stale fingerprint gets a notice and the current warning;
+    - otherwise the form needs the tick, then post/redirect/get (D9).
+  - `shop/forms.py` `HealthWarningForm`: a required checkbox plus the
+    fingerprint.
+  - `shop/cart.py` `_save` clears `session["checkout"]` on every cart write
+    (D10).
+  - Templates: Continue on `checkout.html`; `checkout_warning.html` (sugar
+    table, allergen list with a "You listed this allergy" badge and a summary
+    line, the acknowledgment form).
+  - `site.css`: warning styles. The sugar table scrolls inside its own box on
+    a phone.
+  - Tests: `tests/unit/test_checkout_warning.py` (7),
+    `tests/integration/test_checkout_warning.py` (13),
+    `tests/e2e/test_checkout_warning.py` (3).
+- **Verification actually run:**
+  - T4's tests: 23 passed, plus the cart integration suite. Found on the
+    way: the inline "Change my allergies" link was a 125x19 tap target, so it
+    became a standalone link.
+  - Negative controls, each failed as it should, then restored:
+    - stale fingerprint accepted → 1 failed;
+    - the customer's allergies left out of the fingerprint → 1 failed;
+    - unknown sugar counted as zero → 1 failed;
+    - `@login_required` removed → 1 failed;
+    - the "You listed this allergy" badge removed → 2 failed (integration and
+      e2e);
+    - after the review fixes: the cart write keeping the acknowledgment → 1
+      failed; the old tick-first order → 1 failed.
+  - One control first selected no tests (a shell-split `-k`) and was rerun.
+  - `python scripts/dev.py test` (before the review fixes): exit 0, **318
+    passed**, coverage 98%, `shop/checkout.py` 100%. Re-run after them:
+    exit 0, **320 passed**, coverage 98%; lint 9.90 with only D1/D6 extras;
+    adr_guards 0; drift 0.
+  - `python scripts/dev.py lint`: exit 0, 9.90/10, no new messages beyond D1
+    and D6. A first run found a trailing newline, 9 docstrings and 2 style
+    notes, all fixed.
+  - `python scripts/adr_guards.py`: exit 0. `makemigrations --check`: exit 0.
+- **Review:** `reviewer` approved with two Low findings, both fixed and
+  negative-controlled:
+  1. An undone cart change re-validated the acknowledgment (D10).
+  2. An unticked submit of a changed warning gave no notice and kept the stale
+     fingerprint: the fingerprint is now checked first.

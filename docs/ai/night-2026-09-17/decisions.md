@@ -99,3 +99,36 @@ message; the lint gate passes.
 "password2")`, `csrf_protect` and `never_cache`, as Django's `LoginView` is, so
 an error report during sign-up (for example a unique-username race) never
 carries a plain-text password. Tested, with a negative control.
+
+## D8. T4: `shop/checkout.py` holds the warning's content and the acknowledgment
+
+A module of plain functions and frozen dataclasses over the session, like
+`shop/cart.py`: `health_warning(lines, user)`, `acknowledge`,
+`is_acknowledged`. The alternatives:
+- **Compute in the view:** about 40 lines of arithmetic and grouping in
+  `views.py`, untestable without HTTP.
+- **Model methods:** the warning is about a cart and a customer together, and
+  neither `Candy` nor `User` owns that.
+
+It extends the shape night-2026-09-16 questions.md Q1 asked about (is
+`cart.py` a service layer under ADR 0003?). The reviewer suggested answering
+Q1 for both modules together; noted there, not re-asked. The view imports it as
+`checkout_state`, because a view is already named `checkout`.
+
+## D9. T4: until T5 exists, acknowledging returns to the warning page
+
+The plan's next step, the confirmation page, is T5. After a valid
+acknowledgment the view redirects (post/redirect/get) back to the warning,
+which then says it has been acknowledged and that confirming is not built yet.
+T5 replaces that redirect.
+
+## D10. T4: any cart write clears checkout progress (reviewer, Low)
+
+At first the acknowledgment was checked only by fingerprint, so a change that
+was later undone (add, then remove) made it valid again. The plan says "Any
+change to the cart invalidates it", so `cart._save` now also removes
+`request.session["checkout"]`. The fingerprint stays too: it covers what a cart
+write does not, namely an administrator changing a candy's sugar or allergens,
+and the customer changing their own allergies. One effect: an Update with an
+unchanged quantity also clears it, because `set_quantity` always saves. That is
+the conservative direction.

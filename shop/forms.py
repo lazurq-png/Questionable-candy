@@ -41,3 +41,18 @@ class StepperQuantityForm(QuantityForm):
             "min_value": "Cannot be below 0",
         },
     )
+
+
+class HealthWarningForm(forms.Form):
+    """UC-07 step 3: the customer acknowledges the warning -- deliberately.
+
+    A checkbox as well as the button, so a stray press of Continue is not an
+    acknowledgment. `fingerprint` names the warning that was on the page; the
+    view compares it with the warning as it stands now (shop/checkout.py).
+    """
+
+    acknowledge = forms.BooleanField(
+        label="I have read this health warning",
+        error_messages={"required": "Tick the box to confirm you have read the health warning."},
+    )
+    fingerprint = forms.CharField(widget=forms.HiddenInput)
