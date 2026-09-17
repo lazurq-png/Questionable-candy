@@ -2,7 +2,6 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from shop.models import Candy
 from tests.factories.candy_factory import CandyFactory
 
 pytestmark = pytest.mark.django_db
@@ -112,24 +111,6 @@ def test_the_catalog_lists_candy_alphabetically(client):
     assert positions == sorted(positions)
 
 
-def test_candy_sharing_a_name_keep_a_stable_order(client):
-    """Names are not unique; the older row comes first, every time.
-
-    Updating `first` moves it behind `second` in PostgreSQL's physical row
-    order, so without the primary-key tie-break the two come out reversed --
-    otherwise insertion order alone would pass this test.
-    """
-    first = CandyFactory(name="Gum", description="first")
-    second = CandyFactory(name="Gum", description="second")
-    Candy.objects.filter(pk=first.pk).update(description="first, edited")
-
-    content = client.get(reverse("candy_list")).content.decode()
-
-    first_link = f'href="{reverse("candy_detail", args=[first.pk])}"'
-    second_link = f'href="{reverse("candy_detail", args=[second.pk])}"'
-    assert content.index(first_link) < content.index(second_link)
-
-
 # --- UC-03: candy detail ---------------------------------------------------
 
 def test_candy_detail_shows_name_description_and_price(client):
@@ -140,7 +121,7 @@ def test_candy_detail_shows_name_description_and_price(client):
         price="9.95",
     )
 
-    response = client.get(reverse("candy_detail", args=[candy.id]))
+    response = client.get(reverse("candy_detail", args=[candy.slug]))
 
     assert response.status_code == 200
     assert b"Hollow Humbug" in response.content
@@ -152,7 +133,7 @@ def test_candy_detail_offers_both_ways_out(client):
     """UC-03 step 3: return to the catalog, or add to the cart."""
     candy = CandyFactory()
 
-    response = client.get(reverse("candy_detail", args=[candy.id]))
+    response = client.get(reverse("candy_detail", args=[candy.slug]))
 
     # As an attribute, not a bare substring: the catalog is mounted at "/", so
     # `reverse("candy_list").encode() in response.content` asserts that b"/"
@@ -168,7 +149,7 @@ def test_the_detail_popup_gets_the_details_without_the_page(client):
     """The popup's own request: the details, the flaw and the stepper, no page around them."""
     candy = CandyFactory(name="Hollow Humbug", description="Looks solid. Is not.", flaw="Hollow.")
 
-    response = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP)
+    response = client.get(reverse("candy_detail", args=[candy.slug]), headers=POPUP)
     content = response.content.decode()
 
     assert response.status_code == 200
@@ -186,7 +167,7 @@ def test_every_candy_link_opens_the_popup(client):
 
     content = client.get(reverse("candy_list")).content.decode()
 
-    url = reverse("candy_detail", args=[candy.id])
+    url = reverse("candy_detail", args=[candy.slug])
     assert f'href="{url}" class="candy-card-name" hx-get="{url}" hx-target="#candy-popup-contents"' in content
 
 
@@ -194,7 +175,7 @@ def test_the_popup_for_an_unavailable_candy_says_so_with_200(client):
     """htmx does not swap a 404, so the popup would never open; the wording names nothing."""
     candy = CandyFactory(name="Withdrawn Toffee", is_published=False)
 
-    response = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP)
+    response = client.get(reverse("candy_detail", args=[candy.slug]), headers=POPUP)
 
     assert response.status_code == 200
     assert b'data-testid="candy-unavailable"' in response.content
@@ -204,7 +185,7 @@ def test_the_popup_for_an_unavailable_candy_says_so_with_200(client):
 def test_a_deleted_candy_is_no_longer_available(client):
     """UC-03 extension 2a: say so, and offer the way back to the catalog."""
     candy = CandyFactory()
-    url = reverse("candy_detail", args=[candy.id])
+    url = reverse("candy_detail", args=[candy.slug])
     candy.delete()
 
     response = client.get(url)
@@ -218,7 +199,7 @@ def test_an_unpublished_candy_is_no_longer_available_and_not_named(client):
     """The same response as a deleted one, so the page leaks nothing about it."""
     candy = CandyFactory(name="Withdrawn Toffee", is_published=False)
 
-    response = client.get(reverse("candy_detail", args=[candy.id]))
+    response = client.get(reverse("candy_detail", args=[candy.slug]))
 
     assert response.status_code == 404
     assert b'data-testid="candy-unavailable"' in response.content
@@ -271,7 +252,7 @@ def test_catalog_links_each_candy_to_its_detail_page(client):
 
     response = client.get(reverse("candy_list"))
 
-    expected = f'href="{reverse("candy_detail", args=[candy.id])}"'
+    expected = f'href="{reverse("candy_detail", args=[candy.slug])}"'
     assert expected.encode() in response.content
 
 
@@ -284,7 +265,7 @@ def test_candy_detail_discloses_the_flaw(client):
         flaw="Dissolves into a sticky film that outlasts the flavour.",
     )
 
-    response = client.get(reverse("candy_detail", args=[candy.id]))
+    response = client.get(reverse("candy_detail", args=[candy.slug]))
 
     assert b"Dissolves into a sticky film that outlasts the flavour." in response.content
 
@@ -299,7 +280,7 @@ def test_the_flaw_is_labelled_as_a_flaw(client):
     """
     candy = CandyFactory()
 
-    response = client.get(reverse("candy_detail", args=[candy.id]))
+    response = client.get(reverse("candy_detail", args=[candy.slug]))
 
     assert b'data-testid="candy-flaw"' in response.content
     assert b"Known flaw" in response.content
@@ -325,7 +306,7 @@ def test_candy_detail_shows_sugar_per_100g_and_allergen_names(client):
     """Sugar per 100 g, and allergens by name in vocabulary order."""
     candy = CandyFactory(sugar_content_g="48.0", allergens=["soy", "milk"])
 
-    content = client.get(reverse("candy_detail", args=[candy.id])).content.decode()
+    content = client.get(reverse("candy_detail", args=[candy.slug])).content.decode()
 
     assert "48.0 g per 100 g" in content
     assert "Soybeans, Milk" in content
@@ -335,7 +316,7 @@ def test_candy_detail_says_unknown_sugar_and_no_listed_allergens(client):
     """Unknown is not zero, and an empty list is not a promise of none."""
     candy = CandyFactory(sugar_content_g=None, allergens=[])
 
-    content = client.get(reverse("candy_detail", args=[candy.id])).content.decode()
+    content = client.get(reverse("candy_detail", args=[candy.slug])).content.decode()
 
     assert '<dd data-testid="candy-sugar">Unknown</dd>' in content
     assert '<dd data-testid="candy-allergens">None listed</dd>' in content
@@ -345,7 +326,7 @@ def test_the_detail_popup_shows_sugar_and_allergens_too(client):
     """The popup shares the partial; 0 g must read as a value, not as unknown."""
     candy = CandyFactory(sugar_content_g="0.0", allergens=["sulphites"])
 
-    content = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP).content.decode()
+    content = client.get(reverse("candy_detail", args=[candy.slug]), headers=POPUP).content.decode()
 
     assert "0.0 g per 100 g" in content  # zero sugar is a value, not "Unknown"
     assert "Sulphur dioxide and sulphites" in content

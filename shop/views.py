@@ -23,15 +23,16 @@ def candy_list(request):
     """UC-01: the published candy, alphabetically.
 
     Without an ORDER BY, PostgreSQL returns rows in whatever order is cheapest,
-    which can change between requests. The primary key breaks ties between
-    candies that share a name, since names are not unique.
+    which can change between requests. Names are unique (since 2026-09-17), so
+    the name alone is already a total order; the primary key stays as a
+    tie-break in case that constraint is ever relaxed.
     """
     candies = list(Candy.objects.published().order_by("name", "pk"))
     _mark_in_cart(request, candies)
     return render(request, "shop/candy_list.html", {"candies": candies})
 
 
-def candy_detail(request, pk):
+def candy_detail(request, slug):
     """UC-03: one candy's full detail -- as a page, or inside the detail popup.
 
     A candy's name link opens the popup (templates/base.html) by fetching this
@@ -45,7 +46,25 @@ def candy_detail(request, pk):
     item exists. The popup says the same with 200, because htmx does not swap
     4xx responses and the popup would never open.
     """
+    return _detail_response(request, Candy.objects.published().filter(slug=slug).first())
+
+
+def candy_detail_by_pk(request, pk):
+    """The detail page's old address, /candy/<pk>/, kept so shared links work.
+
+    A published candy redirects permanently to its slug. An unpublished or
+    deleted one gets the same "no longer available" answer as its slug would,
+    without a redirect: sending a visitor on to the slug of a withdrawn candy
+    would reveal the slug, and so that it exists.
+    """
     candy = Candy.objects.published().filter(pk=pk).first()
+    if candy is not None:
+        return redirect(candy, permanent=True)
+    return _detail_response(request, None)
+
+
+def _detail_response(request, candy):
+    """The detail page or popup for `candy`, or "no longer available" for None."""
     if candy is not None:
         _mark_in_cart(request, [candy])
     if request.headers.get("HX-Target") == DETAIL_POPUP:

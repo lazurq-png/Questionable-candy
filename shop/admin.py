@@ -40,11 +40,39 @@ class CandyAdmin(admin.ModelAdmin):
     list_filter = ("is_published",)
     search_fields = ("name", "flaw")
     fields = (
-        "name", "flaw", "description", "flavor", "price", "stock", "sugar_content_g", "allergens",
+        "name", "slug", "flaw", "description", "flavor", "price", "stock", "sugar_content_g", "allergens",
         "is_published", "image",
         "created_at", "updated_at",
     )
     readonly_fields = ("created_at", "updated_at")
+    # Typed name, slug follows, on the add form only: prepopulated_fields
+    # applies to fields that are editable, and the slug stops being editable
+    # once the candy exists (get_readonly_fields).
+    prepopulated_fields = {"slug": ("name",)}
+
+    def get_prepopulated_fields(self, request, obj=None):
+        """Nothing to prepopulate on an existing candy: its slug is read-only,
+        and the admin looks the field up on the form, which no longer has it.
+        """
+        if obj is None:
+            return self.prepopulated_fields
+        return {}
+
+    def get_readonly_fields(self, request, obj=None):
+        """An existing candy's slug cannot be changed here.
+
+        /candy/<pk>/ answers 301 to the slug, and a browser may cache that for
+        as long as it likes. Editing the slug afterwards would leave those
+        visitors pointed at an address that no longer exists, with nothing the
+        server could do about it. So changing one afterwards -- a typo caught
+        late, say -- is deliberately a `manage.py shell` or data-migration
+        operation, taken knowing that a cached 301 cannot be recalled, rather
+        than a field to retype. Renaming the candy is free; its address does
+        not follow.
+        """
+        if obj is None:
+            return self.readonly_fields
+        return (*self.readonly_fields, "slug")
 
 
 class OrderItemInline(admin.TabularInline):

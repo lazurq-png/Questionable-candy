@@ -365,3 +365,61 @@ Green. Requested work starts.
     customer lands on the warning or cart page with the ordered items in the
     cart again, not on the receipt. No duplicate order and no stock lost;
     session last-write-wins, not introduced here.
+
+### T7 — Slug URLs and unique names — done
+
+- **Branch:** `night-2026-09-17-t7-slugs`. Clock at start 18:39; budget
+  14,611,569.
+- **Precondition checked first:** the dev database holds 22 candies with no
+  duplicate names (case-insensitively either), no colliding slugs and no empty
+  or all-digit ones. So the task proceeded rather than stopping.
+- **Changed:** `Candy.slug` and a unique `name`; `unique_candy_slug`;
+  `ensure_slug` from `clean()` and `save()`; `get_absolute_url`; the
+  `candy_slug_is_not_all_digits` check; `candy_detail(slug)` and
+  `candy_detail_by_pk` with its 301; `candy_link.html`; the admin (slug field,
+  prepopulated on add, read-only afterwards); `docs/data-model.md`;
+  migrations `0013`, `0014` (hand-written) and `0015`.
+- **Verification actually run:**
+  - T7's tests: 35 passed after the review fixes (unit, integration, admin,
+    e2e).
+  - Negative controls, each failed as it should, then restored:
+    - the old URL not redirecting → 2 failed;
+    - the redirect not permanent → 1 failed;
+    - digit slugs not prefixed → 1 failed;
+    - collisions not resolved → 2 failed;
+    - the migration ignoring collisions → 1 failed;
+    - links still using the number → 1 failed;
+    - the slug editable after creation → 1 failed;
+    - `prepopulated_fields` removed → 1 failed;
+    - the slug check constraint removed (fresh database) → 1 failed.
+  - Migration test with pre-existing candy, including two names that slugify
+    alike, an unnameable one and an all-digits one: passed.
+  - Existing tests updated from `pk` to `slug` for the detail URL (15 in
+    `test_views.py`, 1 in `test_shoppingcart.py`), and one test deleted whose
+    premise is now impossible (D15).
+  - `python scripts/dev.py test`: exit 0, **403 passed**, coverage 99% (before
+    the review fixes; re-run below).
+  - `python scripts/dev.py lint`: exit 0, 9.92/10, no new messages beyond
+    D1/D6/D13. A first run had 12 missing docstrings, an unused import, mixed
+    line endings and a second duplicate-code pair; the duplicated migration
+    helper became `tests/integration/migration_helpers.py`.
+  - `python scripts/adr_guards.py`: exit 0. `makemigrations --check`: exit 0.
+- **Review:** approved, with four Low findings and a nit, all acted on (D15).
+  Two follow-on problems the fixes exposed, both fixed: the admin looks up
+  `prepopulated_fields` on the change form (hence `get_prepopulated_fields`),
+  and `full_clean` validates the new constraint before `save()` fills the slug
+  (hence filling it in `clean()`).
+- **Re-review: approved.** It mutation-checked each new behaviour and found
+  each pinned by a test that fails without it. Two remaining Low items, both
+  documentation, both done: the slug has no admin correction path once set
+  (said so in `get_readonly_fields` and D15 -- it is a shell or
+  data-migration operation), and the new constraint is now named in
+  `docs/data-model.md` and explained in `0015`'s header, with the query to
+  find offending rows, as migration `0003` does.
+  Its note, not a finding: `test_the_admin_refuses_a_slug_of_digits_alone`
+  would still pass without the field validator, because the constraint's
+  message is the same string.
+- **Commit gate:** `python scripts/dev.py test` exit 0, **405 passed**,
+  coverage 99%; lint exit 0, 9.92/10, only D1/D6/D13 extras; adr_guards
+  exit 0; drift exit 0. The documentation fixes after it touched no code
+  path; the slug and migration tests were re-run: 19 passed.

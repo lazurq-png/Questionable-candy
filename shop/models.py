@@ -2,8 +2,10 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
+from django.urls import reverse
+from django.utils.text import slugify
 
 from . import allergens
 
@@ -16,8 +18,38 @@ class CandyQuerySet(models.QuerySet):
         return self.filter(is_published=True)
 
 
+def unique_candy_slug(name, taken):
+    """A slug for `name` that `taken(slug)` says is free.
+
+    slugify(name), with "-2", "-3", ... when that is taken, since two different
+    names can slugify alike ("Sour Bricks", "Sour-Bricks"). A slug of digits
+    alone gets a "candy-" prefix: /candy/<digits>/ is the old number URL, so
+    such a slug could never be reached. Kept free of the model so migration
+    0013 can use a frozen copy of the same rules.
+    """
+    base = slugify(name)[:200] or "candy"
+    if base.isdigit():
+        base = f"candy-{base}"
+    slug, suffix = base, 2
+    while taken(slug):
+        slug, suffix = f"{base}-{suffix}", suffix + 1
+    return slug
+
+
 class Candy(models.Model):
-    name = models.CharField(max_length=200)
+    # Unique (docs/data-model.md section 3.3): two candies of one name could not
+    # be told apart in the catalog, and their slugs would need suffixes.
+    name = models.CharField(max_length=200, unique=True)
+    # The candy's URL, /candy/<slug>/. Set from the name when the candy is
+    # first saved and never changed by renaming it, so a shared link keeps
+    # working. The admin fills it in as the name is typed; left blank, save()
+    # makes one.
+    slug = models.SlugField(
+        max_length=220, unique=True, blank=True,
+        validators=[RegexValidator(r"\D", "A slug needs a letter or a dash; digits alone read as a number.")],
+        help_text="The candy's web address, filled in from the name. Set once: /candy/<number>/ "
+                  "redirects here permanently, and browsers cache that.",
+    )
     # UC-03 step 2 renders this on the detail page. Not null (docs/data-model.md
     # section 3.3) but not mandatory: UC-06 singles out `flaw` as the field that
     # may never be omitted, and holding description to that bar is a tightening
@@ -82,6 +114,17 @@ class Candy(models.Model):
                 name="candy_flaw_is_not_blank",
                 violation_error_message="Every candy must disclose a flaw (UC-06).",
             ),
+            # A slug of digits alone would be read as /candy/<pk>/ and could
+            # never reach its candy -- and would point at another candy if that
+            # primary key exists. unique_candy_slug never makes one and the
+            # field's validator rejects one, but neither reaches
+            # objects.create(slug="123") or queryset.update(), exactly as with
+            # flaw above.
+            models.CheckConstraint(
+                condition=models.Q(slug__regex=r"\D"),
+                name="candy_slug_is_not_all_digits",
+                violation_error_message="A slug needs a letter or a dash; digits alone read as a number.",
+            ),
             models.CheckConstraint(
                 condition=models.Q(sugar_content_g__isnull=True)
                 | models.Q(sugar_content_g__gte=0, sugar_content_g__lte=100),
@@ -92,6 +135,32 @@ class Candy(models.Model):
 
     def __str__(self):
         return self.name
+
+    def ensure_slug(self):
+        """Give the candy its slug from its name, if nobody set one."""
+        if not self.slug:
+            self.slug = unique_candy_slug(
+                self.name, lambda slug: Candy.objects.filter(slug=slug).exclude(pk=self.pk).exists()
+            )
+
+    def clean(self):
+        """Fill the slug before validation, not after.
+
+        full_clean() checks the constraints -- including candy_slug_is_not_all_digits
+        -- and a slug left blank on a form would still be blank by then, so the
+        form would report a constraint the customer never touched.
+        """
+        self.ensure_slug()
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        """As clean(), for the paths that never validate: objects.create() and friends."""
+        self.ensure_slug()
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        """The candy's own page, by slug (UC-03)."""
+        return reverse("candy_detail", args=[self.slug])
 
     def allergen_names(self):
         """The allergens' labels, in the vocabulary's order, for display."""

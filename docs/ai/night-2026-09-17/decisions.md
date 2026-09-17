@@ -242,3 +242,54 @@ The questions.md entry was removed, now that the question is settled in code.
 `too-few-public-methods (1/2)`: the manager adds exactly one method, `place()`;
 the rest of its public API is inherited from Django's `Manager`, which pylint
 does not count. Refactor-class; the lint gate passes.
+
+## D15. T7: slug URLs, unique names, and what each rule is enforced by
+
+- **The slug is set once**, from the name, when a candy is first saved
+  (`Candy.ensure_slug`, called from `clean()` and `save()`), and renaming does
+  not change it, so a shared link keeps working. Collisions get `-2`, `-3`
+  (two different names can slugify alike). A slug that would be digits alone
+  gets a `candy-` prefix.
+- **`/candy/<int:pk>/` keeps its own view** and answers 301 to the slug for a
+  published candy. An unpublished or deleted one gets the same "no longer
+  available" answer as its slug would, with no `Location` and without naming
+  the slug: a redirect would disclose both the slug and that the candy exists.
+- **Route order:** the number route is registered first. Since no slug is ever
+  digits alone, the two cannot both match an address.
+- **Migrations `0013`-`0014`** follow D14's pattern (add nullable and fill,
+  then require), so rows are updated and the table altered in separate
+  transactions. `0014` also makes `name` unique, and fails whole-or-nothing on
+  a database holding two candies of one name. The dev database was checked
+  first: 22 candies, no duplicate names, no colliding or empty slugs.
+- **Migration `0013` holds a frozen copy of the slug rules**, rather than
+  importing `unique_candy_slug`, because a migration must not change when the
+  code does. Each copy has its own test.
+- **A deleted test:** `test_candy_sharing_a_name_keep_a_stable_order` asserted
+  the catalog's `("name", "pk")` tie-break using two candies of one name,
+  which the unique constraint now makes impossible. The ordering property
+  itself is still covered by `test_the_catalog_lists_candy_alphabetically`.
+  The tie-break stays in the query, and the docstring now says why.
+
+From the review (all four Low findings, and the nit):
+
+- **`candy_list`'s docstring** said names are not unique. Corrected.
+- **The prepopulated-fields test could not fail**: `'"slug"' in content`
+  matched the field's own `name="slug"` attribute. It now asserts the admin's
+  configuration and the element that carries it.
+- **"Never digits alone" was only enforced in generation and forms.** A
+  `CheckConstraint` (`candy_slug_is_not_all_digits`, migration `0015`,
+  additive) now holds it in the database, as `flaw`'s non-blank check does.
+  That constraint is also validated by `full_clean`, which runs before
+  `save()`, so the slug is filled in `clean()` as well -- otherwise a form
+  left blank reported a constraint violation the administrator never caused.
+- **A cached 301 plus an editable slug** could pin a browser to an address
+  that no longer exists. The slug is now read-only once the candy exists
+  (`get_readonly_fields`), with `get_prepopulated_fields` returning nothing
+  then, because the admin looks that field up on the form. The consequence,
+  raised by the second review: a slug mistyped at creation cannot be corrected
+  through any admin screen, and a candy that has been ordered cannot be deleted
+  and recreated either (`OrderItem.candy` is PROTECT). Correcting one is a
+  `manage.py shell` or data-migration operation, deliberately, since a cached
+  301 cannot be recalled. Said so in the docstring.
+- **Nit:** two browser tests now visit the slug address; the redirect has its
+  own test.

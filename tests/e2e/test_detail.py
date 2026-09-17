@@ -66,7 +66,7 @@ def test_the_detail_page_still_works_by_its_url_and_returns_to_the_catalog(
     """UC-03 step 3's first exit, for a shared link or a browser without JavaScript."""
     candy = CandyFactory(name="Hollow Humbug", description="Looks solid. Is not.")
 
-    page.goto(f"{live_server.url}/candy/{candy.pk}/")
+    page.goto(f"{live_server.url}/candy/{candy.slug}/")
     expect(page.get_by_role("heading", name="Hollow Humbug", level=1)).to_be_visible()
     expect(page.get_by_test_id("candy-description")).to_have_text("Looks solid. Is not.")
     page.get_by_test_id("back-to-catalog").click()
@@ -180,7 +180,7 @@ def test_the_flaw_is_visible_to_the_customer(
     expect(popup.get_by_role("heading", name="Known flaw")).to_be_visible()
     assert_page_is_fully_rendered(page)
 
-    page.goto(f"{live_server.url}/candy/{candy.pk}/")
+    page.goto(f"{live_server.url}/candy/{candy.slug}/")
     expect(page.get_by_test_id("candy-flaw")).to_be_visible()
     expect(page.get_by_role("heading", name="Known flaw")).to_be_visible()
 
@@ -217,4 +217,15 @@ def test_the_popup_shows_sugar_and_allergens(live_server, page, assert_page_is_f
 
     expect(popup.get_by_test_id("candy-sugar")).to_have_text("97.0 g per 100 g")
     expect(popup.get_by_test_id("candy-allergens")).to_have_text("Cereals containing gluten, Milk")
+    assert_page_is_fully_rendered(page)
+
+
+def test_a_link_shared_before_slugs_lands_on_the_candys_page(live_server, page, assert_page_is_fully_rendered):
+    """The old /candy/<pk>/ address redirects, and the browser ends up at the slug."""
+    candy = CandyFactory(name="Hollow Humbug", description="Looks solid. Is not.")
+
+    page.goto(f"{live_server.url}/candy/{candy.pk}/")
+
+    assert page.url == f"{live_server.url}/candy/{candy.slug}/"
+    expect(page.get_by_test_id("candy-description")).to_have_text("Looks solid. Is not.")
     assert_page_is_fully_rendered(page)
