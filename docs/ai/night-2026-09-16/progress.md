@@ -1,5 +1,125 @@
 # Progress — night-2026-09-16
 
+## Morning report
+
+**All five requested tasks and all four derived tasks are complete, verified,
+independently reviewed, merged into `night-2026-09-16` and pushed.** Nothing is
+provisional and nothing was abandoned. The run branch is green: re-verified on
+its tip at 2026-09-17 09:54, it gives **185 passed** (coverage 97%), lint exit 0
+at **9.80/10** (baseline 9.35), `adr_guards` exit 0, `makemigrations --check`
+exit 0. Pushed; CI triggered on every branch, result not observable from here.
+
+**The run finished late, on the human's instruction.** The session went idle at
+about 16:20 on 2026-09-16, during T9, and resumed at **09:46 on 2026-09-17**,
+past the 08:00 deadline and the 08:30 ceiling. The human was present then and
+explicitly asked for T9 to be finished and the run reported, so it was. Nothing
+ran between 16:20 and 09:46.
+
+### Completed
+
+| Task | Branch (pushed) | Commit | Verification actually run |
+| ---- | --------------- | ------ | ------------------------- |
+| T1. Publication: hide unpublished candy, "no longer available" page (UC-01, UC-03 2a) | `night-2026-09-16-t1-publication` | `695731d` | 43 passed, cov 93%; lint 9.41, no new messages; adr_guards 0; drift 0; reviewer approved |
+| T2. 20 new candies, SVG for all 22 + placeholder, `seed_candy` | `night-2026-09-16-t2-candy-images` | `e6eb27e` | 121 passed, cov 94%; lint 9.53; adr_guards 0; drift 0; SVG scan and seed negative-controlled; reviewer approved, 2 lows fixed |
+| T3. Session cart: page, add/update/remove within stock, empty state, stale entries (UC-04) | `night-2026-09-16-t3-cart` | `7829a6d` | 151 passed, cov 96%; lint 9.72; adr_guards 0; drift 0; 4 negative controls; reviewer approved, 4 lows fixed, approved on re-review |
+| T4. Candy admin with flaw prompt (UC-06 1-2, 2a) | `night-2026-09-16-t4-admin-flaw` | `d596aac` | 158 passed, cov 97%, incl. e2e through real admin login; lint 9.75; adr_guards 0; drift 0; reviewer approved, 1 low fixed |
+| T5. Professional interface, light/dark themes with toggle (UC-01) | `night-2026-09-16-t5-interface-themes` | `fdedee6` | 169 passed, cov 97%; lint 9.77; adr_guards 0; drift 0; 7 CSS negative controls; reviewer **requested changes** (tap targets), fixed, approved on re-review |
+| T6. Enforce ADR 0002 middleware and ADR 0004 PostgreSQL ≥ 17 (derived) | `night-2026-09-16-t6-enforce-adrs` | `1ef6524` | 173 passed; lint 9.78; adr_guards 0; drift 0; negative control per test; reviewer approved, 2 wording lows fixed |
+| T7. Keyboard focus after removing a cart line (derived) | `night-2026-09-16-t7-remove-focus` | `0c5d2c6` | 179 passed; lint 9.79; adr_guards 0; drift 0; reviewer **requested changes** twice (one real regression: a remove hid stale-cart notices), all fixed |
+| T8. Stable alphabetical catalog order (derived) | `night-2026-09-16-t8-catalog-order` | `520f376` | 181 passed; lint 9.80; adr_guards 0; drift 0; reviewer **requested changes** (tie test could not fail), fixed and controlled |
+| T9. `created_at` / `updated_at` on Candy (derived) | `night-2026-09-16-t9-candy-timestamps` | `622f752` | 185 passed; lint 9.80; adr_guards 0; drift 0; migrations 0007+0008 applied to dev DB; reviewer approved, 2 doc lows fixed |
+
+### Requested visual work (T5): built and measured, not reviewed
+
+**No person has looked at these pages.** What *was* measured, on every
+customer page at 375px, for the system light and dark themes and for a stored
+override each way:
+- no horizontal overflow;
+- the header stays on one row;
+- every button, input and link in the header and page body is at least 44×44;
+- text contrast is at least 4.5:1 against the colour actually painted behind
+  it;
+- no template source shows.
+
+Each check was shown able to fail. What was *not* verified:
+- whether it looks good: hierarchy, balance, whether the flaw reads as a
+  warning;
+- whether a screen reader speaks the toggle and live-region messages as
+  intended;
+- any browser but Chromium.
+
+Look at the screenshots before believing any of it:
+- before: `docs/ai/night-2026-09-16/screenshots/before/` (10 JPEGs);
+- after: `docs/ai/night-2026-09-16/screenshots/after/` (20 JPEGs, both
+  themes).
+
+The visual reference was Pico CSS, rebuilt by hand; every Django template found
+needed Bootstrap, Tailwind or a build (decisions.md D6).
+
+No §9 discretionary work was started.
+
+### Clock and budget
+
+- **Start:** 2026-09-16 14:38; budget 14,996,435.
+- **Task starts:** T1 14:40, T2 14:46, T3 14:57, T4 15:13, T5 15:20, T6 15:48,
+  T7 15:57, T8 16:10, T9 16:17 (idle ~16:20 to 2026-09-17 09:46), report 09:54.
+- **Budget:** the lowest reading before the idle gap was 14,633,833, about
+  2.4% of the start figure. The harness showed 15,000,000 again on resuming.
+  Neither the 10% nor the 30% reserve was ever approached.
+- **What ended the run:** the derived task list was complete (T6–T9 were all of
+  it; the rest could only be logged), and the human asked for the report.
+  After the idle gap, the clock deadline had also passed.
+
+### Provisional
+
+None.
+
+### Abandoned
+
+None.
+
+### Questions, most consequential first (`questions.md`)
+
+1. **Q4, stale records:** ADR 0001, ADR 0006, ADR 0005 and night-run §9 still
+   say no CSS exists, or that e2e is empty. The next unattended run will read
+   §9 from a false premise. One-line corrections for a human.
+2. **Q2, styling ADR:** hand-written CSS, custom-property themes and
+   `theme.js` are now real conventions. night-run §9.6 forbids an accepted ADR
+   unattended; drafted as a recommendation.
+3. **Q6, HTTPS enforcement** (requirements §3): `SECURE_SSL_REDIRECT` and HSTS
+   are unset, deliberately, because they depend on the deployment.
+4. **Q7, subresource integrity** for the htmx and Alpine CDN scripts; the exact
+   change is given for a human to run (it needs a CDN fetch).
+5. **Q1, `shop/cart.py`** under ADR 0003's "no service layer": built and
+   merged; the reviewer judged it acceptable; confirm.
+6. **Q3, the theme toggle** has no way back to "follow the system setting".
+7. **Q8, coverage threshold:** 97% today; a target is a human's call.
+8. **Q5 (information):** `sugar_content_g` and `allergens` were not added; they
+   serve UC-07, which is out of scope.
+
+Worth knowing even though it is not a question: **every candy that existed
+before migration 0007 has that migration's run time in both timestamps**, not
+its real creation time. In the dev database that is all 22 (decisions.md D9).
+Still open from the previous run: night-2026-09-15 Q5 (migration 0003 has no
+in-file guard for blank-flaw rows). Still parked by the run request: slug URLs,
+unique names, catalog paging.
+
+### State
+
+- **Run branch:** `night-2026-09-16`, 9 commits on `dev` @ `7681607`, tip
+  `622f752` before this report, pushed. Green on the evidence above.
+- **Task branches:** t1–t9 all pushed, with remote tips equal to local. This
+  report is on `night-2026-09-16-t10-report`.
+- **Working tree:** clean apart from this report.
+- **Development database** (local only): migrations `0005`–`0008` applied;
+  `seed_candy` run (22 candies with pictures). Screenshots were taken against
+  it, through a dev server that has been stopped.
+- **Lint:** 9.80/10 against the 9.35 baseline. No task left a message beyond
+  the baseline.
+- **Not done:** nothing requested. No pull request opened, as the protocol
+  requires. Merging `night-2026-09-16` into `dev` is a human decision.
+
+
 ## Session 1
 
 ### Preflight
