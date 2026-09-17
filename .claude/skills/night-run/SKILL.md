@@ -37,20 +37,29 @@ is the finished, verified, reviewed task and nothing less.
 sessions (§10), so the session you are in is not necessarily the run's first:
 
 ```bash
-date '+%Y-%m-%d %H:%M'
-git branch --list 'night-*'
-ls -d docs/ai/night-*/ 2>/dev/null
+date '+%F %H:%M'
+for b in $(git branch --list 'night-*' --format='%(refname:short)' \
+           | grep -E '^night-[0-9]{4}-[0-9]{2}-[0-9]{2}$'); do
+  git show "$b:docs/ai/$b/progress.md" 2>/dev/null \
+    | grep -q '^## Morning report' || echo "in progress: $b"
+done
 ```
 
-- **A `night-*` branch exists for a run whose `progress.md` has no morning
-  report** → you are **resuming**. Go to §10.2, which does an abbreviated
-  preflight and picks up the plan. Do *not* run §1.0, §1.3 or §1.5: the branch
-  and the state files already exist, and recreating them is how a run loses its
-  own history.
-- **Otherwise** → a new run. Do §1.0–§1.6 in order.
+- **The loop prints a run branch** → you are **resuming** that run. Go to
+  §10.2, which does an abbreviated preflight and picks up the plan. Do *not* run
+  §1.0, §1.3 or §1.5: the branch and the state files already exist, and
+  recreating them is how a run loses its own history.
+- **It prints nothing** → a new run. Do §1.0–§1.6 in order.
 
 Decide on the **branch**, not the directory. A new run's directory already
 exists before the run does, because a human put the plan in it (§1.0).
+
+Read `progress.md` **from the run branch itself**, as above, never from the
+working tree. The tree holds whatever the checked-out branch holds. A new run
+is cut from `dev`, and `dev` lacks any earlier run that has not been merged into
+it yet. Read from the tree, that earlier run looks unfinished and gets resumed
+in place of the new one. A run branch whose `progress.md` has not been committed
+yet counts as in progress, which is correct: its first task never merged.
 
 Whichever it is, if a step fails in a way the step does not tell you how to
 recover from, stop and write why to `docs/ai/<branch>/progress.md`.
@@ -241,6 +250,8 @@ scatter the record across branches that a reader has to find first.
 
 **Record two starting readings in `progress.md` before the first task**: the
 wall clock (§8.1) and the session budget figure the harness reports (§8.6).
+Beside them, record the run's **deadline as a full date and time**, worked out
+as §8.2 describes, e.g. `Deadline: 2026-09-18 08:00`.
 The budget thresholds are proportions of where the run started, so without the
 starting figure written down there is no denominator — and by the time it
 matters, the message that carried it may have been summarised away.
@@ -296,7 +307,7 @@ review — with these additions:
    nothing uncommitted:
 
    ```bash
-   date '+%H:%M'                           # NOT TZ='Europe/Stockholm' -- see §8.1
+   date '+%F %H:%M'                        # NOT TZ='Europe/Stockholm' -- see §8.1
    git checkout night-<YYYY-MM-DD>
    git status --short                      # must be empty
    git checkout -b night-<YYYY-MM-DD>-t<N>-<slug>
@@ -606,7 +617,9 @@ unmerged one.
 
 The **run's** last act, not a session's. It begins when the last task ends — the
 list running out, a stop condition, or the clock deadline resolving the task in
-flight (§8.4) — and it is a summary at the top of `progress.md`.
+flight (§8.4) — and it is a summary at the top of `progress.md`, under exactly
+the heading `## Morning report`. §1 finds finished runs by that heading, so a
+run whose report is headed differently looks unfinished and gets resumed.
 
 It is the one thing never cut short for the clock (§8.5).
 
@@ -683,8 +696,11 @@ it would end the run at 06:00 in summer and 07:00 in winter.
 Git Bash prints is cosmetic and also wrong, but the time itself is right:
 
 ```bash
-date '+%H:%M'
+date '+%F %H:%M'
 ```
+
+Always read the date along with the time. A bare `HH:MM` cannot tell 23:10
+before the deadline from 07:45 just before it (§8.2).
 
 Confirm that once during preflight, alongside §1.1. The system zone must be
 `W. Europe Standard Time`, the Windows id covering Stockholm:
@@ -698,10 +714,25 @@ not the deadline you were given. Convert explicitly instead, and record in
 `progress.md` that you had to:
 
 ```bash
-powershell -NoProfile -Command "[System.TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, [System.TimeZoneInfo]::FindSystemTimeZoneById('W. Europe Standard Time')).ToString('HH:mm')"
+powershell -NoProfile -Command "[System.TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, [System.TimeZoneInfo]::FindSystemTimeZoneById('W. Europe Standard Time')).ToString('yyyy-MM-dd HH:mm')"
 ```
 
 ### 8.2 The checkpoints
+
+**The deadline is the first 08:00 after the run started, with its date.** A run
+started at 22:00 on 2026-09-17 has the deadline `2026-09-18 08:00`, and so does
+one started at 00:30 on the 18th. A run started at 14:38 on the 16th has
+`2026-09-17 08:00`. §1.5 writes it into `progress.md`.
+
+**Every time in this section, and in §8.3–§8.6 and §9.1, is on the deadline's
+date.** "From 07:30" means `2026-09-18 07:30`, not any 07:30. Compare the dated
+reading from §8.1 against that. At 23:10 on the 17th the rules below have not
+started yet, even though `23:10` is later than `07:30` as a string.
+
+**The deadline belongs to the run, not the session.** A resumed session reads it
+from `progress.md` (§10.2). It never works it out again from its own start time:
+a session resumed at 09:46 would otherwise compute tomorrow's 08:00 and carry on
+past the real deadline.
 
 Check the clock **and the budget** (§8.6) at every task boundary — §2 step 0,
 before cutting a branch — and record both readings in `progress.md` with that
@@ -1046,8 +1077,8 @@ left the next session to guess.
 
 ### 10.2 Resuming
 
-Reached from §1 when a run branch and state directory exist with no morning
-report written. Do **not** re-run §1.3 or §1.5.
+Reached from §1 when a run branch has no morning report committed on it. Do
+**not** re-run §1.0, §1.3 or §1.5.
 
 ```bash
 git branch --list 'night-*'              # the run's date comes from HERE, not from `date`
@@ -1072,6 +1103,8 @@ Then:
 4. **Record a new starting clock and budget reading** (§1.5) under a fresh
    session heading in `progress.md`. The budget percentages are proportions of
    *this* session's starting figure, so each session needs its own denominator.
+   Copy the run's deadline from `progress.md` into that entry, as it stands.
+   Do not work it out again (§8.2).
 5. **Check for work left in flight.** A previous session may have abandoned a
    task and named its branch. Do not silently resume that branch: treat it as
    the previous session left it, and pick it up only if `progress.md` says it
@@ -1089,6 +1122,9 @@ What a session writes instead of the morning report when it is stopping and
 08:00 is still ahead (§8.6). It is appended to `progress.md`, committed and
 pushed on a task branch of its own,
 `night-<YYYY-MM-DD>-t<N>-handoff`.
+
+Head it `## Handoff`, **never** `## Morning report`. §1 would read that heading
+as a finished run, and no later session would resume it.
 
 It carries:
 
@@ -1116,8 +1152,8 @@ Some limits belong to the run and must not reset when a session does:
 
 - **the three-cycle repair limit** (§6, `.claude/rules/debugging.md` §8) —
   per failure, across the whole run;
-- **the clock** (§8.2) — 08:00 is 08:00 regardless of how many sessions have
-  passed;
+- **the clock** (§8.2) — the dated deadline in `progress.md` holds regardless
+  of how many sessions have passed, or which day a session starts on;
 - **parked questions** (§4) — a later session does not get to answer one by
   choosing differently; it inherits the decision and the `PROVISIONAL:` branch;
 - **discretionary work** (§9) — still only after every requested task is
