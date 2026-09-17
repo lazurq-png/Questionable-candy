@@ -423,3 +423,27 @@ Green. Requested work starts.
   coverage 99%; lint exit 0, 9.92/10, only D1/D6/D13 extras; adr_guards
   exit 0; drift exit 0. The documentation fixes after it touched no code
   path; the slug and migration tests were re-run: 19 passed.
+
+### T8 — The theme toggle can return to the system setting — done
+
+- **Branch:** `night-2026-09-17-t8-theme-reset`. Clock at start 21:12; budget
+  14,536,791.
+- **Changed:** `theme.js` clears the stored choice and the `data-theme`
+  attribute when a click lands on the system's own theme (D16); two e2e tests.
+- **Verification actually run:**
+  - `tests/e2e/test_theme.py`: 13 passed (11 before).
+  - Negative controls, each failed as it should, then restored:
+    - the attribute kept on the way back → 2 failed;
+    - the choice still stored on the way back → 2 failed;
+    - `aria-pressed` read from the attribute instead of what is shown → 2
+      failed.
+  - `python scripts/dev.py test`: exit 0, **407 passed**, coverage 99%.
+  - `python scripts/dev.py lint`: exit 0, 9.92/10, no new messages beyond
+    D1/D6/D13 (one mixed-line-ending fix). pylint does not read JavaScript, so
+    it says nothing about `theme.js`.
+  - `python scripts/adr_guards.py`: exit 0. `makemigrations --check`: exit 0.
+- **Review:** approved with four Low findings, all four fixed: the `catch`
+  comment now covers clearing as well as storing, both new tests call
+  `assert_page_is_fully_rendered`, the clearing-into-dark click now asserts
+  `aria-pressed` (with the control above), and `shown()` reuses
+  `systemTheme()` instead of repeating it.

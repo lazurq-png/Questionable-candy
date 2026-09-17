@@ -6,6 +6,13 @@
  * prefers over the system setting. The inline script in base.html's <head>
  * re-applies a stored choice before first paint, so this file can load late.
  *
+ * Toggling back to the theme the system already uses stores nothing and
+ * removes the attribute instead: the visitor is following their system again,
+ * live, rather than pinned to a choice that happens to match it today. That
+ * is the whole of the "back to system" behaviour -- there is no third state to
+ * see or press (docs/ai/night-2026-09-16/questions.md Q3, answered by the
+ * night-2026-09-17 plan).
+ *
  * The button ships hidden and is revealed here, so a visitor without
  * JavaScript never sees a control that cannot work.
  */
@@ -19,8 +26,12 @@
     return;
   }
 
+  function systemTheme() {
+    return system.matches ? "dark" : "light";
+  }
+
   function shown() {
-    return root.getAttribute("data-theme") || (system.matches ? "dark" : "light");
+    return root.getAttribute("data-theme") || systemTheme();
   }
 
   function sync() {
@@ -29,12 +40,23 @@
 
   button.addEventListener("click", function () {
     var next = shown() === "dark" ? "light" : "dark";
-    root.setAttribute("data-theme", next);
+    var following = next === systemTheme();
+    if (following) {
+      root.removeAttribute("data-theme");
+    } else {
+      root.setAttribute("data-theme", next);
+    }
     try {
-      window.localStorage.setItem("theme", next);
+      if (following) {
+        window.localStorage.removeItem("theme");
+      } else {
+        window.localStorage.setItem("theme", next);
+      }
     } catch (error) {
-      // Storage refused (private mode, blocked site data): the choice lasts
-      // for this page only, which is still better than a toggle that fails.
+      // Storage refused (private mode, blocked site data). Either way the
+      // page already shows what was asked for, and only this page: a choice
+      // that could not be stored is gone on the next load, and a choice that
+      // could not be removed comes back on it.
     }
     sync();
   });

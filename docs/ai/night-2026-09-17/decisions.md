@@ -293,3 +293,23 @@ From the review (all four Low findings, and the nit):
   301 cannot be recalled. Said so in the docstring.
 - **Nit:** two browser tests now visit the slug address; the redirect has its
   own test.
+
+## D16. T8: the toggle's two states, and what "back to the system" means
+
+night-2026-09-16 Q3 asked whether a visitor who once pressed the toggle should
+be able to follow their system again. The plan chose option (c): pressing it
+back to the theme the system already uses clears the stored choice, with no
+third control to see or press.
+
+- `theme.js` removes both `localStorage["theme"]` and the `data-theme`
+  attribute when the click lands on the system's own theme; `aria-pressed`
+  flips on every click either way, because it is read from what is shown, not
+  from the attribute (negative-controlled).
+- Consequence, noted by the reviewer and accepted: if the system later drifts
+  into agreeing with a stored choice, two presses leave the visitor following
+  the system rather than back on their stored value. That is inherent to two
+  states, and what is on screen is always right.
+- Storage that refuses the write leaves the page correct for its own lifetime
+  only -- a choice that could not be stored is gone on the next load, and one
+  that could not be cleared comes back on it. The comment in `theme.js` now
+  says both.

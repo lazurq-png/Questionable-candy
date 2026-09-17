@@ -297,3 +297,59 @@ def test_the_contrast_check_refuses_text_with_nothing_painted_behind_it(live_ser
     failures = page.evaluate(CONTRAST_FAILURES)
 
     assert any("no opaque background" in failure for failure in failures), failures
+
+
+def test_toggling_back_to_the_system_theme_stops_overriding_it(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """Answering night-2026-09-16 Q3: the toggle is a way back, not a one-way door.
+
+    A visitor who once pressed it is not pinned for good: pressing it back to
+    the theme their system uses removes the stored choice, so a later system
+    change reaches them again, live and after a reload.
+    """
+    page.emulate_media(color_scheme="light")
+    page.goto(live_server.url)
+    assert_page_is_fully_rendered(page)
+    toggle = page.get_by_role("button", name="Dark theme")
+
+    toggle.click()  # away from the system: dark, and stored
+    expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    assert page.evaluate("window.localStorage.getItem('theme')") == "dark"
+
+    toggle.click()  # back to what the system says: nothing stored
+
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") is None
+    assert page.evaluate("window.localStorage.getItem('theme')") is None
+    assert background(page) == LIGHT_BG
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+
+    # Following the system again: live, without a reload...
+    page.emulate_media(color_scheme="dark")
+    expect(page.locator("body")).to_have_css("background-color", DARK_BG)
+    expect(toggle).to_have_attribute("aria-pressed", "true")
+    # ...and still after one.
+    page.reload()
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") is None
+    assert background(page) == DARK_BG
+
+
+def test_toggling_back_works_from_a_choice_stored_earlier(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """The choice may predate this visit: the stored value is what it undoes."""
+    page.add_init_script("window.localStorage.setItem('theme', 'light')")
+    page.emulate_media(color_scheme="dark")
+    page.goto(live_server.url)
+    assert_page_is_fully_rendered(page)
+    assert background(page) == LIGHT_BG  # the stored choice wins at first
+    toggle = page.get_by_test_id("theme-toggle")
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+
+    toggle.click()
+
+    assert page.evaluate("window.localStorage.getItem('theme')") is None
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") is None
+    assert background(page) == DARK_BG  # the system's dark, not a stored dark
+    # The clearing click itself has to move the button, not only the colours.
+    expect(toggle).to_have_attribute("aria-pressed", "true")
