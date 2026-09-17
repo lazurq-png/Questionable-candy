@@ -117,7 +117,7 @@ After significant UI work:
 
 There is no typecheck or build step in this repository. Do not report having run one. `python scripts/dev.py lint` does exist, but it tells you nothing about a page: pylint reads Python, and the UI here lives in templates, htmx attributes and Alpine directives it never parses. A green lint is not UI evidence.
 
-CI (`.github/workflows/ci.yml`) runs the suite, lint and the ADR guards on push, but it runs on GitHub — it is not something you can observe or report from a local session, and it does no browser check at all.
+CI (`.github/workflows/ci.yml`) runs the suite, lint and the ADR guards on push to `master`, `dev` and any `night-**` branch. Since `tests/e2e/` was filled and CI gained a `playwright install` step, that suite **does** include real-browser tests — but it still runs on GitHub, so it is never something you can observe or report from a local session. Say what you ran here; do not speak for CI.
 
 **Step 4 is not optional here, and this repository has already paid for skipping it.** The add-to-cart button returned 403 in every real browser for two commits while the test suite stayed green, because `django.test.Client` does not enforce CSRF. A passing suite is not evidence that a page works.
 
@@ -130,9 +130,18 @@ substitute is a real browser driven by a test — **not** a waiver of step 4, an
 not `django.test.Client`, which is the thing that let the 403 through.
 
 `pytest-playwright` is already in `requirements.txt` (ADR 0006 unblocked it) and
-the browser binaries are installed. `tests/e2e/` exists and is empty, and
-`python scripts/dev.py test:e2e` tolerates an empty suite — so the first
-unattended UI task is also the one that starts filling it.
+the browser binaries are installed. `tests/e2e/` holds the catalog and detail
+tests; follow their shape rather than inventing a second one.
+
+Two things there are load-bearing and easy to lose. `tests/e2e/conftest.py` lifts
+`DJANGO_ALLOW_ASYNC_UNSAFE` for the lifetime of `transactional_db` only, and
+creates the test database before Playwright starts — without both, Playwright's
+event loop makes Django refuse database calls in the test thread. A browser test
+touches the database through `live_server`, which requests `transactional_db`;
+don't reach it any other way, or the opt-out won't apply. And every browser test calls the
+`assert_page_is_fully_rendered` fixture, because Django's `{# ... #}` comment is
+single-line only: a multi-line one is printed to the page as text, and an
+assertion on what you expect to see passes straight over it.
 
 Use `pytest-django`'s `live_server` fixture. It starts a real server on a real
 port for the test, so no separate `dev.py run` is needed and there is no stray

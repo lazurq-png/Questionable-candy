@@ -1,0 +1,8 @@
+{% comment %}
+The item count inside the header's cart toggle. With oob, htmx swaps just this
+span into place, so the count follows every add, update and removal without
+reloading the page -- and without replacing the toggle around it, whose Alpine
+bindings would have to be set up again.
+
+No whitespace around the span: it is included mid-text, as "Cart (0)".
+{% endcomment %}<span id="shoppingcart-count"{% if oob %} hx-swap-oob="true"{% endif %} data-testid="shoppingcart-count">{{ shoppingcart_count }}</span>

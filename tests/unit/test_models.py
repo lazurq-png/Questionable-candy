@@ -1,21 +1,23 @@
 from decimal import Decimal
 
 import pytest
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 
-from shop.models import CandyProduct
+from shop.models import Candy
 
 
 def test_str_is_the_candy_name():
     """__str__ drives the admin list and any {{ candy }} in a template."""
-    assert str(CandyProduct(name="Sour Gummy Worms")) == "Sour Gummy Worms"
+    assert str(Candy(name="Sour Gummy Worms")) == "Sour Gummy Worms"
 
 
 @pytest.mark.django_db
 def test_price_round_trips_as_decimal():
     """Money must not become a float on the way through the database."""
-    CandyProduct.objects.create(name="Hollow Humbug", price=Decimal("9.95"), flaw="hollow")
+    Candy.objects.create(name="Hollow Humbug", price=Decimal("9.95"), flaw="hollow")
 
-    stored = CandyProduct.objects.get(name="Hollow Humbug")
+    stored = Candy.objects.get(name="Hollow Humbug")
 
     assert stored.price == Decimal("9.95")
     assert isinstance(stored.price, Decimal)
@@ -24,6 +26,139 @@ def test_price_round_trips_as_decimal():
 @pytest.mark.django_db
 def test_stock_defaults_to_zero():
     """A candy with no stock stated is out of stock, not unbounded."""
-    CandyProduct.objects.create(name="Regrettable Toffee", price=Decimal("1.00"), flaw="stale")
+    Candy.objects.create(name="Regrettable Toffee", price=Decimal("1.00"), flaw="stale")
 
-    assert CandyProduct.objects.get(name="Regrettable Toffee").stock == 0
+    assert Candy.objects.get(name="Regrettable Toffee").stock == 0
+
+
+# --- UC-06: a flaw can never be silently omitted ---------------------------
+#
+# UC-06's Constraint is explicit that this holds "at the data-model level, not
+# only in the form". NOT NULL does not deliver it: the empty string satisfies
+# NOT NULL, and objects.create() never runs form validation. These tests go
+# through the manager for exactly that reason -- a test that called full_clean
+# would be checking the half of the guarantee that was never in doubt.
+
+@pytest.mark.django_db
+def test_a_candy_cannot_be_saved_without_a_flaw():
+    """The whole premise of the shop is that every candy discloses one."""
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            Candy.objects.create(
+                name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw=""
+            )
+
+
+@pytest.mark.django_db
+def test_whitespace_does_not_count_as_a_flaw():
+    """Otherwise the constraint is defeated by pressing the space bar.
+
+    Django's form field strips whitespace before testing for blank, so the form
+    already rejects this; the database has to agree or the two disagree about
+    what "has a flaw" means.
+    """
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            Candy.objects.create(
+                name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   "
+            )
+
+
+@pytest.mark.django_db
+def test_a_candy_with_a_flaw_saves_normally():
+    """The constraint must not reject the ordinary case."""
+    candy = Candy.objects.create(
+        name="Hollow Humbug", price=Decimal("9.95"), flaw="Hollow, and not on purpose."
+    )
+
+    assert Candy.objects.get(pk=candy.pk).flaw == "Hollow, and not on purpose."
+
+
+@pytest.mark.django_db
+def test_model_validation_also_rejects_a_missing_flaw():
+    """UC-06 extension 2a's "prompts for one" half.
+
+    The constraint above stops a bad row reaching the table; this is what turns
+    it into a message on a form rather than an IntegrityError page.
+
+    Marked django_db even though it passes without the mark today. That is an
+    accident of ordering: clean_fields() fails first, which puts `flaw` in
+    full_clean()'s exclude set, which makes constraint validation skip it
+    without ever querying. Lose `blank=False` -- the very regression this test
+    guards -- and clean_fields() passes, validate_constraints() runs real SQL,
+    and the failure becomes "Database access not allowed" instead of the
+    assertion below. Still red, but pointing at the wrong thing.
+    """
+    candy = Candy(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="")
+
+    with pytest.raises(ValidationError) as raised:
+        candy.full_clean()
+
+    assert "flaw" in raised.value.error_dict
+
+
+@pytest.mark.django_db
+def test_model_validation_rejects_a_whitespace_flaw_via_the_constraint():
+    """The one path where the new CheckConstraint's own validation does the work.
+
+    "   " passes clean_fields() -- it is not blank as far as the field is
+    concerned -- so it survives to validate_constraints(), which runs the
+    constraint as a query. That is behaviour this constraint introduced, and it
+    is the only route by which it is reached.
+
+    The error lands under __all__ rather than on `flaw`, because a constraint
+    is not attached to a field. That is what makes violation_error_message
+    worth setting: without it the user is shown Django's generic text for a
+    constraint they have never heard of.
+    """
+    candy = Candy(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   ")
+
+    with pytest.raises(ValidationError) as raised:
+        candy.full_clean()
+
+    assert "Every candy must disclose a flaw (UC-06)." in raised.value.messages
+
+
+# --- Publication: UC-01 step 2, UC-03 extension 2a ---------------------------
+
+@pytest.mark.django_db
+def test_a_new_candy_is_published_unless_said_otherwise():
+    """Rows that predate the field must not vanish from the catalog."""
+    candy = Candy.objects.create(name="Hollow Humbug", price=Decimal("9.00"), flaw="hollow")
+    assert Candy.objects.get(pk=candy.pk).is_published is True
+
+
+@pytest.mark.django_db
+def test_published_excludes_unpublished_candy():
+    """The one filter the catalog, detail page and cart all rely on."""
+    shown = Candy.objects.create(name="Sour Bricks", price=Decimal("1.00"), flaw="hard")
+    Candy.objects.create(name="Withdrawn Toffee", price=Decimal("1.00"), flaw="stale", is_published=False)
+
+    assert list(Candy.objects.published()) == [shown]
+
+
+# --- Timestamps: docs/data-model.md section 3.3 -------------------------------
+
+@pytest.mark.django_db
+def test_a_new_candy_records_when_it_was_created_and_updated():
+    """Both are set by Django on save (auto_now_add/auto_now), not by callers."""
+    candy = Candy.objects.create(name="Taffy", price=Decimal("1.00"), flaw="sticky")
+
+    candy.refresh_from_db()
+    assert candy.created_at is not None
+    assert candy.updated_at is not None
+
+
+@pytest.mark.django_db
+def test_saving_again_moves_updated_at_but_not_created_at():
+    """created_at is history; updated_at follows every save."""
+    candy = Candy.objects.create(name="Taffy", price=Decimal("1.00"), flaw="sticky")
+    candy.refresh_from_db()
+    created, updated = candy.created_at, candy.updated_at
+
+    candy.price = Decimal("2.00")
+    candy.save()
+    candy.refresh_from_db()
+
+    assert candy.created_at == created
+    assert candy.updated_at > updated

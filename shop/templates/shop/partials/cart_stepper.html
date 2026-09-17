@@ -1,0 +1,64 @@
+{% comment %}
+A candy's add-to-cart control: one button-shaped bar holding minus, the
+quantity in a field of its own, and plus.
+The quantity can be typed over; once it differs from what the cart holds, Ok
+appears, and Ok or Enter sets it. Included on the catalog and the detail page
+(place "page") and in the detail popup (place "dialog"), and rendered again for
+both places by cart_stepper_response.html after every change.
+
+Every change is swapped in out of band, by id -- so the ids carry the place, a
+candy's stepper can be on the page and in the popup at the same time, and a
+place that is not on the page is skipped silently. hx-swap="none" is inherited
+by the buttons; there is no in-band content to swap.
+
+htmx gives focus back to the element with the same id after the swap. Ok has
+none, because once the number is set it hides again: before its request, focus
+moves to the quantity field, which keeps it.
+
+The bar itself is what a customer sees, everywhere and from the start: the
+number says how many are in the cart, so nothing is laid over it saying the
+same. "Add to cart" lives on as the plus button's accessible name.
+
+The field is short and the label around it is tap-high, so a finger landing
+anywhere beside the box still reaches the field (site.css).
+
+Minus with nothing in the cart, and plus with every one in stock already in it,
+are greyed out with aria-disabled rather than disabled: a disabled button
+cannot keep focus, so a keyboard user who empties the cart from the stepper
+would be dropped to the top of the page. Pressing one anyway changes nothing --
+and plus still answers with the refusal UC-04 ext. 2a asks for, rather than
+leaving a press unexplained.
+
+A refusal appears as a bubble above the bar rather than as a line in the
+card, so being told something never moves the bars around it (site.css).
+
+No min/max or pattern on the field: htmx runs the browser's validation before
+posting, which would stop a bad number with a native tooltip and keep the
+server's message (and its stock cap) from ever showing.
+{% endcomment %}
+{% firstof place "page" as where %}{% firstof candy.pk pk as id %}
+<div class="cart-control" id="{{ where }}-cart-control-{{ id }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+{% if candy and candy.stock %}
+  <form class="cart-stepper" data-testid="cart-stepper"
+        hx-post="{% url 'set_in_shoppingcart' id %}" hx-swap="none"
+        hx-on:htmx:before-request="if (event.detail.elt === this) this.elements.quantity.focus()"
+        x-data="{ saved: '{{ candy.in_cart }}', value: '{{ candy.in_cart }}' }">
+    <button type="button" id="{{ where }}-remove-one-{{ id }}" class="cart-stepper-button"
+            hx-post="{% url 'remove_one_from_shoppingcart' id %}"
+            aria-label="Remove one from cart: {{ candy.name }}"{% if not candy.in_cart %} aria-disabled="true"{% endif %}><span aria-hidden="true">&minus;</span></button>
+    <label class="cart-stepper-field">
+      <input id="{{ where }}-quantity-{{ id }}" class="cart-stepper-quantity" name="quantity" type="text" inputmode="numeric" autocomplete="off"
+             aria-label="Number in cart: {{ candy.name }}"
+             x-model="value" data-testid="cart-stepper-quantity" value="{{ candy.in_cart }}">
+    </label>
+    <button type="submit" class="cart-stepper-ok" hidden x-bind:hidden="value === saved"
+            aria-label="Ok, set number in cart: {{ candy.name }}">Ok</button>
+    <button type="button" id="{{ where }}-add-one-{{ id }}" class="cart-stepper-button"
+            hx-post="{% url 'add_to_shoppingcart' id %}"
+            aria-label="Add to cart: {{ candy.name }}"{% if candy.in_cart >= candy.stock %} aria-disabled="true"{% endif %}><span aria-hidden="true">+</span></button>
+  </form>
+{% elif candy %}
+  <button type="button" disabled>Out of stock</button>
+{% endif %}
+{% if message %}<p class="cart-message" data-testid="add-to-cart-message">{{ message }}</p>{% endif %}
+</div>

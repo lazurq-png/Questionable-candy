@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Salted Caramel Chews</title>
+  <rect width="160" height="160" rx="24" fill="#f6ebdd"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M22 88l24-18v36zM138 88l-24-18v36z" fill="#efe3c8" stroke="#b08a57" stroke-width="2"/>
+  <rect x="44" y="64" width="72" height="48" rx="12" fill="#c68642"/>
+  <path d="M60 78l3 3M92 72l3 3M78 96l3 3M100 94l3 3" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+</svg>

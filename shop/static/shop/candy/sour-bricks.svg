@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Sour Bricks</title>
+  <rect width="160" height="160" rx="24" fill="#fdf3c4"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <rect x="34" y="62" width="92" height="62" rx="8" fill="#f2a900"/>
+  <path d="M34 82h92M34 103h92M80 62v20M57 82v21M103 82v21M80 103v21" stroke="#c07d00" stroke-width="3"/>
+  <rect x="40" y="66" width="30" height="8" rx="4" fill="#fff" opacity=".45"/>
+</svg>

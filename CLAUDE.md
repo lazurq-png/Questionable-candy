@@ -222,13 +222,23 @@ In this repository the checks that exist are:
 | Targeted tests     | `python scripts/dev.py test:unit` / `test:int` / `test:e2e` |
 | Full suite (+ coverage) | `python scripts/dev.py test`              |
 | Lint               | `python scripts/dev.py lint`                   |
+| Workflow lint (conditional) | `python scripts/dev.py lint:workflows` |
 | ADR guards         | `python scripts/adr_guards.py`                 |
 | Browser            | `python scripts/dev.py run`, then open the page |
 
 Every `dev.py` task runs `makemigrations` and `migrate` first, so the database
 always matches the models. The cluster must already be running — `dev.py` no
-longer starts it. The one exception is `lint`, which reads source only and runs
-with the cluster down.
+longer starts it. The exceptions are the two `lint` tasks, which read source
+only and run with the cluster down.
+
+`lint:workflows` is actionlint over `.github/workflows/`, with shellcheck for
+the shell in `run:` steps and pyflakes for `shell: python` steps. They are
+standalone tools under `%USERPROFILE%\Binaries\`, not Python requirements, and
+CI does not run them. Run it **only** when the change touches
+`.github/workflows/`, or when a workflow run is known to have failed. Otherwise
+skip it and don't list it as verification. It fails with exit 2 if any of the
+three is missing rather than running with fewer rules — actionlint on its own
+quietly skips a rule whose tool it cannot find and still reports clean.
 
 `lint` is pylint with the Django plugin (`.pylintrc`, `requirements-dev.txt`).
 **Errors fail; warnings, refactors and conventions print without failing** — so
@@ -238,11 +248,14 @@ a clean exit does not mean an empty report. Read the output; do not report
 There is still **no** type checker, formatter or build step. Do not claim to
 have run one.
 
-CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): an ADR-guards job and a
-test job with a PostgreSQL service, on every push and pull request to `master`
-and `dev`. It runs on GitHub, not on your machine — you cannot observe its
-result from here, so never report a CI run as evidence. CI also checks migration
-drift with `makemigrations --check`, which `dev.py` deliberately does not.
+CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): ADR-guards, lint, and a
+test job with a PostgreSQL service and a Playwright browser, so `tests/e2e/`
+runs there too. It triggers on pull requests to `master` and `dev`, and on
+pushes to `master`, `dev` and `night-**` — the last for unattended runs, which
+push a branch per finished task. It runs on GitHub, not on your machine — you
+cannot observe its result from here, so never report a CI run as evidence. CI
+also checks migration drift with `makemigrations --check`, which `dev.py`
+deliberately does not.
 
 Browser verification is not interchangeable with the test suite: `django.test.Client`
 does not enforce CSRF, so a green suite has already coexisted with a page that
@@ -302,7 +315,10 @@ each. It is committed on the branch it describes, so the reasoning stays
 attached to the diff it explains.
 
 Unattended runs must maintain it; there is no conversation for a human to read
-afterwards, so these files are the entire record of what happened.
+afterwards, so these files are the entire record of what happened. Such a run
+spans several branches — one per task, plus an integration branch it merges and
+pushes each finished task onto (`.claude/skills/night-run/SKILL.md` §1.3, §2.6)
+— but keeps a single directory, named after the integration branch.
 
 ---
 
@@ -446,8 +462,9 @@ This repository's `.claude/` directory is structured as follows:
 
 **There is no `scripts/validate` and no `dev.py validate` task.** Both were
 removed; `dev.py validate` now exits 2 with `Unknown task`. Verification is the
-two commands in §9's table — `python scripts/dev.py test` and
-`python scripts/adr_guards.py` — run separately. `scripts/dev.py` is the task
+commands in §9's table — `python scripts/dev.py test`, `lint` and
+`python scripts/adr_guards.py`, plus `lint:workflows` when §9's condition
+holds — run separately. `scripts/dev.py` is the task
 runner for everything else too: `run` and the four test suites, each preceded by
 `makemigrations` + `migrate`. It no longer starts or stops the PostgreSQL
 cluster; that must already be accepting connections.
@@ -456,9 +473,25 @@ Use `.claude/skills/code-review/` for an adversarial review pass over a diff —
 see §13 for when to run it.
 
 Use `.claude/skills/night-run/` when this session is running unattended (no
-human available to answer). It defines the preflight, the branch and commit
-cadence, the durable state files, the forbidden operations, and the stop
-conditions for that mode. Do not improvise unattended operation without it.
+human available to answer). It defines the preflight, the branch-per-task and
+commit cadence, when a finished task's branch may be pushed and to where, the
+durable state files, the forbidden operations, the 08:00 Europe/Stockholm
+deadline — at which a nearly-finished task runs to completion rather than being
+discarded, bounded by a ceiling — and the stop conditions for that mode. A
+nearly-spent session budget triggers the same treatment, because a run that
+spends its last tokens on a commit leaves branches nobody can interpret.
+
+A run may span several sessions; §10 covers resuming one, and what a session
+must leave behind for the next. The state files in `docs/ai/<branch>/` are the
+only handover — nothing of the conversation survives — which is why §1.5 makes
+them current before every commit rather than at the end. It also
+carries the single bounded exception to "do not invent work": once the requested
+list is done, §9 permits visual work under fixed constraints, with only the four
+properties that can actually be measured treated as verified.
+
+Do not improvise unattended operation without it — least of all the push rules,
+which are the only part of this repository's agent protocol that reaches another
+machine.
 
 `.claude/agents/reviewer.md` is the standing independent reviewer — see §8 and
 §13. Add further specialized subagents only if the task mix justifies them; a

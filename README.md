@@ -24,7 +24,9 @@ at 0.2.
 | Database      | PostgreSQL                                                 |
 | Tests         | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
 
-No CSS has been written yet. CI runs the ADR guards and the test suite on every
+Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
+and dark themes that follow the system setting and a toggle to override it;
+no CSS framework or build step. CI runs the ADR guards and the test suite on every
 push and pull request to `master` and `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
@@ -45,6 +47,15 @@ python scripts/dev.py run             # http://127.0.0.1:8000/
 `dev.py` applies migrations itself before every task, so no separate
 `manage.py migrate` step is needed.
 
+To fill an empty catalog with the shop's candy, pictures included:
+
+```sh
+python manage.py seed_candy
+```
+
+It is safe to run again: it creates only candy that is missing, and on candy
+that exists it fills in empty fields without overwriting anything.
+
 There is no SQLite fallback — a missing `DATABASE_URL` fails at startup by
 design. See [ADR 0004](docs/adr/0004-database.md).
 
@@ -56,19 +67,21 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 | ------------------------------------------- | ------------------------------------------ |
 | `run`                                       | Start the dev server                       |
 | `lint`                                      | pylint; errors fail, the rest is advisory  |
+| `lint:workflows`                            | actionlint + shellcheck + pyflakes         |
 | `test`                                      | Whole suite, with coverage                 |
 | `test:unit`, `test:int`, `test:e2e`         | Run one suite                              |
 
 Every task runs `makemigrations` and `migrate` first, so the database always
 matches the models. No task starts or stops PostgreSQL — the cluster must
-already be accepting connections. `lint` is the exception: it reads source, so
-it needs no database and runs with the cluster down.
+already be accepting connections. The `lint` tasks are the exception: they read source, so
+they need no database and run with the cluster down.
 
-Verification is two commands, run separately:
+Verification is three commands, plus a fourth when workflows are involved, run separately:
 
 ```sh
 python scripts/dev.py test        # migrations + full suite + coverage
 python scripts/dev.py lint        # pylint; needs `pip install -r requirements-dev.txt`
+python scripts/dev.py lint:workflows  # only when .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR guards; no database, no dependencies
 ```
 
@@ -85,6 +98,25 @@ warnings, refactors and conventions are reported but do not.** Generated
 migrations are excluded. The plugin calls `django.setup()`, so `DATABASE_URL`
 and `DJANGO_SECRET_KEY` must be set — no database is contacted, the URL is only
 parsed.
+
+### Workflow lint
+
+`lint:workflows` runs [actionlint](https://github.com/rhysd/actionlint) over
+`.github/workflows/`, with [shellcheck](https://github.com/koalaman/shellcheck)
+for the shell in `run:` steps and [pyflakes](https://pypi.org/project/pyflakes/)
+for `shell: python` steps. They are standalone tools, not Python requirements,
+so `pip install` does not provide them, and CI does not run them. The task looks
+for each on `PATH`, then under `%USERPROFILE%\Binaries\`:
+
+```text
+Binaries\actionlint\actionlint.exe        release zip (checksums file published)
+Binaries\shellcheck\shellcheck.exe        release zip
+Binaries\pyflakes\Scripts\pyflakes.exe    python -m venv Binaries\pyflakes, then pip install pyflakes
+```
+
+Run it when a change touches `.github/workflows/`, or when a workflow run has
+failed. Other changes don't need it. If any of the three is missing it exits 2 without running: actionlint alone
+silently skips a rule whose tool it cannot find and still reports clean.
 
 ### ADR guards
 
@@ -108,6 +140,7 @@ Confirmation section says so plainly.
 - [ADR 0004 — Database engine](docs/adr/0004-database.md)
 - [ADR 0005 — Test frameworks](docs/adr/0005-testing.md)
 - [ADR 0006 — htmx and Alpine.js](docs/adr/0006-frontend-htmx-alpine.md)
+- [ADR 0007 — Custom user model](docs/adr/0007-custom-user-model.md)
 
 New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 
@@ -115,5 +148,4 @@ New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 
 - Media storage for candy pictures is undecided — [ADR 0004](docs/adr/0004-database.md)
 - No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md)
-- `shop.CandyProduct` is a partial implementation of the target `Candy` entity — [data model §3.4](docs/data-model.md)
-- `tests/e2e/` is empty; Playwright is installed and unblocked, but no browser test has been written yet — [ADR 0006](docs/adr/0006-frontend-htmx-alpine.md)
+- `shop.Candy` is a partial implementation of the target `Candy` entity — [data model §3.3](docs/data-model.md)

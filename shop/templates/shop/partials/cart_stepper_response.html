@@ -1,0 +1,9 @@
+{% comment %}
+The response to any of a stepper's buttons: the stepper for each place it can
+be (see cart_stepper.html), the page's live region, and the header count --
+all out of band.
+{% endcomment %}
+{% include "shop/partials/cart_stepper.html" with place="page" oob=True %}
+{% include "shop/partials/cart_stepper.html" with place="dialog" oob=True %}
+{% include "shop/partials/announcer.html" with oob=True %}
+{% include "shop/partials/shoppingcart_count.html" with oob=True %}

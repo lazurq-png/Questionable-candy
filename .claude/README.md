@@ -22,11 +22,12 @@ CLAUDE.md               Claude Code operating model — always loaded by the ext
 This repository has **no single validation entry point.** `scripts/validate`,
 `scripts/validate.cmd` and the `dev.py validate` task all existed once and were
 removed; anything still telling you to run them is stale. Verification is three
-commands, run separately:
+commands, plus a fourth when workflows changed, run separately:
 
 ```text
 python scripts/dev.py test        # migrations + full suite + coverage
 python scripts/dev.py lint        # pylint; errors fail, the rest is advisory
+python scripts/dev.py lint:workflows  # only if .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR 0003 / 0005 guards, no deps, seconds
 ```
 
@@ -39,9 +40,9 @@ There is no type checker, formatter or build step here. Lint is pylint with the
 Django plugin (`.pylintrc`, `requirements-dev.txt`), gated on the error class
 only — warnings print without failing, so a zero exit is not an empty report.
 
-CI (`.github/workflows/ci.yml`) runs three jobs on push to `master`/`dev`: the
-ADR guards, lint, and the suite — plus a `makemigrations --check` drift gate
-that `dev.py` deliberately omits.
+CI (`.github/workflows/ci.yml`) runs three jobs on push to `master`, `dev` and
+`night-**`: the ADR guards, lint, and the suite — plus a `makemigrations
+--check` drift gate that `dev.py` deliberately omits.
 
 ### Why rules aren't auto-loaded
 
@@ -60,8 +61,9 @@ touched, which scopes guidance by location more precisely than a flat `rules/` f
 ### Unattended operation
 
 `.claude/skills/night-run/SKILL.md` is the protocol for running with no human
-available — preflight, branch and commit cadence, durable state under
-`docs/ai/<branch>/`, forbidden operations, and stop conditions. It is invoked
+available — preflight, a branch per task merged onto a run branch and pushed as
+each one finishes, durable state under `docs/ai/<branch>/`, forbidden
+operations, and stop conditions. It is invoked
 (`/night-run`) rather than auto-loaded, so it costs nothing during ordinary
 supervised work. Unattended sessions run with permission prompts bypassed, which
 means its guardrails are honoured by instruction, not enforced by the harness.

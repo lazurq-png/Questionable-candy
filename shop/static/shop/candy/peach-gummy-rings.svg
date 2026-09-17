@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Peach Gummy Rings</title>
+  <rect width="160" height="160" rx="24" fill="#fff0e2"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <circle cx="62" cy="92" r="28" fill="none" stroke="#ff9e5e" stroke-width="16"/>
+  <circle cx="100" cy="84" r="28" fill="none" stroke="#ffc38a" stroke-width="16"/>
+</svg>

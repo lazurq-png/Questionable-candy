@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Fizzing Lemon Drops</title>
+  <rect width="160" height="160" rx="24" fill="#fffbe0"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M80 36c20 26 34 44 34 62a34 34 0 0 1-68 0c0-18 14-36 34-62z" fill="#ffd60a"/>
+  <circle cx="70" cy="92" r="4" fill="#fff" opacity=".8"/><circle cx="88" cy="106" r="3" fill="#fff" opacity=".8"/><circle cx="82" cy="84" r="2" fill="#fff" opacity=".8"/>
+  <path d="M62 70c4-8 8-14 12-20" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+</svg>

@@ -12,7 +12,7 @@ pytest~=9.1
 pytest-django~=4.14
 pytest-cov~=7.0
 factory_boy~=3.3
-pytest-playwright~=0.7        # unblocked by ADR 0006; tests/e2e/ is still empty
+pytest-playwright~=0.7        # unblocked by ADR 0006; drives tests/e2e/
 
 # Django REST Framework is deliberately absent -- docs/adr/0003-backend.md
 # defers it. scripts/adr_guards.py fails if it appears here.

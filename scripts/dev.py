@@ -2,6 +2,7 @@
 
     python scripts/dev.py run                 # dev server at 127.0.0.1:8000
     python scripts/dev.py lint                # pylint; errors fail, rest advisory
+    python scripts/dev.py lint:workflows      # actionlint + shellcheck + pyflakes
     python scripts/dev.py test                # whole suite, with coverage
     python scripts/dev.py test:unit           # tests/unit only
     python scripts/dev.py test:int            # tests/integration only
@@ -10,12 +11,15 @@
     python scripts/dev.py test:unit -- -x -v
 
 Every task generates and applies migrations first, so the database always
-matches the models before the server starts or the tests run. The exception is
-`lint`, which only reads source and so must not require a running database.
+matches the models before the server starts or the tests run. The exceptions are
+the `lint` tasks, which only read source and so must not require a running
+database.
 
 The database is PostgreSQL (docs/adr/0004-database.md) and must already be
 accepting connections -- this runner no longer starts or stops the cluster.
 """
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -36,20 +40,30 @@ SUITES = {
 # not merely unwritten. Only the per-suite tasks may legitimately be empty.
 MAY_BE_EMPTY = set(SUITES) - {"test"}
 
-TASKS = ["run", "lint", *SUITES]
+TASKS = ["run", "lint", "lint:workflows", *SUITES]
 
 # Tasks that read source and never query. Paying for makemigrations/migrate
 # would make lint unrunnable whenever the cluster is down -- precisely when a
 # source-only check is still perfectly valid.
-NO_DB_TASKS = {"lint"}
+NO_DB_TASKS = {"lint", "lint:workflows"}
 
 # Migrations are excluded by .pylintrc, not here.
-LINT_TARGETS = ["shop", "mysite", "scripts", "tests"]
+LINT_TARGETS = ["accounts", "shop", "mysite", "scripts", "tests"]
+
+# Standalone executables, not Python requirements, so they are looked up rather
+# than installed: first on PATH, then where this machine's tooling lives
+# (~/Binaries/<dir>, alongside pgsql and node). Not part of `lint`, because CI's
+# lint job has none of them.
+WORKFLOW_TOOLS = {
+    "actionlint": "actionlint",
+    "shellcheck": "shellcheck",
+    "pyflakes": "pyflakes/Scripts",
+}
 
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
 # Reported, not gated: ADR 0005 chose pytest-cov but agreed no threshold. Add
 # --cov-fail-under here once there is a target to hold the suite to.
-COV_ARGS = ["--cov=shop", "--cov=mysite", "--cov-report=term-missing"]
+COV_ARGS = ["--cov=accounts", "--cov=shop", "--cov=mysite", "--cov-report=term-missing"]
 
 
 def run(*args):
@@ -84,6 +98,40 @@ def lint(extra):
     this task.
     """
     return run("-m", "pylint", "--fail-under=0", "--fail-on=E", *LINT_TARGETS, *extra)
+
+
+def lint_workflows(extra):
+    """actionlint over .github/workflows/, with shellcheck and pyflakes.
+
+    actionlint checks the workflow schema and expressions; shellcheck checks
+    the shell inside `run:` steps; pyflakes checks `shell: python` steps.
+    Left to itself, actionlint *silently disables* either rule whose tool is
+    not on PATH and still exits 0 -- a clean report that checked less than it
+    appears to. So all three are resolved here, passed by explicit path, and a
+    missing one fails the task instead of narrowing it.
+    """
+    binaries = Path.home() / "Binaries"
+    search = os.pathsep.join(
+        [os.environ.get("PATH", ""), *(str(binaries / d) for d in WORKFLOW_TOOLS.values())]
+    )
+    found = {name: shutil.which(name, path=search) for name in WORKFLOW_TOOLS}
+    missing = [name for name, path in found.items() if path is None]
+    if missing:
+        print(
+            f"lint:workflows: not found: {', '.join(missing)} "
+            f"(looked on PATH and under {binaries}).\n"
+            "Not running actionlint with rules missing -- that is not a pass."
+        )
+        return 2
+
+    args = [
+        found["actionlint"],
+        f"-shellcheck={found['shellcheck']}",
+        f"-pyflakes={found['pyflakes']}",
+        *extra,
+    ]
+    print(f"\n$ {' '.join(args)}", flush=True)
+    return subprocess.run(args, cwd=BASE_DIR).returncode
 
 
 def pytest_suite(task, extra):
@@ -128,6 +176,8 @@ def main(argv):
             code = run("manage.py", "runserver", *extra)
         elif task == "lint":
             code = lint(extra)
+        elif task == "lint:workflows":
+            code = lint_workflows(extra)
         else:
             code = pytest_suite(task, extra)
         if code:

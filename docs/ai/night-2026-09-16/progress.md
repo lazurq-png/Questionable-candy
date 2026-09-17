@@ -1,0 +1,598 @@
+# Progress — night-2026-09-16
+
+## Morning report
+
+**All five requested tasks and all four derived tasks are complete, verified,
+independently reviewed, merged into `night-2026-09-16` and pushed.** Nothing is
+provisional and nothing was abandoned. The run branch is green: re-verified on
+its tip at 2026-09-17 09:54, it gives **185 passed** (coverage 97%), lint exit 0
+at **9.80/10** (baseline 9.35), `adr_guards` exit 0, `makemigrations --check`
+exit 0. Pushed; CI triggered on every branch, result not observable from here.
+
+**The run finished late, on the human's instruction.** The session went idle at
+about 16:20 on 2026-09-16, during T9, and resumed at **09:46 on 2026-09-17**,
+past the 08:00 deadline and the 08:30 ceiling. The human was present then and
+explicitly asked for T9 to be finished and the run reported, so it was. Nothing
+ran between 16:20 and 09:46.
+
+### Completed
+
+| Task | Branch (pushed) | Commit | Verification actually run |
+| ---- | --------------- | ------ | ------------------------- |
+| T1. Publication: hide unpublished candy, "no longer available" page (UC-01, UC-03 2a) | `night-2026-09-16-t1-publication` | `695731d` | 43 passed, cov 93%; lint 9.41, no new messages; adr_guards 0; drift 0; reviewer approved |
+| T2. 20 new candies, SVG for all 22 + placeholder, `seed_candy` | `night-2026-09-16-t2-candy-images` | `e6eb27e` | 121 passed, cov 94%; lint 9.53; adr_guards 0; drift 0; SVG scan and seed negative-controlled; reviewer approved, 2 lows fixed |
+| T3. Session cart: page, add/update/remove within stock, empty state, stale entries (UC-04) | `night-2026-09-16-t3-cart` | `7829a6d` | 151 passed, cov 96%; lint 9.72; adr_guards 0; drift 0; 4 negative controls; reviewer approved, 4 lows fixed, approved on re-review |
+| T4. Candy admin with flaw prompt (UC-06 1-2, 2a) | `night-2026-09-16-t4-admin-flaw` | `d596aac` | 158 passed, cov 97%, incl. e2e through real admin login; lint 9.75; adr_guards 0; drift 0; reviewer approved, 1 low fixed |
+| T5. Professional interface, light/dark themes with toggle (UC-01) | `night-2026-09-16-t5-interface-themes` | `fdedee6` | 169 passed, cov 97%; lint 9.77; adr_guards 0; drift 0; 7 CSS negative controls; reviewer **requested changes** (tap targets), fixed, approved on re-review |
+| T6. Enforce ADR 0002 middleware and ADR 0004 PostgreSQL ≥ 17 (derived) | `night-2026-09-16-t6-enforce-adrs` | `1ef6524` | 173 passed; lint 9.78; adr_guards 0; drift 0; negative control per test; reviewer approved, 2 wording lows fixed |
+| T7. Keyboard focus after removing a cart line (derived) | `night-2026-09-16-t7-remove-focus` | `0c5d2c6` | 179 passed; lint 9.79; adr_guards 0; drift 0; reviewer **requested changes** twice (one real regression: a remove hid stale-cart notices), all fixed |
+| T8. Stable alphabetical catalog order (derived) | `night-2026-09-16-t8-catalog-order` | `520f376` | 181 passed; lint 9.80; adr_guards 0; drift 0; reviewer **requested changes** (tie test could not fail), fixed and controlled |
+| T9. `created_at` / `updated_at` on Candy (derived) | `night-2026-09-16-t9-candy-timestamps` | `622f752` | 185 passed; lint 9.80; adr_guards 0; drift 0; migrations 0007+0008 applied to dev DB; reviewer approved, 2 doc lows fixed |
+
+### Requested visual work (T5): built and measured, not reviewed
+
+**No person has looked at these pages.** What *was* measured, on every
+customer page at 375px, for the system light and dark themes and for a stored
+override each way:
+- no horizontal overflow;
+- the header stays on one row;
+- every button, input and link in the header and page body is at least 44×44;
+- text contrast is at least 4.5:1 against the colour actually painted behind
+  it;
+- no template source shows.
+
+Each check was shown able to fail. What was *not* verified:
+- whether it looks good: hierarchy, balance, whether the flaw reads as a
+  warning;
+- whether a screen reader speaks the toggle and live-region messages as
+  intended;
+- any browser but Chromium.
+
+Look at the screenshots before believing any of it:
+- before: `docs/ai/night-2026-09-16/screenshots/before/` (10 JPEGs);
+- after: `docs/ai/night-2026-09-16/screenshots/after/` (20 JPEGs, both
+  themes).
+
+The visual reference was Pico CSS, rebuilt by hand; every Django template found
+needed Bootstrap, Tailwind or a build (decisions.md D6).
+
+No §9 discretionary work was started.
+
+### Clock and budget
+
+- **Start:** 2026-09-16 14:38; budget 14,996,435.
+- **Task starts:** T1 14:40, T2 14:46, T3 14:57, T4 15:13, T5 15:20, T6 15:48,
+  T7 15:57, T8 16:10, T9 16:17 (idle ~16:20 to 2026-09-17 09:46), report 09:54.
+- **Budget:** the lowest reading before the idle gap was 14,633,833, about
+  2.4% of the start figure. The harness showed 15,000,000 again on resuming.
+  Neither the 10% nor the 30% reserve was ever approached.
+- **What ended the run:** the derived task list was complete (T6–T9 were all of
+  it; the rest could only be logged), and the human asked for the report.
+  After the idle gap, the clock deadline had also passed.
+
+### Provisional
+
+None.
+
+### Abandoned
+
+None.
+
+### Questions, most consequential first (`questions.md`)
+
+1. **Q4, stale records:** ADR 0001, ADR 0006, ADR 0005 and night-run §9 still
+   say no CSS exists, or that e2e is empty. The next unattended run will read
+   §9 from a false premise. One-line corrections for a human.
+2. **Q2, styling ADR:** hand-written CSS, custom-property themes and
+   `theme.js` are now real conventions. night-run §9.6 forbids an accepted ADR
+   unattended; drafted as a recommendation.
+3. **Q6, HTTPS enforcement** (requirements §3): `SECURE_SSL_REDIRECT` and HSTS
+   are unset, deliberately, because they depend on the deployment.
+4. **Q7, subresource integrity** for the htmx and Alpine CDN scripts; the exact
+   change is given for a human to run (it needs a CDN fetch).
+5. **Q1, `shop/cart.py`** under ADR 0003's "no service layer": built and
+   merged; the reviewer judged it acceptable; confirm.
+6. **Q3, the theme toggle** has no way back to "follow the system setting".
+7. **Q8, coverage threshold:** 97% today; a target is a human's call.
+8. **Q5 (information):** `sugar_content_g` and `allergens` were not added; they
+   serve UC-07, which is out of scope.
+
+Worth knowing even though it is not a question: **every candy that existed
+before migration 0007 has that migration's run time in both timestamps**, not
+its real creation time. In the dev database that is all 22 (decisions.md D9).
+Still open from the previous run: night-2026-09-15 Q5 (migration 0003 has no
+in-file guard for blank-flaw rows). Still parked by the run request: slug URLs,
+unique names, catalog paging.
+
+### State
+
+- **Run branch:** `night-2026-09-16`, 9 commits on `dev` @ `7681607`, tip
+  `622f752` before this report, pushed. Green on the evidence above.
+- **Task branches:** t1–t9 all pushed, with remote tips equal to local. This
+  report is on `night-2026-09-16-t10-report`.
+- **Working tree:** clean apart from this report.
+- **Development database** (local only): migrations `0005`–`0008` applied;
+  `seed_candy` run (22 candies with pictures). Screenshots were taken against
+  it, through a dev server that has been stopped.
+- **Lint:** 9.80/10 against the 9.35 baseline. No task left a message beyond
+  the baseline.
+- **Not done:** nothing requested. No pull request opened, as the protocol
+  requires. Merging `night-2026-09-16` into `dev` is a human decision.
+
+
+## Session 1
+
+### Preflight
+
+- **Run type:** new. The only prior run, `night-2026-09-15`, has its morning
+  report written.
+- **Clock:** 2026-09-16 14:38 (machine clock; system zone confirmed
+  `W. Europe Standard Time`). Deadline 08:00 on 2026-09-17.
+- **Budget at session start:** 14,996,435 tokens. This session started ~17h
+  before the deadline, so it reserves 10% (floor 60k) for a handoff (§8.6)
+  unless it is still running after 07:30.
+- **Database:** `pg_isready` exit 0.
+- **Drift:** `makemigrations --check --dry-run --noinput` exit 0, "No changes
+  detected".
+- **Remote:** `origin` reachable; `git ls-remote --heads origin
+  "night-2026-09-16*"` returned nothing.
+- **Branch:** `night-2026-09-16` cut from `dev` @ `7681607`.
+- **Pre-existing uncommitted changes:** none.
+- **Baseline:**
+  - `python scripts/adr_guards.py` exit 0 — "ok: no DRF, 5 test packages".
+  - `python scripts/dev.py lint` exit 0 — **9.35/10**; full report in
+    `lint-baseline.txt`.
+  - `python scripts/dev.py test` exit 0 — **37 passed**, coverage 92%.
+- **Candy rows in the dev database** (not in the repository; T2 seeds them):
+
+  | id | name | description | flavor | price | stock | flaw |
+  | -- | ---- | ----------- | ------ | ----- | ----- | ---- |
+  | 1 | Sour Bricks | *(empty)* | sour | 12.50 | 10 | Chips a tooth on contact. |
+  | 2 | Hollow Humbug | *(empty)* | mint | 9.00 | 3 | Entirely hollow inside. |
+
+### T1 — Publication (UC-01 step 2, UC-03 ext. 2a) — complete
+
+- **Branch:** `night-2026-09-16-t1-publication`. Clock at start 14:40; budget
+  14,963,774.
+- **Changed:**
+  - `Candy.is_published` (default True), migration `0005`, and a `published()`
+    queryset method used by the catalog, the detail page and add-to-cart.
+  - `candy_unavailable.html`: "no longer available" plus a link to the catalog,
+    status 404, for unpublished and deleted alike (decisions.md D1).
+  - `data-model.md` §3.3 gap table: `is_published` moved from Missing to Present.
+  - Answers night-2026-09-15 Q2 ("publication state is not modelled").
+- **Tests added:** unit (default True; `published()` filter), integration
+  (deleted and unpublished detail pages, catalog hides unpublished, unpublished
+  cannot be added to the cart), e2e (hidden from the catalog, old link explains
+  and leads back). The existing 404 test was replaced by the deleted-item test,
+  which asserts the same status plus the new message and link.
+- **Negative control:** with `published()` returning everything, 4 of the new
+  tests failed; restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 43 passed, coverage 93%; `0005`
+    applied to the dev database.
+  - `python scripts/dev.py lint` exit 0 — 9.41/10; no messages beyond the
+    baseline (the two new docstring warnings were fixed).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer subagent approved, no findings. Two observations, both
+  already planned: a stale catalog page's add-to-cart silently 404s for a
+  since-unpublished item (T3), and Candy has no admin yet (T4).
+
+### T2 — Candy images and 20 new candies — complete
+
+- **Branch:** `night-2026-09-16-t2-candy-images`. Clock at start 14:46; budget
+  14,945,614.
+- **Changed:**
+  - `Candy.image` (`CharField(max_length=200, blank=True, default="")`),
+    migration `0006`.
+  - `python manage.py seed_candy` (`shop/management/commands/seed_candy.py`):
+    22 candies, the two dev-database rows with their existing values plus 20
+    new ones. Matches by name; fills only empty text fields.
+  - 23 SVGs in `shop/static/shop/candy/` (22 candies + `placeholder.svg`),
+    410–611 bytes each, one shared frame. Checked by eye on a rendered contact
+    sheet; the green apple belt's overlay was toned down after that look.
+  - Catalog and detail pages render `<img alt="{{ candy.name }}">` via
+    `{% static %}`, falling back to the placeholder; the image sits outside the
+    catalog link so the link's accessible name is unchanged.
+  - README documents the seed command; `data-model.md` §3.3 and ADR 0004 record
+    `image` as interim, pending the media-storage decision.
+- **Tests added:**
+  - Unit: every SVG parsed and scanned (no script, foreignObject, style,
+    animate or set elements; no `on*` attributes; no non-fragment href or
+    `url(`), each has `viewBox`, `role="img"`, a title and is ≤ 4 KB; placeholder
+    exists; every seeded image resolves through staticfiles; no orphan SVGs;
+    seeded names unique; flaws and descriptions non-blank.
+  - Integration: seeding creates all 22; seeding twice creates nothing; an
+    edited price and flaw survive a re-seed; an existing row gets only its
+    empty fields filled.
+  - e2e: catalog and detail images load (`complete` and `naturalWidth > 0`),
+    and blank `image` gets the placeholder.
+- **Negative controls:**
+  - A planted `ONLOAD` attribute failed the scan (and the orphan test).
+  - After the reviewer's finding, each of `fill="url(https://…)"`,
+    `<style>@import url(…)`, and `<set attributeName="href">` failed the scan.
+  - A seed that overwrote price and text fields failed both overwrite tests.
+  - All restored.
+- **Dev database:** `seed_candy` → "20 created, 2 filled in, 0 unchanged"; run
+  again → "0 created, 0 filled in, 22 unchanged". Sour Bricks and Hollow Humbug
+  kept price, stock and flaw; both gained a description and image. 22 rows, none
+  without an image.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 121 passed, coverage 94%
+    (`seed_candy.py` 100%); `0006` applied to the dev database.
+  - `python scripts/dev.py lint` exit 0 — 9.53/10, no messages beyond the
+    baseline (new docstring warnings and a mixed-line-ending warning fixed).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer subagent approved with two low findings, both acted on
+  before committing:
+  1. The SVG scan missed `url()`, `<style>` and `<animate>/<set>`; hardened, with
+     a negative control for each.
+  2. `image` had been written into the *target* Candy table and ADR 0004 still
+     said no image field existed; moved to the gap table as interim, ADR
+     sentence updated.
+
+### T3 — Cart (UC-04) — complete
+
+- **Branch:** `night-2026-09-16-t3-cart`. Clock at start 14:57; budget
+  14,892,363.
+- **Changed:**
+  - `shop/cart.py`: the session cart's rules (decisions.md D3):
+    - only published candy can be in the cart;
+    - quantities are capped at stock;
+    - entries deleted, unpublished or sold out since they were added are
+      dropped or capped when the cart is viewed, with a notice;
+    - corrupt session data is ignored.
+  - `shop/forms.py`: `QuantityForm` validates the posted quantity.
+  - Views and URLs: `shoppingcart/` (page), `shoppingcart/<pk>/update/`,
+    `shoppingcart/<pk>/remove/`. POST only, CSRF enforced. htmx gets the cart
+    partial; a plain form post redirects back with its notice (works without JS).
+  - Add-to-cart:
+    - refuses over-stock, out-of-stock and no-longer-available candy with 200
+      and a message (D4);
+    - the catalog shows a disabled "Out of stock" button;
+    - the header cart count updates out of band.
+  - `base.html`: `<header>`/`<nav>` with the cart link, `<main>`, and one
+    persistent live region, filled out of band (D5).
+  - `shop.context_processors.shoppingcart` in settings; ADR 0002's cart note
+    updated.
+- **Tests added:**
+  - Integration (24, CSRF enforced, token from a real page): add within stock,
+    over stock, out of stock; catalog out-of-stock button; cart lines, quantities,
+    line totals and total; empty cart; set, cap, and five invalid quantities;
+    update for a candy not in the cart; update after a sell-out; update after
+    unpublishing (reported once); remove to empty with count 0; stale unpublished
+    and deleted entries; stock lowered since; no-JS redirect with notice; 403
+    without token; 405 on GET; corrupt session.
+  - Plus a deleted-candy add test in `test_views.py`; T1's unpublished-add test
+    now asserts 200 + message + unchanged session instead of 404 (D4).
+  - e2e (5): add updates the header and fills the cart; quantity change updates
+    totals, keeps focus on Update, caps at stock with the message visible and in
+    the live region; remove to the empty state; refused add of the last one
+    (message and live region); out-of-stock catalog button.
+- **Negative controls:**
+  - Disabling the cap failed 2 tests.
+  - Disabling the add's stock check failed 1.
+  - Disabling stale cleanup failed 1.
+  - Removing the Update button's id failed the focus assertion.
+  - All restored byte-for-byte.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 151 passed, coverage 96%
+    (`cart.py`, `forms.py`, `views.py`, `context_processors.py` 100%).
+  - `python scripts/dev.py lint` exit 0 — 9.72/10, no messages beyond the
+    baseline; two baseline messages fixed along the way.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0 (no model change).
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved with four low findings, all acted on:
+  1. A stale add did nothing visible; it now answers 200 with a message, and the
+     double notice on update is gone.
+  2. Announcements came from freshly swapped regions; replaced by one persistent
+     live region, and focus is kept after Update.
+  3. Hand-parsed input in `cart.py`; moved to `QuantityForm`, D3 recorded.
+  4. One e2e test lacked `assert_page_is_fully_rendered`; added.
+
+  Second review of the fixes: approved, no new defects, the test status change
+  judged legitimate.
+- **Remaining, known:** after Remove, keyboard focus falls back to the page
+  (there is no button left to return to). Fixing it needs JavaScript or
+  restructuring the swap, neither in this task's bounds. Whether a screen reader
+  actually speaks the live region is unverified; only its text change is tested.
+
+### T4 — Flaw on the admin side (UC-06 steps 1–2, ext. 2a) — complete
+
+- **Branch:** `night-2026-09-16-t4-admin-flaw`. Clock at start 15:13; budget
+  14,836,148.
+- **Changed:** `shop/admin.py` registers `Candy`:
+  - `CandyAdminForm` replaces the generic "This field is required." on `flaw`
+    with a prompt that says why (`FLAW_REQUIRED`), and adds help text.
+  - `CandyAdmin` lists name, price, stock and publication, filters by
+    publication, searches name and flaw, and puts `flaw` second in the form.
+  - The `candy_flaw_is_not_blank` database constraint still guards every
+    non-form path.
+  - Answers night-2026-09-15 Q4.
+- **Tests added:**
+  - Integration (`admin_client`): create with a flaw saves; a new candy with a
+    flaw of `""`, `"   "` or `"\t\n"` is refused with the prompt and nothing
+    saved; editing a flaw to blank is refused and keeps the old flaw; the
+    changelist shows the publication column.
+  - e2e: logs in through the real admin login form (CSRF enforced), a
+    whitespace flaw is refused with the prompt visible, then a real flaw saves.
+- **Negative controls:**
+  - Without the custom error message, 4 integration tests failed.
+  - Without `is_published` in `list_display`, the tightened changelist test
+    failed.
+  - Both restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 158 passed, coverage 97%
+    (`shop/admin.py` 100%).
+  - `python scripts/dev.py lint` exit 0 — no messages beyond the baseline.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved with one low finding: the changelist assertion
+  matched the list filter's links too. Fixed and negative-controlled as above.
+
+### T5 — Professional interface, light and dark themes (UC-01) — complete
+
+**Built and measured, not reviewed by a person.** Nothing here says the pages
+look good; that needs a human looking at the screenshots below.
+
+- **Branch:** `night-2026-09-16-t5-interface-themes`. Clock at start 15:20;
+  budget 14,821,220.
+- **a. Research** (15:20–15:25, read-only): all Django storefront templates
+  found need Bootstrap, Tailwind or a JS build. Pico CSS (MIT, plain CSS) chosen
+  as the visual reference and re-implemented; no code copied (decisions.md D6).
+- **b. Before screenshots:** `screenshots/before/` — catalog, detail, cart,
+  empty cart, no-longer-available, at 375px and 1280px (10 JPEGs).
+- **c. CSS:** `shop/static/shop/site.css`, hand-written:
+  - custom properties for both themes, mobile-first;
+  - catalog card grid, two across on phones;
+  - detail page with a flaw callout;
+  - cart lines, notices, empty states, sticky header.
+  - Templates gained classes only, plus the additions listed in D7; nothing
+    with a `data-testid`, role or heading moved.
+- **d. Theme** (D7):
+  - CSS follows `prefers-color-scheme` when nothing is stored.
+  - `theme.js` toggle: a real button named "Dark theme", `aria-pressed`,
+    `data-theme` on `<html>`, localStorage.
+  - An inline `<head>` script applies a stored choice before paint.
+  - The button is hidden without JS; icon-only on phones.
+  - README's "No CSS has been written yet" corrected.
+- **e. Tests** (`tests/e2e/test_theme.py`, 11):
+  - The four measurable checks on the empty catalog, catalog, catalog after
+    adding, detail, empty cart, cart with a notice, and no-longer-available, at
+    375px:
+    - no horizontal overflow;
+    - the header on one row;
+    - buttons, inputs and every link in the header and `main` ≥ 44×44;
+    - text contrast ≥ 4.5:1 against the composited painted background;
+    - fully rendered.
+  - Those checks run for the system light and dark themes and for a stored
+    override in each direction.
+  - Theme behaviour: the system decides with nothing stored; an OS switch
+    applies live; the toggle overrides and survives a reload both ways; the
+    head script applies a stored choice even with `theme.js` blocked (and the
+    toggle stays hidden); the icon is not part of the button's name.
+  - The contrast checker reports a page with nothing painted behind the text.
+- **f. After screenshots:** `screenshots/after/`, both themes, both widths (20
+  JPEGs, retaken after the last CSS change).
+- **g.** No ADR written; raised as Q2. Also raised: Q3 (no "back to system"
+  control), Q4 (ADRs 0001 and 0006 and night-run §9 still say no CSS exists).
+- **Negative controls:** each restored byte-for-byte afterwards.
+  - Muted text at 1.37:1 failed contrast.
+  - `--tap: 2rem` failed tap targets (139×40).
+  - A 30rem card failed overflow (121px).
+  - No painted background failed.
+  - Allowing wrap failed the header check (3 rows).
+  - The card name without its tap box failed ("Taffy" 138×25).
+  - Low contrast in only the toggle-set dark copy failed (1.30:1).
+  - A positive control that passed — hiding the phone label with `nowrap`
+    kept — showed the label was not the cause of the wrap; the control was
+    redone against the real cause.
+- **Found by the tests during the task:**
+  - `.theme-toggle`'s `display` overrode `[hidden]`, showing a dead button
+    without JS.
+  - The CSS glyph leaked into the button's accessible name.
+  - The phone header wrapped "Cart (" / "0)".
+  - All fixed.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 169 passed, coverage 97%.
+  - `python scripts/dev.py lint` exit 0 — 9.77/10, no messages beyond the
+    baseline (two new refactor messages from a six-argument test were fixed).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** the reviewer requested changes:
+  1. **Medium:** body links (candy names, cart names, back links) measured
+     about 24px high, and the tap check skipped them.
+  2. **Low:** the phone icon margin rule was overridden.
+  3. **Low:** the toggle-set theme was never measured.
+  4. **Low:** the empty catalog was never measured.
+  5. **Low:** no test of the checker's transparent-background refusal.
+
+  All five fixed and negative-controlled where testable. The re-review
+  approved, with one new low finding (a test picked "Add to cart" by position
+  in an unordered catalog), fixed by selecting within the candy's card.
+- **Not verifiable here:**
+  - How it looks: taste, hierarchy, whether the flaw reads as a warning.
+  - Whether a screen reader speaks the toggle state as intended.
+  - Rendering in browsers other than Chromium.
+  - Whether the `content: "..." / ""` alt syntax is honoured in Firefox
+    versions that predate it (they would show the glyph's name).
+- **Noticed for later:** `candy_list` has no ordering, so catalog order is
+  whatever PostgreSQL returns.
+
+### T6 — Enforce ADR 0002 and ADR 0004 — complete (derived)
+
+- **Branch:** `night-2026-09-16-t6-enforce-adrs`. Clock at start 15:48; budget
+  14,701,425.
+- **Source:** ADR 0002 §Confirmation ("Nothing enforces this decision") and ADR
+  0004 §Confirmation ("nothing checks the version of PostgreSQL"); README's
+  false "`tests/e2e/` is empty" open item. `plan.md` gained the derived-task
+  list (T6–T9) and what was logged instead of built.
+- **Changed:**
+  - `tests/unit/test_middleware.py`: six middleware present, and
+    `SessionMiddleware` before authentication and messages.
+  - `tests/integration/test_database_engine.py`: the test database is
+    PostgreSQL, version ≥ 17.
+  - ADR 0002 and 0004 confirmation sections now name exactly what is enforced
+    and what is not.
+  - README open item removed.
+  - Questions Q5–Q8 logged: out-of-scope UC-07 fields, HTTPS redirect/HSTS,
+    SRI for CDN scripts, coverage threshold.
+- **Negative controls:**
+  - With `CsrfViewMiddleware` removed from settings, the presence test failed.
+  - With the minimum at 99, the version test failed (170002 < 990000).
+  - Both restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 173 passed, coverage 97%.
+  - `python scripts/dev.py lint` exit 0 — 9.78/10, no messages beyond the
+    baseline (a trailing-newline warning fixed).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved with two low wording findings, both acted on:
+  1. ADR 0004's new text implied the app itself is prevented from using
+     another engine; reworded to "only the suite catches it".
+  2. ADR 0002's text did not match the test; it now names the six middleware.
+     A "security middleware first" test was removed, as ADR 0002 never chose
+     that rule.
+
+  The reviewer also spotted ADR 0005's stale "e2e is empty" line, added to Q4.
+
+### T7 — Keyboard focus after removing a cart line — complete (derived)
+
+- **Branch:** `night-2026-09-16-t7-remove-focus`. Clock at start 15:57; budget
+  14,686,461.
+- **Source:** T3's "Remaining, known" (focus fell back to the page after
+  Remove); `.claude/rules/frontend.md` §Accessibility, focus restoration.
+- **Changed:**
+  - `remove_from_shoppingcart` removes, looks up the removed candy's name (no
+    published filter), and `_cart_context` marks the next control `autofocus`:
+    - the first remaining line whose name sorts at or after the removed one,
+      else the last line;
+    - "Browse the candy" when the cart is empty.
+  - htmx 2.0.3 focuses `autofocus` in swapped content, so no JavaScript was
+    added.
+  - `autofocus` only renders on the remove path; a normal page load never
+    carries it.
+- **Tests added:**
+  - e2e with three lines: remove the first → the second focused; remove the
+    middle → the third; remove the last → the new last; empty the cart →
+    "Browse the candy".
+  - Integration: a remove in a stale cart still reports "no longer available"
+    and stock caps, over htmx and after a plain-post redirect.
+- **Negative controls:**
+  - Without `autofocus`, all focus tests failed.
+  - "Always focus the first line" failed 2.
+  - "Always focus the last line" failed the first-line case.
+  - An extra `cart.lines()` call before removing failed both notice tests.
+  - All restored byte-for-byte.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 179 passed, coverage 97%
+    (`views.py` 100%).
+  - `python scripts/dev.py lint` exit 0 — 9.79/10, no messages beyond the
+    baseline.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** the first review requested changes:
+  1. **Medium, a regression:** an extra `cart.lines()` call used up the
+     stale-cart notices, so a remove hid "no longer available" and stock caps.
+  2. **Low:** the tests couldn't tell the position logic from "always first".
+  3. **Low:** a candy unpublished mid-page mis-positioned focus.
+
+  All fixed and negative-controlled. The re-review confirmed 1 and 3 and
+  requested two small items: a case catching "always last", and `>=` for
+  candies sharing a name. Both were applied exactly as recommended and proven
+  by the control above. A third review pass was not run, as those two changes
+  are the reviewer's own wording.
+- **Accepted limitation:** a candy hard-deleted while the cart page was open has
+  no name to look up, so focus goes to the last line (documented in
+  `_cart_context`).
+
+### T8 — A deterministic catalog order — complete (derived)
+
+- **Branch:** `night-2026-09-16-t8-catalog-order`. Clock at start 16:10; budget
+  14,662,578.
+- **Source:** UC-01 step 3; the catalog query had no ordering (T5 review).
+- **Changed:**
+  - `candy_list` orders by name, then primary key (decisions.md D8).
+  - A stale comment in `tests/e2e/test_theme.py` corrected.
+- **Tests added** (integration):
+  - Candy created as Z, A, M is listed A, M, Z.
+  - Two candies sharing a name keep creation order, after an update moves the
+    first behind the second physically, so insertion order alone cannot pass.
+- **Negative controls:**
+  - With no ordering, the alphabetical test failed.
+  - With the tie-break reversed (`-pk`), the tie test failed.
+  - With the tie-break dropped (`order_by("name")`), the tie test failed after
+    the reviewer's fix; before that fix it had passed, which was the finding.
+  - All restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 181 passed, coverage 97%.
+  - `python scripts/dev.py lint` exit 0 — 9.80/10, no messages beyond the
+    baseline (the new docstring also cleared a baseline warning).
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer requested changes:
+  1. The tie test passed without the tie-break, because PostgreSQL returned
+     insertion order.
+  2. A stale e2e comment.
+
+  Both fixed exactly as recommended; the tie test is now proven by the control
+  above. Not re-reviewed a second time, as the fixes are the reviewer's own
+  wording. The reviewer also confirmed ordering belongs on the view, found no
+  other unordered customer list, and noted collation (D8).
+
+### T9 — Candy timestamps — complete (derived)
+
+- **Branch:** `night-2026-09-16-t9-candy-timestamps`. Started 2026-09-16 16:17;
+  budget 14,649,641.
+  - **Session gap:** the session sat idle from about 16:20 and resumed at
+    **2026-09-17 09:46**, after the 08:00 deadline and 08:30 ceiling. The
+    human was present then and explicitly asked for this task to be finished
+    and the run reported, which is why it continued past the ceiling.
+- **Source:** `data-model.md` §3.3 gap table, "Missing: … timestamps".
+- **Changed:**
+  - `Candy.created_at` (`auto_now_add`) and `updated_at` (`auto_now`), NOT
+    NULL.
+  - Migrations: `0007` adds them nullable; `0008` makes them NOT NULL
+    (decisions.md D9, which explains why there are two).
+  - The admin shows both read-only.
+  - `data-model.md` gap table updated.
+- **Found during verification:** rows older than `0007` got the migration's run
+  time, not NULL as first documented. The docs, comments and a misleading test
+  were corrected, and `0008` was added (D9).
+- **Tests added:**
+  - Unit: a new candy gets both timestamps; a later save moves `updated_at`
+    and keeps `created_at`.
+  - Integration: the admin change page shows both read-only; a row created on
+    the `0006` schema and migrated forward carries a timestamp at or after the
+    migration time.
+- **Test-isolation repair:** the migration test first used
+  `django_db(transaction=True)` and failed in the full suite with
+  `SynchronousOnlyOperation`. pytest-django schedules transactional tests after
+  the e2e block, while Playwright's loop is alive, and the async opt-out is
+  scoped to `tests/e2e/`. It became an ordinary `django_db` test (PostgreSQL
+  rolls the DDL back). One repair cycle.
+- **Negative control:** without `auto_now` on `updated_at`, 2 unit tests
+  failed; restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 185 passed, coverage 97%; `0007`
+    and `0008` applied to the dev database; columns confirmed NOT NULL there.
+  - `python scripts/dev.py lint` exit 0 — 9.80/10, no messages beyond the
+    baseline.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved, after checking `sqlmigrate`, the schema
+  editor source, and both a fresh database and one with `0007` already
+  applied. Two low findings, both fixed:
+  1. `D9` was cited before it was written.
+  2. A docstring credited the database with setting the timestamps.

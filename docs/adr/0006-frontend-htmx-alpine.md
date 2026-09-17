@@ -36,6 +36,8 @@ Tailwind remains deferred, and for the same reason ADR 0001 gave: it has not yet
 
 `tests/integration/test_views.py::test_catalog_page_supplies_csrf_token_to_htmx` fails if `base.html` stops serving htmx a CSRF token, which is the thing most likely to break silently — Django's test client does not enforce CSRF, so the suite passed for two commits while every real-browser `hx-post` returned 403.
 
+Since 2026-09-15 a stronger confirmation exists: `tests/e2e/test_catalog.py::test_add_to_cart_swaps_the_button_in_the_browser` performs the click in a real browser, so the token is exercised by htmx rather than asserted to be present in the HTML. The integration test stays: it is fast, and it names the cause directly where the browser test only shows the effect.
+
 Nothing pins the htmx or Alpine versions beyond the literal URLs in `base.html`; a CDN outage or a deleted version breaks the page at runtime with no build-time signal. That is the accepted cost of the no-build-step option and the trigger for revisiting the vendoring alternative below.
 
 ## Pros and Cons of the Options

@@ -1,11 +1,12 @@
 import factory
-from shop.models import CandyProduct
+from shop.models import Candy
 
-class CandyProductFactory(factory.django.DjangoModelFactory):
+class CandyFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = CandyProduct
+        model = Candy
 
     name = factory.Sequence(lambda n: f"Candy {n}")
+    description = "Chewy, fluorescent, and faintly medicinal."
     flavor = "sour"
     price = 2.50
     stock = 10

@@ -1,0 +1,11 @@
+{% comment %}
+The page's one live region, in base.html from the first paint. Screen readers
+announce a live region reliably only when it already existed and its content
+changes -- not when it arrives already filled, which is what swapping in a
+fresh role="status" element does. So responses fill this one out of band with
+innerHTML, and the element itself is never replaced.
+
+Visually hidden, because the message is also shown on the page where it
+happened.
+{% endcomment %}
+<div id="announcer" role="status" data-testid="announcer" class="visually-hidden"{% if oob %} hx-swap-oob="innerHTML"{% endif %}>{{ announcement }}</div>

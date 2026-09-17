@@ -45,7 +45,7 @@ Not enforced: there is no coverage threshold. `dev test` reports coverage but do
 
 - Good, because it ships with Django and requires no extra dependency at all, satisfying the package budget trivially
 - Good, because `self.client`, `assertTemplateUsed` and transactional test-database wrapping are integrated out of the box, and `LiveServerTestCase` hands Selenium a running server with no glue code
-- Bad, because the assertion API is verbose and the class-based `setUp`/`tearDown` boilerplate scales badly once several tests need the same Candy and Profile objects
+- Bad, because the assertion API is verbose and the class-based `setUp`/`tearDown` boilerplate scales badly once several tests need the same Candy and User objects
 - Bad, because Selenium needs manual `WebDriverWait` calls, which makes browser tests slower and more flaky than the auto-waiting alternatives
 
 ### pytest-django stack (`pytest-django`, `pytest-cov`, `factory_boy`, Playwright)
@@ -79,7 +79,7 @@ There is a concrete first case waiting for it. The add-to-cart button 403'd in a
 
 DRF-specific test tooling (`APIClient`, `pytest-drf`, `schemathesis`) is deferred, not rejected — revisit if ADR 0003 is reopened and an API layer is added. Related: [0003](0003-backend.md)
 
-The `ArrayField` usage on `Profile.allergies` and `Candy.allergens` is what pushes test data toward factory_boy rather than JSON fixtures. Related: [0004](0004-database.md)
+The `ArrayField` usage on `User.allergies` and `Candy.allergens` is what pushes test data toward factory_boy rather than JSON fixtures. Related: [0004](0004-database.md)
 
 ~~`mysite/settings.py` still configures SQLite while ADR 0004 chose PostgreSQL for development and production, so the Confirmation clause above cannot hold until that is changed — noted here as an open item, not addressed by this ADR.~~
 

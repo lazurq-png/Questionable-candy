@@ -1,0 +1,13 @@
+{% comment %}
+The header's cart control. Without JavaScript it is a plain link to the cart
+page. With Alpine it becomes the toggle for the cart dropdown in base.html --
+a button in role and keys as well as in behaviour, since a link that opens a
+panel instead of navigating would be announced as the wrong thing.
+
+Opening dispatches shoppingcart-refresh, which the dropdown's htmx listens for,
+so the dropdown shows the cart as it is now rather than as it was last opened.
+{% endcomment %}
+<a href="{% url 'shoppingcart' %}" id="shoppingcart-link" class="site-cart" data-testid="shoppingcart-link"
+   aria-controls="cart-panel" x-bind:role="'button'" x-bind:aria-expanded="cartOpen"
+   x-on:click.prevent="cartOpen = !cartOpen; cartOpen && $dispatch('shoppingcart-refresh')"
+   x-on:keydown.space.prevent="$el.click()">Cart ({% include "shop/partials/shoppingcart_count.html" %})</a>

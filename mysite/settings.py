@@ -58,13 +58,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Installed ahead of the ArrayField use planned for Profile.allergies and
-    # Candy.allergens (docs/data-model.md section 3) - no model uses it yet.
+    # ArrayField, for User.allergies and the planned Candy.allergens
+    # (docs/data-model.md section 3).
     'django.contrib.postgres',
 
     # Local apps
+    'accounts.apps.AccountsConfig',
     'shop.apps.ShopConfig',
 ]
+
+# docs/adr/0007-custom-user-model.md. Changing this after the first migrate is
+# not something Django can migrate for you -- see that ADR before touching it.
+AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -88,6 +93,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'shop.context_processors.shoppingcart',
             ],
         },
     },

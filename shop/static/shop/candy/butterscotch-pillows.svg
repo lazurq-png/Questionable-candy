@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Butterscotch Pillows</title>
+  <rect width="160" height="160" rx="24" fill="#fdf1d8"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M38 70q42-16 84 0q10 20 0 40q-42 16-84 0q-10-20 0-40z" fill="#e9a23b"/>
+  <path d="M52 76q28-8 56 0" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5" fill="none"/>
+</svg>
