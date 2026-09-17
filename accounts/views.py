@@ -43,6 +43,7 @@ class SignUpView(RedirectURLMixin, FormView):
         return context
 
 
+@never_cache
 @login_required
 def my_allergies(request):
     """The signed-in customer changes their own allergies.

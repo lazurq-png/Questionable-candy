@@ -603,3 +603,31 @@ Green. Requested work starts.
     `aria-describedby`, but the confirmation page's hand-written controls do
     not (**F2**).
 - **The plan's discretionary section** now lists the tasks the survey produced.
+
+### T12 — F1: customer-specific pages are never cached — done
+
+- **Branch:** `night-2026-09-17-t12-never-cache`. Clock at start 22:46; budget
+  14,423,430. First task of the exploration phase.
+- **Changed:** `@never_cache` on `shoppingcart`, `shoppingcart_panel`,
+  `checkout`, `checkout_warning`, `checkout_confirm`, `order_received` and
+  `accounts.my_allergies`, with the reason on the first of them. The catalog
+  and detail pages are deliberately left cacheable.
+- **Verification actually run:**
+  - `tests/integration/test_no_cache.py`: 8 passed.
+  - Negative controls, each failed as it should, then restored: `never_cache`
+    removed from the cart dropdown → 1 failed; removed from My allergies → 1
+    failed. The reviewer additionally neutralised `never_cache` wholesale from
+    a scratchpad plugin and got 7 failed, 1 passed — the catalog control test
+    being the one that passes either way, as intended.
+  - `python scripts/dev.py test`: exit 0, **419 passed**, coverage 98.80%,
+    above the new floor.
+  - `python scripts/dev.py lint`: exit 0, 9.93/10, no new messages (one
+    docstring added). `adr_guards` exit 0. Drift 0.
+- **Review:** approved, two Low findings, both fixed: `order_received` had
+  `@login_required` outermost, so its redirect for an anonymous visitor
+  escaped `never_cache` (swapped, matching the other three); and the
+  docstring justified leaving the catalog cacheable with `Vary`, the very
+  thing it had just said does not address a browser's own history cache. The
+  reasoning is corrected, and the residual it names — the header shows the
+  signed-in customer's username on those pages — is now **findings.md F6**,
+  ranked last because closing it trades caching on the main pages.

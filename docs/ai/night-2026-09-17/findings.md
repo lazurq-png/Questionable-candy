@@ -7,6 +7,8 @@ Ranked by what a customer or a reader loses, divided by cost.
 
 Re-ranked after each task, because the code changes underneath.
 
+**Built so far:** F1 (T12). **Remaining, in order:** F2, F4, F3, F5, F6.
+
 ## F1 — Pages showing a customer's cart, order or allergies can be cached
 
 - **Category:** bug (privacy).
@@ -102,6 +104,28 @@ Re-ranked after each task, because the code changes underneath.
   introduced, so clearing it makes "no new messages" mean something again.
 - **Proof:** the message disappears and both suites still pass.
 - **Size:** small — one shared helper in `test_theme.py`.
+
+## F6 — The pages left cacheable still name the signed-in customer
+
+- **Category:** bug (privacy), the residual of F1.
+- **Evidence:** `accounts/templates/accounts/partials/account_nav.html` renders
+  `<span class="site-account-name">{{ user.get_username }}</span>` into the
+  header of every page, the catalog and detail pages included, and their
+  steppers show that customer's quantities. F1 deliberately left those two
+  pages cacheable, so a Back navigation on a shared computer can still show the
+  previous customer's username.
+- **Why it matters:** the same class of exposure F1 closes, on the pages where
+  it is least sensitive but most likely to be revisited. Found by T12's
+  reviewer.
+- **Options, none free:** `never_cache` on the catalog and detail pages, which
+  gives up caching the two pages worth caching; or render the header's account
+  control from JavaScript, which is a new mechanism and a flash of the wrong
+  state; or accept it.
+- **Proof:** whichever is chosen, an assertion on the header of a cached
+  response.
+- **Size:** small to build, but it is a performance-versus-privacy trade-off on
+  the site's main pages -- closer to a product decision than the other
+  findings, so it is **ranked last and may be one for the human**.
 
 ## Checked and found sound (not findings)
 

@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.cache import patch_vary_headers
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from . import cart, checkout as checkout_state
@@ -162,11 +163,27 @@ def _mark_in_cart(request, candies):
         candy.in_cart = in_cart.get(candy.pk, 0)
 
 
+@never_cache
 def shoppingcart(request):
-    """UC-04 step 5: review every item, its quantity and the total."""
+    """UC-04 step 5: review every item, its quantity and the total.
+
+    never_cache, here and on every page below that shows one customer's cart,
+    order or account: without it a browser may serve the page from its own
+    history cache after the customer has gone -- the next person on a shared
+    computer pressing Back. `Vary: Cookie` keeps a shared proxy from mixing two
+    customers up, but says nothing about that (findings.md F1).
+
+    The catalog and the detail page are deliberately left cacheable, because
+    they are the pages worth caching. That is a boundary, not a claim of
+    safety: their header still names the signed-in customer, and their steppers
+    still show that customer's quantities, so the same Back navigation can show
+    the next person those. Accepted, and recorded as findings.md F6 rather than
+    left in a docstring.
+    """
     return render(request, "shop/shoppingcart.html", _cart_context(request))
 
 
+@never_cache
 def shoppingcart_panel(request):
     """The header's cart dropdown: every item, the total, and the way to checkout.
 
@@ -178,6 +195,7 @@ def shoppingcart_panel(request):
     return render(request, "shop/partials/shoppingcart_panel.html", _cart_context(request))
 
 
+@never_cache
 def checkout(request):
     """UC-05 step 1: the order to be placed, and where its amounts are changed.
 
@@ -193,6 +211,7 @@ def checkout(request):
     return render(request, "shop/checkout.html", context)
 
 
+@never_cache
 @login_required
 def checkout_warning(request):
     """UC-07: the health warning for this order, acknowledged before going on.
@@ -235,6 +254,7 @@ def checkout_warning(request):
     })
 
 
+@never_cache
 @login_required
 def checkout_confirm(request):
     """UC-08: the order confirmed three times, by three different actions.
@@ -322,6 +342,7 @@ def _place_order(request, snapshot, token):
     return redirect("order_received", pk=order.pk)
 
 
+@never_cache
 @login_required
 def order_received(request, pk):
     """UC-05 step 7: the order just placed, for the customer who placed it.
