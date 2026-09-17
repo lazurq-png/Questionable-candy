@@ -37,6 +37,11 @@ list, what is explicitly out of scope, and the acceptance criteria for each task
 If the run is interrupted, this is what lets the next agent resume without
 re-deriving the goal.
 
+For an unattended run, a **human** writes `plan.md` beforehand. It goes in
+`docs/ai/night-<YYYY-MM-DD>/`, dated the day the run starts. The run reads the
+plan and does not author it (`night-run` §1.0). With no plan there, the run
+stops without doing anything.
+
 **progress.md** — appended as work completes. For each task: what changed, the
 commit SHA, the exact verification commands run and their real outcome, and any
 remaining risk. Never record a verification that was not observed — an entry

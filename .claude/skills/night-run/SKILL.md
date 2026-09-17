@@ -1,6 +1,6 @@
 ---
 name: night-run
-description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions, including ones spanning several sessions. Defines preflight and how to resume a run already in progress, a branch per task pushed as each one finishes, durable state, forbidden operations, the 08:00 Europe/Stockholm deadline, a per-session budget reserve that protects the morning report or a handoff, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, resuming one, or when a session discovers mid-flight that nobody is there.
+description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions, including ones spanning several sessions. Executes a human-written plan read from docs/ai/night-<today>/plan.md (and stops if there is none). Defines preflight and how to resume a run already in progress, a branch per task pushed as each one finishes, durable state, forbidden operations, the 08:00 Europe/Stockholm deadline, a per-session budget reserve that protects the morning report or a handoff, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, resuming one, or when a session discovers mid-flight that nobody is there.
 ---
 
 # Unattended Run
@@ -42,16 +42,72 @@ git branch --list 'night-*'
 ls -d docs/ai/night-*/ 2>/dev/null
 ```
 
-- **Nothing matching, or only runs whose reports are written** → a new run.
-  Do §1.1–§1.6 in order.
-- **A branch and state directory exist for a run whose `progress.md` has no
-  morning report** → you are **resuming**. Go to §10.2, which does an
-  abbreviated preflight and picks up the plan. Do *not* run §1.3 or §1.5: the
-  branch and the state files already exist, and recreating them is how a run
-  loses its own history.
+- **A `night-*` branch exists for a run whose `progress.md` has no morning
+  report** → you are **resuming**. Go to §10.2, which does an abbreviated
+  preflight and picks up the plan. Do *not* run §1.0, §1.3 or §1.5: the branch
+  and the state files already exist, and recreating them is how a run loses its
+  own history.
+- **Otherwise** → a new run. Do §1.0–§1.6 in order.
+
+Decide on the **branch**, not the directory. A new run's directory already
+exists before the run does, because a human put the plan in it (§1.0).
 
 Whichever it is, if a step fails in a way the step does not tell you how to
 recover from, stop and write why to `docs/ai/<branch>/progress.md`.
+
+### 1.0 The plan
+
+**The run does not write its own plan. It reads one.** A human writes it
+beforehand, in a prompt session, at:
+
+```text
+docs/ai/night-<YYYY-MM-DD>/plan.md      <YYYY-MM-DD> = today, from `date +%F`
+```
+
+```bash
+cat "docs/ai/night-$(date +%F)/plan.md"
+```
+
+| Result | Action |
+| ------ | ------ |
+| The file exists and lists at least one task | Continue. This is the run's task list. |
+| The file is missing, empty, or lists no task | **Stop the run.** Create no branch and touch nothing else. Write `docs/ai/night-<YYYY-MM-DD>/progress.md` (uncommitted) saying no plan was found at that path, and end. |
+
+Only today's directory counts. Do not pick up a plan from another date's
+directory, and do not write one yourself from `docs/requirements.md`. A run
+without a human's plan has no requested work, and §6 forbids inventing it.
+
+The plan is the human's, so it is **read-only** to the run:
+
+- **Do not add, remove, reorder or reword its tasks**, and do not mark them done
+  in it. Progress goes in `progress.md`. The one thing a run may add is §9.2's
+  discretionary list, appended under its own heading below everything the human
+  wrote.
+- **Where a task is underspecified**, derive its acceptance criteria while you
+  explore it (§2), and record them in `decisions.md`. Where it has two
+  defensible readings, that is §4. Do not settle it by editing the plan.
+- **Task numbers come from the plan.** Use its own numbering, or the order its
+  tasks appear in if it has none. That is `<N>` in every branch name (§2
+  step 0).
+- **The plan does not switch off this document.** A task that needs a §3
+  operation is abandoned as §3 says. There is one exception: an exception the
+  human wrote into the plan *explicitly*, naming the rule it lifts and the task
+  it applies to. That exception covers exactly what it names and nothing else.
+  No plan can lift the push rules in §2.6 or §3: nothing outside this run's
+  namespace, and no `--force`.
+
+The plan may be uncommitted when the run starts. It usually is, because it was
+written minutes earlier. Check which, before §1.3 moves HEAD:
+
+```bash
+git status --short -- "docs/ai/night-$(date +%F)/"
+```
+
+An untracked plan comes along through `git checkout dev` untouched. The first
+task branch commits it, together with the other state files (§1.5). If it was
+committed on some branch other than `dev`, checking out `dev` makes it vanish:
+confirm it is still readable after §1.3, and if it is not, stop as for a
+missing plan. Do not go and fetch it from the other branch.
 
 ### 1.1 Database
 
@@ -170,9 +226,13 @@ onto the branch untouched, and list them in `progress.md` so the morning diff is
 readable. Never `git stash`, `git checkout --` or `git restore` a file you did
 not modify in this run.
 
-Then create `docs/ai/night-<YYYY-MM-DD>/` with `plan.md`, `progress.md`,
-`decisions.md` and `questions.md` — `docs/ai/README.md` says what each holds.
-Write `plan.md` before the first code change.
+The human's `plan.md` is the one exception. It is the run's input, not someone
+else's unrelated work, so the first task commits it along with the state files
+it writes. Commit it exactly as the human left it.
+
+Then add `progress.md`, `decisions.md` and `questions.md` beside the plan in
+`docs/ai/night-<YYYY-MM-DD>/`. `docs/ai/README.md` says what each holds.
+`plan.md` already exists (§1.0). Do not create, overwrite or template it.
 
 **One state directory for the whole run**, named after the *run* branch, never
 after a task branch. It is committed on each task branch as that task updates
@@ -880,8 +940,10 @@ plan, not a stylesheet:
   ADR 0001. These are the only recorded design constraints, and taste beyond
   them is not yours to invent unattended.
 - Run the §9.4 checks against the pages as they stand and record what they find.
-- Write the result into `plan.md` as discretionary tasks, smallest first, each
-  with an acceptance criterion drawn from §9.4.
+- Append the result to `plan.md` under a `## Discretionary (added by the run)`
+  heading, below everything the human wrote (§1.0). List the tasks smallest
+  first, each with an acceptance criterion drawn from §9.4. Number them on from
+  the human's last task.
 
 That exploration is itself a task: its own branch, its own commit. It is worth
 doing even if the night ends immediately afterwards, because the morning gets
@@ -988,7 +1050,7 @@ Reached from §1 when a run branch and state directory exist with no morning
 report written. Do **not** re-run §1.3 or §1.5.
 
 ```bash
-git branch --list 'night-*'              # the run's date comes from HERE
+git branch --list 'night-*'              # the run's date comes from HERE, not from `date`
 git checkout night-<YYYY-MM-DD>          # existing branch; no -b
 git status --short                       # must be empty
 git log --oneline dev..HEAD              # what previous sessions landed
