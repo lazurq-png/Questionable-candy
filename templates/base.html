@@ -50,6 +50,7 @@ toggle -- unless the detail popup is open, whose Escape closes only itself.
         <nav aria-label="Site" class="site-nav">
             <a href="{% url 'candy_list' %}" class="site-brand">Candy shop</a>
             <button type="button" class="theme-toggle" data-theme-toggle data-testid="theme-toggle" aria-pressed="false" hidden><span class="theme-toggle-label">Dark theme</span></button>
+            {% include "accounts/partials/account_nav.html" %}
             {% include "shop/partials/shoppingcart_link.html" %}
         </nav>
     </header>

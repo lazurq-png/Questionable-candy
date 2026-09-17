@@ -55,3 +55,47 @@ lose it silently on the next admin save. Not fixed in code:
 
 Raised as questions.md Q2. `allergens.names()` skips unknown keys, so a legacy
 value cannot break rendering or the later warning; it is simply not matched.
+
+## D5. T3: the header's account control on a phone
+
+The plan's T3 lists, for the header: logged out, "Log in" and "Sign up";
+logged in, the username, "My allergies" and a "Log out" button. The existing
+phone header must stay one row with no sideways scroll (tests/e2e/test_theme.py).
+
+Measured at 375px before building: brand 108px, theme toggle 44px, cart 80px,
+two 8px gaps, so about 87px of the 343px content width is free. "Log in" is
+about 66px. "Log in" plus "Sign up" is about 150px, and a username plus a Log
+out button is more.
+
+- **Chosen:**
+  - Logged out: "Log in" always. "Sign up" from 30rem up; below that it is
+    hidden, and the login page links to sign-up ("Create an account").
+  - Logged in: a native `<details>` named by the username, holding "My
+    allergies" and "Log out". Every item the plan lists is in the header. On
+    a phone, sign-up is one tap further away, and the logged-in items are one
+    tap behind the username at every width.
+- **Rejected:**
+  - A second header row on phones: breaks an existing, tested layout rule.
+  - Moving the theme toggle into the menu: changes an unrelated, settled
+    control.
+  - An Alpine dropdown: more script and focus handling for what `<details>`
+    gives natively.
+
+The reviewer confirmed the width at 375px: one row for a long username with a
+3-digit cart count. Asked of the human as questions.md Q3. Not marked
+PROVISIONAL: every later checkout task depends on T3's login, and the layout is
+cheap to change without touching them.
+
+## D6. T3: pylint R0901 on `SignUpForm` left standing
+
+`too-many-ancestors (9/7)` comes from subclassing Django's `UserCreationForm`,
+whose own hierarchy supplies the ancestors. Flattening it would mean
+re-implementing the password handling the plan asks to reuse. Refactor-class
+message; the lint gate passes.
+
+## D7. T3: sign-up uses LoginView's decorators (reviewer, Low)
+
+`SignUpView` is wrapped in `sensitive_post_parameters("password1",
+"password2")`, `csrf_protect` and `never_cache`, as Django's `LoginView` is, so
+an error report during sign-up (for example a unique-username race) never
+carries a plain-text password. Tested, with a negative control.

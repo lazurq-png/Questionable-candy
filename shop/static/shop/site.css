@@ -339,7 +339,182 @@ button[disabled] {
   background: var(--surface-2);
 }
 
+/* ---- Account control in the header (accounts/partials/account_nav.html) -- */
+
+.site-account {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.site-nav a.site-account:hover,
+.site-account-menu > summary:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* The phone header has room for one account control, not two: sign-up is
+   one tap away on the login page. */
+@media (max-width: 29.99rem) {
+  .site-signup {
+    display: none !important;
+  }
+}
+
+.site-account-menu {
+  position: relative;
+}
+
+.site-account-menu > summary {
+  list-style: none;
+  padding: 0 0.5rem;
+}
+
+.site-account-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.site-account-menu[open] > summary {
+  background: var(--surface-2);
+}
+
+/* A long username is cut short on screen; the summary's accessible name is
+   still the whole of it. */
+.site-account-name {
+  display: inline-block;
+  max-width: 3.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 30rem) {
+  .site-account-name {
+    max-width: 10rem;
+  }
+}
+
+.site-account-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 20;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 11rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.site-account-panel form {
+  margin: 0;
+}
+
+.site-account-panel button {
+  width: 100%;
+}
+
 /* ---- Forms --------------------------------------------------------------- */
+
+/* Account forms render with {{ form }}: a <div> per field holding its label,
+   help text, errors and input (Django's div form template). */
+.account-form {
+  display: grid;
+  gap: var(--space);
+  margin: 1rem 0;
+}
+
+.account-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.account-form input[type="text"],
+.account-form input[type="password"] {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.account-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.account-form legend {
+  padding: 0;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.account-form .helptext {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 0.25rem 0;
+}
+
+.account-form .helptext ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.account-form .errorlist {
+  margin: 0 0 0.25rem;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  background: var(--flaw-bg);
+  border: 1px solid var(--flaw-border);
+  border-radius: var(--radius-sm);
+  color: var(--flaw-text);
+}
+
+.account-form > button {
+  justify-self: start;
+}
+
+/* The allergy checkboxes: the whole label is the tap target. */
+.account-form [id$="allergies"] {
+  display: grid;
+  gap: 0 var(--space);
+}
+
+@media (min-width: 30rem) {
+  .account-form [id$="allergies"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.account-form [id$="allergies"] label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+  margin: 0;
+  font-weight: 400;
+}
+
+.account-form input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--primary);
+}
 
 input[type="number"] {
   min-height: var(--tap);
@@ -480,7 +655,9 @@ input[type="number"] {
 .page-actions a {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: var(--tap);
+  min-width: var(--tap); /* a short link, like "Log in", is narrower than a tap */
 }
 
 /* ---- Cart ------------------------------------------------------------------ */

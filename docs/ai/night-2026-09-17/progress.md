@@ -110,8 +110,8 @@ Green. Requested work starts.
   - `docs/data-model.md` §3.1 and §3.3 updated: `sugar_content_g` and
     `allergens` are no longer "Missing".
   - Dev database: migrated by `dev.py`, then `seed_candy` run twice (22
-    unchanged, 22 filled; then all unchanged). 0 candies with null sugar, 8
-    with allergens.
+    unchanged, 22 filled; then all unchanged). 0 candies with null sugar, 9
+    with allergens (corrected in T3's commit; this entry first said 8).
 - **Verification actually run:**
   - T2's tests: 77 passed. With a fresh database (`--create-db`), the health,
     view and detail tests: 51 passed.
@@ -135,3 +135,57 @@ Green. Requested work starts.
   drops legacy free-text allergies. Not fixed in code, for the reason in
   decisions.md D4; raised as questions.md Q2. The comment nit on `KEY_LENGTH`
   was fixed.
+
+### T3 — Log in, log out, sign up, "My allergies" — done
+
+- **Branch:** `night-2026-09-17-t3-accounts`. Clock at start 16:28; budget
+  14,857,912.
+- **Changed:**
+  - `accounts/urls.py` (namespace `accounts`, under `/accounts/`): Django's
+    `LoginView` and `LogoutView` (POST only), `SignUpView` and `my_allergies`.
+  - `mysite/settings.py`: `LOGIN_URL`, `LOGIN_REDIRECT_URL`,
+    `LOGOUT_REDIRECT_URL`. `mysite/urls.py` includes the accounts URLs.
+  - `accounts/forms.py`: `SignUpForm` (Django's `UserCreationForm` plus
+    optional allergy checkboxes) and `AllergiesForm` (bound to the current
+    user).
+  - `accounts/views.py`:
+    - `SignUpView`: `FormView` plus Django's `RedirectURLMixin` for safe
+      `next`, logs straight in, and has LoginView's decorators (D7).
+    - `my_allergies`: `@login_required`, form bound to `request.user`, no id
+      in the URL.
+  - Templates: `accounts/login.html`, `signup.html`, `my_allergies.html`, and
+    `partials/account_nav.html`, included in `base.html`'s header (layout in
+    D5, question Q3).
+  - `site.css`: the header account control and menu, account form styles
+    (inputs, help text, errors, a fieldset of 44px checkbox labels), and
+    `.page-actions a` gets `min-width: var(--tap)`, because the e2e check
+    found the sign-up page's "Log in" link just under 44px wide.
+  - Tests: `tests/integration/test_accounts.py` (21) and
+    `tests/e2e/test_accounts.py` (4).
+- **Verification actually run:**
+  - Accounts tests: 25 passed.
+  - Found on the way:
+    - Django rotates the CSRF token at login, so tests that post after login
+      must re-read it, as a browser does from the next page. Fixed in the
+      tests; not a product defect.
+    - The browser's `required` check blocks an empty login submit, so the
+      error-state e2e test uses a wrong password instead.
+  - Negative controls, each failed as it should, then restored:
+    - username not truncated → header overflow at 375px (2 failed);
+    - "Sign up" shown on phones → overflow in test_theme and the accounts
+      checks;
+    - sign-up following any `next` → the external-next test failed;
+    - SignUpView's decorators removed → the masking test failed.
+  - `python scripts/dev.py test` (before the review fixes): exit 0, **296
+    passed**, coverage 98%, `accounts/*` at 100%. Re-run after them:
+    exit 0, **297 passed**, coverage 98%; lint 9.89 with the same two extras;
+    adr_guards 0; drift 0.
+  - `python scripts/dev.py lint`: exit 0, 9.89/10. New against the baseline:
+    R0901 on `accounts/forms.py` (D6); T1's R0801 remains.
+  - `python scripts/adr_guards.py`: exit 0. `makemigrations --check`: exit 0.
+- **Review:** `reviewer` approved with three Low findings, all acted on:
+  1. Sign-up did not mask passwords in error reports: decorators added and
+     tested (D7).
+  2. The header departs from the plan's wording, unrecorded: now D5 and Q3.
+  3. The account menu was named only by the username: a visually hidden ",
+     account menu" was added, and the e2e assertion updated.

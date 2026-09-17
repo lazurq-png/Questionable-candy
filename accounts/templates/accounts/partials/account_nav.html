@@ -1,0 +1,36 @@
+{% comment %}
+The header's account control (base.html). Logged out: "Log in", and "Sign up"
+where the header has room for it -- site.css hides it below 30rem, because the
+phone header holds one row, and the login page links to sign-up anyway.
+Logged in: a disclosure named by the username, holding "My allergies" and
+"Log out". <details> gives the open/closed state, keyboard handling and its
+announcement without any script of ours.
+
+Both links carry the page the customer is on as `next`, so logging in returns
+them there -- except from an account page itself, which would send them back
+to the form they just completed. Django checks `next` is on this site before
+following it.
+
+Log out is a form, because LogoutView accepts only POST. The summary's hidden
+", account menu" tells a screen reader what the username opens.
+{% endcomment %}
+{% if user.is_authenticated %}
+<details class="site-account-menu" data-testid="account-menu">
+  <summary class="site-account" data-testid="account-menu-toggle"><span class="site-account-name">{{ user.get_username }}</span><span class="visually-hidden">, account menu</span></summary>
+  <div class="site-account-panel">
+    <a href="{% url 'accounts:my_allergies' %}" data-testid="my-allergies-link">My allergies</a>
+    <form method="post" action="{% url 'accounts:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="button-secondary" data-testid="logout-button">Log out</button>
+    </form>
+  </div>
+</details>
+{% else %}
+{% if request.resolver_match.app_name != "accounts" %}{% with next=request.get_full_path|urlencode %}
+<a href="{% url 'accounts:login' %}?next={{ next }}" class="site-account" data-testid="login-link">Log in</a>
+<a href="{% url 'accounts:signup' %}?next={{ next }}" class="site-account site-signup" data-testid="signup-link">Sign up</a>
+{% endwith %}{% else %}
+<a href="{% url 'accounts:login' %}" class="site-account" data-testid="login-link">Log in</a>
+<a href="{% url 'accounts:signup' %}" class="site-account site-signup" data-testid="signup-link">Sign up</a>
+{% endif %}
+{% endif %}

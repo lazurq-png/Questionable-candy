@@ -35,3 +35,18 @@ consequences, a recommendation, and what was done in the meantime.
 - **Recommendation:** (a) for now. There are no real users yet; revisit before
   any import of existing customer data.
 - **In the meantime:** nothing built; decisions.md D4.
+
+## Q3. Is the header's account control acceptable on a phone?
+
+- **The question:** the plan puts "Log in", "Sign up", the username, "My
+  allergies" and "Log out" in the header. A phone header has room for about
+  87px more, so T3 shows only "Log in" below 30rem (sign-up is linked from the
+  login page), and logged in, puts "My allergies" and "Log out" in a menu
+  opened from the username at every width (decisions.md D5).
+- **Option (a):** keep it.
+- **Option (b):** show "My allergies" and "Log out" directly on wide screens
+  and use the menu only on phones.
+- **Option (c):** a second header row on phones, so everything is visible.
+- **Recommendation:** (a); look at it on a phone first.
+- **In the meantime:** built as (a) and merged. Changing it touches only
+  `account_nav.html` and `site.css`.
