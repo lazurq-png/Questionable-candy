@@ -157,6 +157,11 @@ def remove(request, pk):
         _save(request, stored)
 
 
+def clear(request):
+    """Empty the cart, once its order has been placed (UC-05 step 7)."""
+    _save(request, {})
+
+
 def remove_one(request, pk):
     """Take one of a candy out of the cart. Returns whether anything changed.
 

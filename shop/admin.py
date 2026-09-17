@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 
 from .allergens import ALLERGENS
-from .models import Candy
+from .models import Candy, Order, OrderItem
 
 FLAW_REQUIRED = "Every candy must disclose a flaw (UC-06). Describe its real downside."
 
@@ -45,3 +45,43 @@ class CandyAdmin(admin.ModelAdmin):
         "created_at", "updated_at",
     )
     readonly_fields = ("created_at", "updated_at")
+
+
+class OrderItemInline(admin.TabularInline):
+    """An order's lines, as they were placed."""
+
+    model = OrderItem
+    fields = ("candy", "quantity", "unit_price", "subtotal")
+    readonly_fields = fields
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    """Orders, read-only: a placed order is a record, changed by checkout alone.
+
+    Nothing here can create, edit or delete one; payment and fulfilment, which
+    would change its status, are not built.
+    """
+
+    list_display = ("__str__", "user", "status", "total_amount", "created_at")
+    list_filter = ("status",)
+    fields = (
+        "user", "status", "total_amount", "warning_acknowledged_at", "purchase_confirmed_at",
+        "created_at", "paid_at",
+    )
+    readonly_fields = fields
+    inlines = [OrderItemInline]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

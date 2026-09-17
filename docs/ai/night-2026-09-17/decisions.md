@@ -169,3 +169,76 @@ Choices made building it:
   `/checkout/confirm/`. Coming back to the warning after acknowledging shows
   "acknowledged" with a Continue link. Two T4 tests were updated to that
   behaviour: the redirect target, and the e2e path after Continue.
+
+## D12. T6: placing an order is a manager method on `Order`
+
+`Order.objects.place(user, snapshot, warning_acknowledged_at,
+purchase_confirmed_at)` does the lock, the re-check, the writes and the stock
+reduction in one `transaction.atomic()`. ADR 0003 puts business rules in
+models, and this is the model's own invariant (an order matches what was
+confirmed, and stock covers it). It raises `OrderChanged(candies)` naming what
+differs; the view turns that into the cart-page message (UC-05 ext. 4a).
+Alternatives: in the view (untestable without HTTP, and the view would then
+own a transaction); in `shop/checkout.py` (that module is session state, and
+this writes the database).
+
+Other choices in T6:
+- **Lock order:** candies are locked `ORDER BY pk`, so two orders over the same
+  candies take locks in the same order and cannot deadlock.
+- **`PROTECT` on `Order.user` and `OrderItem.candy`:** an order is a record. A
+  candy that has been ordered is withdrawn with `is_published`, not deleted,
+  and the admin's delete now refuses it. The data model gave no `on_delete`.
+- **The receipt is a 404 for anyone but the owner**, not a 403.
+- **Admin:** orders are view-only (no add, change or delete), because a placed
+  order changes only through checkout, and payment and fulfilment are not
+  built.
+- **T5's interim "confirmed" record was removed** (`checkout.confirm`,
+  `confirmed_order`, the "Confirmed. Placing orders is not built yet" state).
+  A valid confirmation now places the order. T5's tests that asserted the
+  record were updated to assert an order (or no order) instead; the
+  refused-control and changed-order cases still refuse, now shown as "no order
+  exists".
+- **What is not tested:** two customers placing at the same moment. A test
+  shows the `SELECT ... FOR UPDATE` on the candies is issued (with a negative
+  control), but no test runs two transactions at once.
+
+## D14. T6: one order per confirmation page (reviewer, Medium)
+
+The reviewer found that a double-click places two orders. Both requests load
+the session before either saves it, so both see the full cart; stock was taken
+twice, and nothing can release it (the admin is read-only). My first write-up
+(a questions.md entry) understated this as a two-tab race and proposed a unique
+fingerprint per user, which would have blocked ordering the same thing twice.
+
+Fixed:
+- Every showing of the confirmation page gets a random token, stored with the
+  shown order in the session and posted back.
+- A POST whose token is not the one last shown is refused like a changed order.
+- `Order.confirmation_token` is a unique UUID, and `place()` returns an order
+  already placed with the token. It checks after taking the candy locks and
+  before re-checking stock, so the second request of a double-click gets the
+  first order back rather than a false "not placed" message.
+- The same cart ordered again from a new showing is a new order (tested).
+
+**Migrations:** the reviewer suggested folding the column into `0010`, but
+`0010` was already applied to the dev database (dev.py migrates it), and
+un-applying a migration is not something to do unattended. So it is additive
+instead:
+- `0011` adds the column nullable and gives each existing order its own UUID;
+- `0012` makes it unique and required.
+
+They are split so PostgreSQL never updates rows and alters the same table in one
+transaction (pending deferred-trigger events). That risk is real: an ordinary
+database test running both migrations in one transaction was refused by
+PostgreSQL with exactly that error. `tests/integration/test_migration_order_confirmation_token.py`
+therefore runs the deferred checks at the two points a real migrate commits.
+With two pre-existing orders it gets two distinct tokens. Without 0011's data
+step it fails with a NOT NULL violation (negative control).
+
+The questions.md entry was removed, now that the question is settled in code.
+
+## D13. T6: pylint R0903 on `OrderManager` left standing
+
+`too-few-public-methods (1/2)`: the manager adds exactly one method, `place()`;
+the rest of its public API is inherited from Django's `Manager`, which pylint
+does not count. Refactor-class; the lint gate passes.

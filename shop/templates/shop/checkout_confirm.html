@@ -18,7 +18,8 @@ nothing through a disabled default button. No script involved, so it holds
 before Alpine loads and without JavaScript too.
 
 `shown` posts back a fingerprint of the order this page showed; the view
-refuses a confirmation of any other.
+refuses a confirmation of any other. `token` names this showing of the page, so
+submitting it twice places one order (Order.objects.place).
 
 `matches()` repeats the server's reading of a typed total (a leading $ and a
 decimal comma allowed) only to decide when to unlock the button.
@@ -37,9 +38,6 @@ decimal comma allowed) only to decide when to unlock the button.
 </ul>
 <p class="cart-total">Total: <span data-testid="confirm-total">${{ total }}</span></p>
 
-{% if confirmed %}
-<div class="notices"><p data-testid="confirm-done">Confirmed. Placing orders is not built yet, so nothing has been ordered and nothing has been charged.</p></div>
-{% else %}
 <form method="post" action="{% url 'checkout_confirm' %}" class="account-form confirm-form" data-testid="confirm-form"
       x-data="{
         checked: {{ form.checked_order.value|yesno:'true,false' }},
@@ -52,6 +50,7 @@ decimal comma allowed) only to decide when to unlock the button.
       }">
   {% csrf_token %}
   <input type="hidden" name="shown" value="{{ shown }}">
+  <input type="hidden" name="token" value="{{ token }}">
   <button type="submit" disabled hidden aria-hidden="true" tabindex="-1"></button>
   <ol class="confirm-steps">
     <li>
@@ -75,6 +74,5 @@ decimal comma allowed) only to decide when to unlock the button.
     </li>
   </ol>
 </form>
-{% endif %}
 <p class="page-actions"><a href="{% url 'checkout' %}">Back to the order</a></p>
 {% endblock %}

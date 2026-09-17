@@ -38,8 +38,8 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | Candy           | partial     | `shop.Candy` — see the note in §3\.3                                        |
 | ShoppingCart    | not started | Cart state currently lives in `request.session["shoppingcart"]`, not in a table    |
 | ShoppingCartItem| not started | —                                                                                  |
-| Order           | not started | —                                                                                  |
-| OrderItem       | not started | —                                                                                  |
+| Order           | implemented | `shop.Order`, placed by `Order.objects.place` (2026\-09\-17). `user` is `PROTECT`; only `pending` is ever set, as payment is not connected. Adds `confirmation_token` (unique UUID), so a confirmation submitted twice places one order |
+| OrderItem       | implemented | `shop.OrderItem`; `candy` is `PROTECT`. Check constraints: `quantity >= 1`, `subtotal = quantity × unit_price` |
 
 `ArrayField` on `User.allergies` and `Candy.allergens` is viable: [ADR 0004](adr/0004-database.md) is implemented, the application runs on PostgreSQL, and `django.contrib.postgres` is installed.
 

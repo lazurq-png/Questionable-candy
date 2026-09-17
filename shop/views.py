@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.cache import patch_vary_headers
 from django.views.decorators.http import require_POST
 
 from . import cart, checkout as checkout_state
 from .forms import ConfirmOrderForm, HealthWarningForm, QuantityForm, StepperQuantityForm
-from .models import Candy
+from .models import Candy, Order, OrderChanged
 
 # Sent as HX-Trigger on every response that changed the cart. The header's cart
 # dropdown listens for it and reloads while it is open, and the cart and
@@ -228,16 +229,22 @@ def checkout_confirm(request):
     is judged against both: if the order it confirms is not the order as it
     now stands -- a price changed, or another tab showed a different order --
     the confirmation is refused and the current order shown instead. Otherwise
-    all three controls must pass (ConfirmOrderForm), and the order is recorded
-    as confirmed.
+    all three controls must pass (ConfirmOrderForm), and the order is placed.
 
     If cart.lines() had to correct the cart (a quantity capped to stock, a
     candy withdrawn), that correction is a cart write, which clears checkout
     progress: the customer goes back to the warning, and what changed goes
     with them as messages, which the warning page shows.
 
-    Placing the order itself is not built yet, so a confirmed order is only
-    reported as confirmed.
+    Placing (UC-05 steps 4 and 7, Order.objects.place) checks the shop once
+    more, under lock. If something changed in the moment since, nothing is
+    written, the cart is kept, and the customer goes to the cart page told
+    which candies changed (ext. 4a). Otherwise the cart is emptied and the
+    receipt shown. Payment is not connected, so the order stays pending.
+
+    Each showing of the page carries a token (checkout.show_for_confirmation),
+    and the order is placed under it: the same page submitted twice at once
+    gets the one order back, not a second one.
     """
     lines, total, notices = cart.lines(request)
     if not lines:
@@ -254,16 +261,16 @@ def checkout_confirm(request):
     shown = checkout_state.snapshot_fingerprint(snapshot)
     form = ConfirmOrderForm(total=total)
     if request.method == "POST":
-        if checkout_state.shown_for_confirmation(request) != snapshot or request.POST.get("shown") != shown:
+        token = checkout_state.confirmation_token(request)
+        if (checkout_state.shown_for_confirmation(request) != snapshot or request.POST.get("shown") != shown
+                or token is None or request.POST.get("token") != token):
             notices.append("Your order changed while you were confirming it. Check it again below.")
         else:
             form = ConfirmOrderForm(request.POST, total=total)
             if form.is_valid():
-                checkout_state.confirm(request, snapshot)
-                return redirect("checkout_confirm")
-    checkout_state.show_for_confirmation(request, snapshot)
+                return _place_order(request, snapshot, token)
+    token = checkout_state.show_for_confirmation(request, snapshot)
 
-    confirmed = checkout_state.confirmed_order(request)
     return render(request, "shop/checkout_confirm.html", {
         "lines": lines,
         "total": total,
@@ -271,8 +278,40 @@ def checkout_confirm(request):
         "form": form,
         "notices": notices,
         "shown": shown,
-        "confirmed": confirmed is not None and confirmed["snapshot"] == snapshot,
+        "token": token,
     })
+
+
+def _place_order(request, snapshot, token):
+    """Place the confirmed order, or send the customer back to the cart saying why."""
+    try:
+        order = Order.objects.place(
+            request.user,
+            snapshot,
+            warning_acknowledged_at=checkout_state.acknowledged_at(request),
+            purchase_confirmed_at=timezone.now(),
+            confirmation_token=token,
+        )
+    except OrderChanged as changed:
+        messages.info(
+            request,
+            f"Your order was not placed, because {', '.join(changed.candies)} changed just now. "
+            "Check your cart and go through checkout again.",
+        )
+        return redirect("shoppingcart")
+    cart.clear(request)
+    return redirect("order_received", pk=order.pk)
+
+
+@login_required
+def order_received(request, pk):
+    """UC-05 step 7: the order just placed, for the customer who placed it.
+
+    Anyone else's order number is a 404, not a 403: an order that is not yours
+    is not there for you, and saying otherwise would confirm it exists.
+    """
+    order = get_object_or_404(Order.objects.prefetch_related("items__candy"), pk=pk, user=request.user)
+    return render(request, "shop/order_received.html", {"order": order})
 
 
 @require_POST

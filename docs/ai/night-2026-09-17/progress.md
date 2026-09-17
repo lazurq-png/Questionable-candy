@@ -299,3 +299,69 @@ Green. Requested work starts.
   - Commit gate after the nit: `python scripts/dev.py test` exit 0, **358
     passed**, coverage 98%; lint exit 0, 9.91/10, no new messages beyond
     D1/D6; adr_guards exit 0; drift exit 0.
+
+### T6 — Orders without payment — done
+
+- **Branch:** `night-2026-09-17-t6-orders`. Clock at start 17:48; budget
+  14,688,384.
+- **Changed:**
+  - `shop/models.py`:
+    - `Order` (status choices, `user` PROTECT, a total ≥ 0 check);
+    - `OrderItem` (`candy` PROTECT, quantity ≥ 1, and a subtotal = quantity ×
+      unit price check);
+    - `OrderManager.place()` and `OrderChanged` (D12).
+  - Migration `shop 0010_orders`: creates the two tables and their
+    constraints only.
+  - `shop/views.py`: a valid confirmation calls `_place_order`. On
+    `OrderChanged` it messages and redirects to the cart, keeping the cart;
+    otherwise it clears the cart and redirects to `order_received`
+    (`/orders/<pk>/`, login required, 404 for anyone but the owner).
+  - `shop/cart.py` `clear()`; `shop/checkout.py` `acknowledged_at()`, with
+    T5's interim confirm record removed.
+  - `shop/admin.py`: `OrderAdmin`, view-only, with the items inline.
+  - Templates: `order_received.html`; the confirm page's interim confirmed
+    state removed.
+  - `docs/data-model.md` §3: Order and OrderItem marked implemented.
+  - Tests: `tests/integration/test_orders.py` (16), `tests/e2e/test_orders.py`
+    (1, the whole checkout from an anonymous cart). T5's integration and e2e
+    tests updated from "confirmed" to "order placed".
+- **Verification actually run:**
+  - T6 and T5 tests: 16 integration, 34 confirm and warning, 5 e2e, all
+    passed.
+  - Negative controls, each failed as it should, then restored:
+    - price not re-checked → 1 failed;
+    - stock not reduced → 1 failed;
+    - cart not cleared → 2 failed;
+    - receipt not scoped to its owner → 1 failed;
+    - admin change permitted → 1 failed;
+    - `select_for_update` removed → at first nothing failed, as predicted, so
+      a test asserting the FOR UPDATE query was added, and it then failed.
+  - Not tested: truly concurrent orders by two customers (D12).
+  - First review: **request changes**. One Medium finding: a double-click
+    placed two orders. Fixed with a per-page confirmation token (D14),
+    `Order.confirmation_token` (migrations `0011` and `0012`, additive; probed
+    with existing rows) and an already-placed check in `place()`. New tests:
+    - the same token placed twice gives one order, with stock taken once;
+    - the same cart from two showings gives two orders;
+    - the database refuses a duplicate token;
+    - the double-click race, reproduced by restoring the pre-submit session;
+    - an older page's token is refused.
+
+    Controls: without the already-placed check, 2 failed; with the posted
+    token ignored, 1 failed. The other T6 and confirmation tests: 38 passed.
+  - Migration test for 0011-0012 with pre-existing orders: passed. Control:
+    without 0011's data step, NOT NULL violation. Its first version failed
+    for real on PostgreSQL's pending deferred-trigger rule, which is the
+    reason for the split (D14).
+  - `place()` reuses `order` for the already-placed lookup, which clears a new
+    R0914 (too many locals).
+  - Commit gate (code unchanged since): `python scripts/dev.py test` exit 0,
+    **381 passed**, coverage 99%; lint exit 0, 9.92/10, new messages only
+    D1/D6/D13; adr_guards exit 0; drift exit 0. Dev database: 0010-0012
+    applied.
+  - **Re-review: approved**, no findings. One non-blocking note: if the second
+    request of a double-click loads the old session but reads stock after the
+    first order used up a candy, `cart.lines()` writes the old cart back. The
+    customer lands on the warning or cart page with the ordered items in the
+    cart again, not on the receipt. No duplicate order and no stock lost;
+    session last-write-wins, not introduced here.

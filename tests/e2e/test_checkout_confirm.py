@@ -77,13 +77,13 @@ def test_the_three_controls_unlock_in_order_and_confirm_the_order(live_server, p
     tick.check()
 
     place.click()
-    expect(page.get_by_test_id("confirm-done")).to_be_visible()
+    expect(page.get_by_role("heading", name="received")).to_be_visible()
     assert_page_is_fully_rendered(page)
 
 
 @pytest.mark.parametrize("scheme", ["light", "dark"])
 def test_the_confirmation_page_meets_the_measurable_checks(live_server, page, assert_page_is_fully_rendered, scheme):
-    """Phone width, both themes, before and after confirming."""
+    """Phone width, both themes: confirming, and the receipt it leads to."""
     page.set_viewport_size(PHONE)
     page.emulate_media(color_scheme=scheme)
     reach_confirmation(page, live_server)
@@ -93,8 +93,8 @@ def test_the_confirmation_page_meets_the_measurable_checks(live_server, page, as
     page.get_by_label("Type the total, $6.00, to confirm the amount").fill("6.00")
     check_page(page, f"confirm, all unlocked, {scheme}", assert_page_is_fully_rendered)
     page.get_by_role("button", name="Place my order").click()
-    expect(page.get_by_test_id("confirm-done")).to_be_visible()
-    check_page(page, f"confirmed, {scheme}", assert_page_is_fully_rendered)
+    expect(page.get_by_test_id("order-payment-note")).to_be_visible()
+    check_page(page, f"order received, {scheme}", assert_page_is_fully_rendered)
 
 
 def test_enter_does_not_place_the_order_without_javascript(live_server, page, browser):
@@ -117,6 +117,6 @@ def test_enter_does_not_place_the_order_without_javascript(live_server, page, br
         assert_enter_does_not_submit(plain, total)
 
         plain.get_by_role("button", name="Place my order").click()
-        expect(plain.get_by_test_id("confirm-done")).to_be_visible()
+        expect(plain.get_by_test_id("order-payment-note")).to_be_visible()
     finally:
         no_script.close()

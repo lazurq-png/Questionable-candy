@@ -2,9 +2,9 @@
 confirmations (UC-08).
 
 Kept in the session beside the cart (ADR 0002), as `cart.py` keeps the cart:
-`request.session["checkout"]` records what the customer has acknowledged, the
-order last shown for confirmation, and the order they confirmed. Any change to
-the cart clears all of it (cart._save).
+`request.session["checkout"]` records what the customer has acknowledged and
+the order last shown for confirmation. Any change to the cart clears all of it
+(cart._save), and so does placing the order (cart.clear).
 
 An acknowledgment is tied to a fingerprint of exactly what the warning showed
 -- each line's candy, quantity, sugar and allergens, and the customer's own
@@ -14,6 +14,8 @@ and a warning about a different order was not.
 """
 import hashlib
 import json
+import uuid
+from datetime import datetime
 from dataclasses import dataclass, field
 from decimal import Decimal
 
@@ -149,8 +151,17 @@ def snapshot_fingerprint(snapshot):
 
 
 def show_for_confirmation(request, snapshot):
-    """Remember the order the confirmation page is showing."""
-    _save(request, showing=snapshot)
+    """Remember the order the confirmation page is showing, and give this showing
+    of the page a new token. Returns the token, for the page to post back.
+    """
+    token = str(uuid.uuid4())
+    _save(request, showing=snapshot, token=token)
+    return token
+
+
+def confirmation_token(request):
+    """The token of the confirmation page last shown, or None."""
+    return _stored(request).get("token")
 
 
 def shown_for_confirmation(request):
@@ -158,12 +169,6 @@ def shown_for_confirmation(request):
     return _stored(request).get("showing")
 
 
-def confirm(request, snapshot):
-    """Record that the customer confirmed exactly this order, three times, and when."""
-    _save(request, confirmed={"snapshot": snapshot, "at": timezone.now().isoformat()})
-
-
-def confirmed_order(request):
-    """The confirmed snapshot and when, as stored, or None."""
-    confirmed = _stored(request).get("confirmed")
-    return confirmed if isinstance(confirmed, dict) else None
+def acknowledged_at(request):
+    """When the health warning now in force was acknowledged, for the order record."""
+    return datetime.fromisoformat(_stored(request)["warning"]["at"])
