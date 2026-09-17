@@ -21,8 +21,7 @@ def fill_cart(page, live_server, *names):
     for count, name in enumerate(names, start=1):
         page.get_by_role("listitem").filter(has_text=name).get_by_role("button", name="Add to cart").click()
         expect(page.get_by_test_id("shoppingcart-count")).to_have_text(str(count))
-    page.get_by_test_id("shoppingcart-link").click()
-    page.wait_for_url("**/shoppingcart/")
+    page.goto(f"{live_server.url}/shoppingcart/")
 
 
 def test_removing_the_first_line_focuses_the_line_that_takes_its_place(live_server, page):

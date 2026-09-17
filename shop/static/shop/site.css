@@ -33,11 +33,23 @@
   --notice-border: #d9a520;
   --focus: #b0165d;
   --shadow: 0 1px 2px rgb(43 37 48 / 6%), 0 4px 16px rgb(43 37 48 / 6%);
+  /* The stepper's number field: white on the primary-coloured bar in both
+     themes, so it is not redefined below. */
+  --stepper-field: #ffffff;
+  --stepper-field-text: #2b2530;
+  /* A greyed-out minus or plus: a grey chip on that bar, in both themes.
+     Dimming the glyph instead would drop it to 3.2:1 against the bar in light
+     and 1.4:1 in dark -- and these stay pressable, so they have to stay
+     readable (tests/e2e/test_theme.py). */
+  --stepper-spent: #e4dce6;
+  --stepper-spent-text: #5f5766;
 
   --radius: 0.75rem;
   --radius-sm: 0.5rem;
   --space: 1rem;
   --tap: 2.75rem; /* 44px: the minimum tap target */
+  /* The sticky header: a tap-high row, its 0.5rem padding twice, and a border. */
+  --header-height: calc(var(--tap) + 1rem + 1px);
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -197,7 +209,20 @@ a:hover {
 
 /* ---- Main ---------------------------------------------------------------- */
 
+/* <main> and the cart dropdown side by side, within the header's width so
+   the dropdown lines up under the Cart toggle. With the dropdown closed,
+   <main> is alone and keeps its centred max-width; open, it gives up the width
+   the dropdown takes, and the catalog grid reflows into what is left. */
+.site-body {
+  display: flex;
+  align-items: flex-start;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
 .site-main {
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 72rem;
   margin: 0 auto;
   padding: 1.5rem var(--space) 3rem;
@@ -381,13 +406,8 @@ input[type="number"] {
   margin-top: auto;
 }
 
-.candy-card button {
-  width: 100%;
-}
-
-.candy-card [data-testid="add-to-cart-message"] {
-  margin: 0;
-  color: var(--text);
+.candy-card .cart-control {
+  max-width: none;
 }
 
 /* ---- Detail ---------------------------------------------------------------- */
@@ -461,6 +481,12 @@ input[type="number"] {
   min-height: var(--tap);
   color: var(--text);
   font-weight: 600;
+  text-decoration: none;
+}
+
+.cart-line-name:hover {
+  color: var(--primary);
+  text-decoration: underline;
 }
 
 .cart-line-unit {
@@ -475,7 +501,7 @@ input[type="number"] {
   margin: 0;
 }
 
-.cart-line label {
+.cart-line-quantity label {
   color: var(--muted);
   font-size: 0.9rem;
   width: 100%;
@@ -529,10 +555,402 @@ input[type="number"] {
     border-top: 1px solid var(--border);
   }
 
-  .cart-line label {
+  .cart-line-quantity label {
     width: auto;
     margin-right: auto;
   }
+}
+
+.cart-checkout {
+  text-align: right;
+}
+
+/* A checkout line: the candy, its stepper, and what that comes to.
+
+   A definite width, not a max-width: container-type keeps what is inside from
+   contributing any width outwards, so in a grid column sized to its contents
+   the stepper would collapse and its bar wrap into three rows. */
+.checkout-line .cart-control {
+  width: 12rem;
+  max-width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .cart-line.checkout-line {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "name  stepper total"
+      "unit  stepper total";
+  }
+
+  .checkout-line .cart-control {
+    grid-area: stepper;
+  }
+}
+
+/* ---- Add-to-cart stepper --------------------------------------------------- */
+
+/* A container, so the bar arranges itself by the width it is given: a catalog
+   card on a phone is far narrower than the detail popup. Also the anchor for
+   the refusal bubble below, and a layer of its own so that bubble is painted
+   over the cards that follow rather than under them -- container-type makes
+   this a stacking context, which would otherwise trap it. */
+.cart-control {
+  container-type: inline-size;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.5rem;
+  max-width: 16rem;
+}
+
+.cart-control > button {
+  width: 100%;
+}
+
+/* Why a refusal ("Out of stock") is a bubble over the page rather than a line
+   by the bar: in the flow it made the card taller, which moved that card's bar
+   -- and every other bar on its row -- the moment the customer was told
+   anything. Out of flow, nothing shifts. It sits above the bar, where it
+   covers the price rather than the candy below. The same words also reach the
+   page's live region (announcer.html). */
+.cart-message {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 2;
+  width: max(100%, 11rem);
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* The bubble's tail, pointing down at the bar it belongs to. */
+.cart-message::before {
+  content: "";
+  position: absolute;
+  bottom: -0.3rem;
+  left: 1.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--notice-bg);
+  border-bottom: 1px solid var(--notice-border);
+  border-right: 1px solid var(--notice-border);
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cart-message {
+    animation: cart-message-in 150ms ease-out;
+  }
+
+  @keyframes cart-message-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.25rem);
+    }
+  }
+}
+
+/* One bar, the shape and colour of a button: minus and plus as bare glyphs at
+   either end, the quantity in a white field between them, and Ok beside it
+   while a typed number waits. It keeps a button's shape and colour, because
+   on the catalog it stands where the add-to-cart button stood. */
+.cart-stepper {
+  /* How tall the bar's controls are. A pointer can hit a small target, so the
+     desktop bar is compact; a finger cannot, so a narrow or touch screen gets
+     them back at the full 44px tap size. */
+  --stepper-size: 2.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+@media (max-width: 47.99rem), (pointer: coarse) {
+  .cart-stepper {
+    --stepper-size: var(--tap);
+  }
+}
+
+/* Anything focused inside the bar would get the usual primary-coloured ring,
+   which does not show against a primary-coloured bar. */
+.cart-stepper :focus-visible {
+  outline-color: var(--on-primary);
+}
+
+.cart-stepper-button,
+.cart-stepper-button:hover:not([disabled]) {
+  width: var(--stepper-size);
+  min-width: var(--stepper-size);
+  min-height: var(--stepper-size);
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--on-primary);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.cart-stepper-button:hover:not([disabled]) {
+  background: var(--primary-hover);
+}
+
+/* Minus with nothing to take out, or plus with every one in stock already in
+   the cart: greyed against the bar, hover included, but still focusable -- see
+   cart_stepper.html. */
+.cart-stepper-button[aria-disabled="true"],
+.cart-stepper-button[aria-disabled="true"]:hover:not([disabled]) {
+  background: var(--stepper-spent);
+  color: var(--stepper-spent-text);
+  cursor: default;
+}
+
+/* The field is tapped through the label wrapped around it, which is what
+   carries the tap target -- so the white box itself can be shorter than the
+   bar, a field in a toolbar rather than a button between buttons. */
+.cart-stepper-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--stepper-size);
+  cursor: text;
+}
+
+.cart-stepper-quantity {
+  width: 3.6rem;
+  height: calc(var(--stepper-size) - 0.5rem);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--stepper-field);
+  color: var(--stepper-field-text);
+  font: inherit;
+  font-size: 1.125rem;
+  text-align: center;
+}
+
+.cart-stepper-ok,
+.cart-stepper-ok:hover:not([disabled]) {
+  min-height: var(--stepper-size);
+  padding: 0 0.75rem;
+  border-color: var(--surface);
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.cart-stepper-ok:hover:not([disabled]) {
+  background: var(--surface-2);
+}
+
+/* Too narrow for Ok beside the rest: it takes a row of its own. */
+@container (max-width: 14rem) {
+  .cart-stepper-ok {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
+
+/* A catalog card on a phone: the three 44px targets only just fit, so the
+   padding goes and the field shrinks to the narrowest it can be. */
+@container (max-width: 10.5rem) {
+  .cart-stepper {
+    gap: 0;
+    padding: 0;
+  }
+
+  .cart-stepper-quantity {
+    width: var(--stepper-size);
+  }
+}
+
+/* ---- Cart dropdown --------------------------------------------------------- */
+
+/* A small window. On a phone there is no room beside the catalog, so it
+   floats over the right-hand side of the page, below the header, and scrolls
+   inside itself. */
+.cart-panel {
+  position: fixed;
+  z-index: 9;
+  top: calc(var(--header-height) + 0.5rem);
+  right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  width: min(18rem, calc(100vw - 1rem));
+  max-height: calc(100vh - var(--header-height) - 1rem);
+  max-height: calc(100dvh - var(--header-height) - 1rem);
+  padding: var(--space);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* From tablet width up it sits to the right of <main> instead, sticky so it
+   stays in view as the page scrolls. <main> narrows to make room: the catalog
+   reflows into fewer columns rather than being covered or moved down. */
+@media (min-width: 40rem) {
+  .cart-panel {
+    position: sticky;
+    order: 1;
+    top: calc(var(--header-height) + 1.5rem);
+    right: auto;
+    flex: 0 0 18rem;
+    max-height: calc(100vh - var(--header-height) - 3rem);
+    max-height: calc(100dvh - var(--header-height) - 3rem);
+    margin: 1.5rem var(--space) 1.5rem 0;
+  }
+}
+
+.cart-panel-contents {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cart-panel-header h2 {
+  margin: 0;
+}
+
+.cart-panel-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.cart-panel-line {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  column-gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cart-panel-line-image {
+  grid-row: 1 / span 2;
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.cart-panel-line-name {
+  grid-column: 2;
+  display: flex;
+  align-items: flex-end;
+  min-height: 1.75rem;
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.cart-panel-line-name:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.cart-panel-line-quantity {
+  grid-column: 2;
+  align-self: start;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.cart-panel-line-total {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  font-weight: 700;
+}
+
+.cart-panel-footer {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+}
+
+.cart-panel-footer .cart-total {
+  margin: 0;
+}
+
+.cart-panel-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
+}
+
+.cart-panel .empty-state {
+  margin: 0;
+}
+
+/* ---- Candy detail popup ------------------------------------------------------ */
+
+/* No padding on the <dialog> itself: its contents fill it, so a click that
+   lands on the <dialog> element can only have come from the backdrop. */
+.candy-popup {
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.candy-popup::backdrop {
+  background: rgb(20 17 24 / 60%);
+}
+
+.candy-popup-contents {
+  padding: 1.25rem;
+}
+
+.candy-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: var(--space);
+}
+
+.candy-popup-header h2 {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.2rem + 1vw, 1.75rem);
+}
+
+.candy-popup-header form {
+  margin: 0;
+}
+
+.candy-popup .candy-detail-image {
+  width: min(100%, 12rem);
 }
 
 /* ---- Messages and empty states ------------------------------------------- */

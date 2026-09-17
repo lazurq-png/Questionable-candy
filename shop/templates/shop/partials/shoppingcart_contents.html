@@ -20,7 +20,7 @@ ext. 2a) would never be reached or shown.
     <ul class="cart-lines">
       {% for line in lines %}
         <li data-testid="shoppingcart-line" class="cart-line">
-          <a href="{% url 'candy_detail' line.candy.pk %}" class="cart-line-name">{{ line.candy.name }}</a>
+          {% include "shop/partials/candy_link.html" with candy=line.candy link_class="cart-line-name" %}
           <span class="cart-line-unit">${{ line.candy.price }} each</span>
           <form method="post" class="cart-line-quantity" action="{% url 'update_shoppingcart' line.candy.pk %}"
                 hx-post="{% url 'update_shoppingcart' line.candy.pk %}" hx-target="#cart" hx-swap="outerHTML">
@@ -39,6 +39,7 @@ ext. 2a) would never be reached or shown.
       {% endfor %}
     </ul>
     <p class="cart-total">Total: <span data-testid="shoppingcart-total">${{ total }}</span></p>
+    <p class="page-actions cart-checkout"><a href="{% url 'checkout' %}" class="button" data-testid="checkout-button">Checkout</a></p>
   {% else %}
     <p data-testid="shoppingcart-empty" class="empty-state">Your cart is empty.</p>
     <p class="page-actions"><a href="{% url 'candy_list' %}"{% if removed %} autofocus{% endif %}>Browse the candy</a></p>
@@ -52,6 +53,6 @@ should take focus instead and the markup marks it autofocus, which htmx honours
 in swapped content -- no JavaScript of ours.
 {% endcomment %}
 {% if oob %}
-{% include "shop/partials/shoppingcart_link.html" with oob=True %}
+{% include "shop/partials/shoppingcart_count.html" with oob=True %}
 {% include "shop/partials/announcer.html" with oob=True announcement=cart_notices|join:" " %}
 {% endif %}

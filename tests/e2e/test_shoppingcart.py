@@ -11,10 +11,15 @@ from playwright.sync_api import expect
 from tests.factories.candy_factory import CandyFactory
 
 
-def open_cart(page):
-    """Follow the header link, and wait for the cart page itself."""
-    page.get_by_test_id("shoppingcart-link").click()
-    page.wait_for_url("**/shoppingcart/")
+def open_cart(page, live_server):
+    """The cart page by its URL.
+
+    Nothing links to it any more: the dropdown shows the cart and leads to the
+    checkout, where amounts are changed. The page is still what a customer
+    without JavaScript gets from the header's cart link, which is why its
+    forms still have to work.
+    """
+    page.goto(f"{live_server.url}/shoppingcart/")
     expect(page.get_by_role("heading", name="Your cart")).to_be_visible()
 
 
@@ -28,10 +33,10 @@ def test_adding_from_the_catalog_updates_the_header_and_fills_the_cart(
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("0")
     page.get_by_role("button", name="Add to cart").click()
 
-    expect(page.get_by_role("button", name="Added! (Sour Bricks)")).to_be_visible()
+    expect(page.get_by_test_id("cart-stepper-quantity")).to_have_value("1")
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
 
-    open_cart(page)
+    open_cart(page, live_server)
     expect(page.get_by_test_id("shoppingcart-line")).to_have_count(1)
     expect(page.get_by_test_id("shoppingcart-total")).to_have_text("$2.50")
     assert_page_is_fully_rendered(page)
@@ -45,7 +50,7 @@ def test_changing_a_quantity_updates_the_totals_and_caps_at_stock(
     page.goto(live_server.url)
     page.get_by_role("button", name="Add to cart").click()
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
-    open_cart(page)
+    open_cart(page, live_server)
 
     quantity = page.get_by_label("Quantity of Hollow Humbug", exact=True)
     quantity.fill("2")
@@ -80,7 +85,7 @@ def test_removing_the_last_item_shows_the_empty_cart(
     page.goto(live_server.url)
     page.get_by_role("button", name="Add to cart").click()
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
-    open_cart(page)
+    open_cart(page, live_server)
 
     page.get_by_role("button", name="Remove Sour Bricks").click()
 
@@ -90,7 +95,7 @@ def test_removing_the_last_item_shows_the_empty_cart(
 
 
 def test_adding_more_than_is_in_stock_is_refused_on_the_page(
-    live_server, page, assert_page_is_fully_rendered
+    live_server, page, assert_page_is_fully_rendered, wait_for_htmx_to_settle
 ):
     """Extension 2a, where the customer meets it: the second add of the last one."""
     CandyFactory(name="Butterscotch Pillows", stock=1)
@@ -99,15 +104,17 @@ def test_adding_more_than_is_in_stock_is_refused_on_the_page(
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
 
     page.get_by_role("link", name="Butterscotch Pillows").click()
-    page.wait_for_url("**/candy/*/")
-    page.get_by_role("button", name="Add to cart").click()
+    popup = page.get_by_test_id("candy-popup")
+    expect(popup.get_by_role("heading", name="Butterscotch Pillows")).to_be_visible()
+    # Greyed out now that the cart holds the only one, but still pressable --
+    # force=True because Playwright treats aria-disabled as not enabled, which
+    # is exactly the refusal this test is about reaching. force skips the wait
+    # for a settled element too, so the popup has to be wired up first.
+    wait_for_htmx_to_settle(page)
+    popup.get_by_role("button", name="Add to cart").click(force=True)
 
-    expect(page.get_by_test_id("add-to-cart-message")).to_have_text(
-        "Only 1 in stock, and they are all in your cart."
-    )
-    expect(page.get_by_test_id("announcer")).to_have_text(
-        "Only 1 in stock, and they are all in your cart."
-    )
+    expect(popup.get_by_test_id("add-to-cart-message")).to_have_text("Out of stock")
+    expect(page.get_by_test_id("announcer")).to_have_text("Out of stock")
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
     assert_page_is_fully_rendered(page)
 

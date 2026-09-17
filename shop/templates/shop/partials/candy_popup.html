@@ -1,0 +1,18 @@
+{% comment %}
+The inside of the candy detail popup (base.html), for views.candy_detail when
+htmx asks for it. The close button is first, so it is where showModal() puts
+focus; <form method="dialog"> closes the popup without any script, and the
+browser then returns focus to the link that opened it.
+
+A candy no longer available gets the same wording as the page, and nothing
+that names it.
+{% endcomment %}
+<div class="candy-popup-header">
+  <h2 id="candy-popup-title">{% if candy %}{{ candy.name }}{% else %}No longer available{% endif %}</h2>
+  <form method="dialog"><button type="submit" class="button-secondary" aria-label="Close details"><span aria-hidden="true">&times;</span></button></form>
+</div>
+{% if candy %}
+  {% include "shop/partials/candy_details.html" with place="dialog" %}
+{% else %}
+  <p data-testid="candy-unavailable" class="empty-state">This candy is no longer available.</p>
+{% endif %}

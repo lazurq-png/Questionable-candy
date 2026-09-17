@@ -35,7 +35,17 @@ with enforce_csrf_checks=True.
 {% comment %}, not {# #}: Django's {# #} is single-line only, so a multi-line
 one is not recognised as a tag and is printed to the page as text.
 {% endcomment %}
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+{% comment %}
+The cart dropdown's state lives on <body> because its toggle is in the header
+and the panel is not. It reloads while open whenever a response announces that
+the cart changed (views.CART_CHANGED, sent as HX-Trigger) -- and only while
+open; see views.shoppingcart_panel. Escape closes it and returns focus to the
+toggle -- unless the detail popup is open, whose Escape closes only itself.
+{% endcomment %}
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      x-data="{ cartOpen: false }"
+      x-on:shoppingcart-changed="cartOpen && $dispatch('shoppingcart-refresh')"
+      x-on:keydown.escape="if (cartOpen && !document.querySelector('dialog[open]')) { cartOpen = false; document.getElementById('shoppingcart-link').focus() }">
     <header class="site-header">
         <nav aria-label="Site" class="site-nav">
             <a href="{% url 'candy_list' %}" class="site-brand">Candy shop</a>
@@ -44,8 +54,32 @@ one is not recognised as a tag and is printed to the page as text.
         </nav>
     </header>
     {% include "shop/partials/announcer.html" %}
-    <main class="site-main {% block main_class %}{% endblock %}">
-    {% block content %}{% endblock %}
-    </main>
+    {% comment %}
+    The dropdown comes straight after the header in the source, so the next Tab
+    from its toggle goes into it; site.css places it to the right of <main>,
+    beside the content rather than over it, wherever the window is wide enough.
+    {% endcomment %}
+    <div class="site-body">
+        <aside id="cart-panel" class="cart-panel" aria-label="Cart" data-testid="cart-panel" hidden x-bind:hidden="!cartOpen">
+            <div id="cart-panel-contents" class="cart-panel-contents" hx-get="{% url 'shoppingcart_panel' %}" hx-trigger="shoppingcart-refresh from:body">
+                <p>Loading your cart…</p>
+            </div>
+        </aside>
+        <main class="site-main {% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% comment %}
+    The candy detail popup. A candy link (candy_link.html) loads the details
+    into it with htmx, and the swap opens it as a modal -- only a swap into the
+    contents themselves, not the stepper swaps that happen inside it once open.
+    A click on the backdrop lands on the <dialog> itself, since the contents
+    fill it, and closes it; Escape and the close button are the browser's own.
+    {% endcomment %}
+    <dialog id="candy-popup" class="candy-popup" aria-labelledby="candy-popup-title" data-testid="candy-popup"
+            hx-on:htmx:after-swap="if (event.detail.target.id === 'candy-popup-contents' && !this.open) this.showModal()"
+            x-on:click="$event.target === $el && $el.close()">
+        <div id="candy-popup-contents" class="candy-popup-contents"></div>
+    </dialog>
 </body>
 </html>

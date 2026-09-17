@@ -161,6 +161,46 @@ def test_candy_detail_offers_both_ways_out(client):
     assert reverse("add_to_shoppingcart", args=[candy.id]).encode() in response.content
 
 
+POPUP = {"HX-Request": "true", "HX-Target": "candy-popup-contents"}
+
+
+def test_the_detail_popup_gets_the_details_without_the_page(client):
+    """The popup's own request: the details, the flaw and the stepper, no page around them."""
+    candy = CandyFactory(name="Hollow Humbug", description="Looks solid. Is not.", flaw="Hollow.")
+
+    response = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP)
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "<html" not in content
+    assert 'id="candy-popup-title">Hollow Humbug<' in content
+    assert "Looks solid. Is not." in content
+    assert 'data-testid="candy-flaw"' in content
+    assert f'id="dialog-cart-control-{candy.id}"' in content
+    assert "HX-Target" in response["Vary"]
+
+
+def test_every_candy_link_opens_the_popup(client):
+    """The catalog's link carries both: href for no JavaScript, hx-get for the popup."""
+    candy = CandyFactory(name="Sour Gummy Worms")
+
+    content = client.get(reverse("candy_list")).content.decode()
+
+    url = reverse("candy_detail", args=[candy.id])
+    assert f'href="{url}" class="candy-card-name" hx-get="{url}" hx-target="#candy-popup-contents"' in content
+
+
+def test_the_popup_for_an_unavailable_candy_says_so_with_200(client):
+    """htmx does not swap a 404, so the popup would never open; the wording names nothing."""
+    candy = CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    response = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP)
+
+    assert response.status_code == 200
+    assert b'data-testid="candy-unavailable"' in response.content
+    assert b"Withdrawn Toffee" not in response.content
+
+
 def test_a_deleted_candy_is_no_longer_available(client):
     """UC-03 extension 2a: say so, and offer the way back to the catalog."""
     candy = CandyFactory()

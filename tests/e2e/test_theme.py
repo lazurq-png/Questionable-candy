@@ -81,10 +81,15 @@ CONTRAST_FAILURES = """
 }
 """
 
+# A field wrapped in a <label> is tapped through that label -- anywhere in it
+# focuses the field -- so the label is the target to measure. The stepper's
+# number box is drawn shorter than 44px inside a label that is not; every other
+# input here has its label beside it rather than around it, and is measured as
+# itself.
 SMALL_TARGETS = """
 () => [...document.querySelectorAll("button, input, .site-nav a, main a")]
   .filter((el) => el.getClientRects().length)
-  .map((el) => [el, el.getBoundingClientRect()])
+  .map((el) => [el, (el.tagName === "INPUT" && el.closest("label") ? el.closest("label") : el).getBoundingClientRect()])
   .filter(([, box]) => box.width < 44 || box.height < 44)
   .map(([el, box]) => `${el.tagName.toLowerCase()} "${(el.textContent || el.name).trim()}": ${Math.round(box.width)}x${Math.round(box.height)}`)
 """
@@ -145,7 +150,7 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     # A one-word name, because a long one wraps and makes its link tall enough
     # to pass the tap-target check by accident.
     CandyFactory(name="Taffy", price=Decimal("1.50"), stock=5)
-    CandyFactory(name="Strawberry Cloud Marshmallows", price=Decimal("5.00"), stock=3)
+    marshmallows = CandyFactory(name="Strawberry Cloud Marshmallows", price=Decimal("5.00"), stock=3)
     CandyFactory(name="Chili Mango Chews", price=Decimal("5.25"), stock=0)
 
     page.goto(f"{live_server.url}/shoppingcart/")
@@ -164,12 +169,31 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
     check_page(page, "catalog after adding", assert_page_is_fully_rendered)
 
+    page.get_by_role("listitem").filter(has_text="Taffy").get_by_role(
+        "textbox", name="Number in cart"
+    ).fill("2")
+    expect(page.get_by_role("button", name="Ok")).to_be_visible()
+    check_page(page, "catalog with a number waiting for Ok", assert_page_is_fully_rendered)
+    page.reload()
+
     page.get_by_role("link", name="Strawberry Cloud Marshmallows").click()
-    page.wait_for_url("**/candy/*/")
-    check_page(page, "detail", assert_page_is_fully_rendered)
+    expect(page.get_by_test_id("candy-popup").get_by_test_id("candy-flaw")).to_be_visible()
+    check_page(page, "detail popup", assert_page_is_fully_rendered)
+    page.keyboard.press("Escape")
+
+    page.goto(f"{live_server.url}/candy/{marshmallows.pk}/")
+    check_page(page, "detail page", assert_page_is_fully_rendered)
 
     page.get_by_test_id("shoppingcart-link").click()
-    page.wait_for_url("**/shoppingcart/")
+    expect(page.get_by_test_id("cart-panel-line")).to_have_count(1)
+    check_page(page, "cart dropdown", assert_page_is_fully_rendered)
+
+    page.get_by_test_id("checkout-button").click()
+    page.wait_for_url("**/checkout/")
+    expect(page.get_by_test_id("checkout-line")).to_have_count(1)
+    check_page(page, "checkout", assert_page_is_fully_rendered)
+
+    page.goto(f"{live_server.url}/shoppingcart/")
     page.get_by_label("Quantity of Strawberry Cloud Marshmallows", exact=True).fill("9")
     page.get_by_role("button", name="Update quantity of Strawberry Cloud Marshmallows").click()
     expect(page.get_by_test_id("shoppingcart-messages")).to_contain_text("Only 3")

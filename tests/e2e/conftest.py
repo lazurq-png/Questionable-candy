@@ -65,6 +65,28 @@ def transactional_db(_allow_async_unsafe, transactional_db):  # pylint: disable=
 
 
 @pytest.fixture
+def wait_for_htmx_to_settle():
+    """Wait until everything htmx last swapped in is wired up.
+
+    htmx puts new markup on the page at once, but processes its ``hx-``
+    attributes only when it settles, ``htmx.config.defaultSettleDelay`` (20 ms)
+    later; until then the new elements carry the ``htmx-settling`` class. An
+    expectation on the new markup passes inside that window, and a key pressed
+    there reaches a button htmx has not bound -- so nothing happens -- or a
+    form it has not bound, which the browser then submits itself and reloads
+    the page. A person cannot act within 20 ms; a test can, and fails at random.
+
+    ``click()`` waits for the element to be stable across animation frames,
+    which outlasts the delay; ``fill()``, ``press()`` and ``focus()`` do not.
+    Call this after a swap and before any of those on what it brought in.
+    """
+    def wait(page):
+        page.wait_for_function("!document.querySelector('.htmx-swapping, .htmx-settling')")
+
+    return wait
+
+
+@pytest.fixture
 def assert_page_is_fully_rendered():
     """Assert no template source survived into the page's visible text.
 

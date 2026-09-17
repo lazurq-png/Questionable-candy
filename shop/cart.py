@@ -20,6 +20,11 @@ from .models import Candy
 
 SESSION_KEY = "shoppingcart"
 
+# What the stepper says when nothing more of a candy can go in the cart --
+# whether none is left or the cart already holds every one. Shown in a bubble
+# beside that candy's own stepper, so it needs no name and no explanation.
+OUT_OF_STOCK = "Out of stock"
+
 
 @dataclass
 class Line:
@@ -58,14 +63,13 @@ def add_one(request, candy):
     """Add a single `candy`. Returns (added, message).
 
     Rejected -- not capped -- when the cart already holds every one in stock,
-    because there is nothing smaller to cap an addition of one to.
+    because there is nothing smaller to cap an addition of one to. That covers
+    a candy with no stock at all, where the cart holds every one of nothing.
     """
     stored = _stored(request)
     in_cart = stored.get(str(candy.pk), 0)
-    if candy.stock == 0:
-        return False, f"{candy.name} is out of stock."
     if in_cart >= candy.stock:
-        return False, f"Only {candy.stock} in stock, and they are all in your cart."
+        return False, OUT_OF_STOCK
     stored[str(candy.pk)] = in_cart + 1
     _save(request, stored)
     return True, ""
@@ -95,11 +99,72 @@ def set_quantity(request, candy, quantity):
     return message
 
 
+def set_or_add(request, candy, quantity):
+    """Set a candy's quantity from its stepper. Returns (changed, message).
+
+    Unlike set_quantity(), the candy need not be in the cart yet -- the stepper
+    is the add-to-cart control -- so add_one()'s rules apply as well: nothing
+    goes in once stock is 0, and a quantity above stock is capped and said so.
+    `quantity` is an already-validated whole number of at least 0; 0 takes the
+    candy out.
+
+    The messages here name no candy, and say only what changed: they are shown
+    in a bubble against that candy's own stepper (site.css). A cart line's
+    notices (set_quantity, lines) do name it -- they appear above a list of
+    lines, where the customer cannot otherwise tell which one is meant.
+    """
+    stored = _stored(request)
+    key = str(candy.pk)
+    before = stored.get(key, 0)
+    message = ""
+    if quantity == 0:
+        stored.pop(key, None)
+    elif candy.stock == 0:
+        stored.pop(key, None)
+        message = OUT_OF_STOCK
+    else:
+        if quantity > candy.stock:
+            quantity = candy.stock
+            message = f"Only {candy.stock} in stock"
+        stored[key] = quantity
+    changed = stored.get(key, 0) != before
+    if changed:
+        _save(request, stored)
+    return changed, message
+
+
+def quantities(request):
+    """Each candy's quantity by primary key, for the add-to-cart steppers.
+
+    Reads only and checks nothing, like count(): the stepper shows what the
+    session holds, and the cart page is where it is reconciled with the shop.
+    """
+    return {int(key): value for key, value in _stored(request).items()}
+
+
 def remove(request, pk):
     """Take a candy out of the cart, whether or not it still exists."""
     stored = _stored(request)
     if stored.pop(str(pk), None) is not None:
         _save(request, stored)
+
+
+def remove_one(request, pk):
+    """Take one of a candy out of the cart. Returns whether anything changed.
+
+    Taking the last one removes the entry, so the cart never holds a zero.
+    Works whether or not the candy still exists, like remove().
+    """
+    stored = _stored(request)
+    key = str(pk)
+    if key not in stored:
+        return False
+    if stored[key] > 1:
+        stored[key] -= 1
+    else:
+        del stored[key]
+    _save(request, stored)
+    return True
 
 
 def lines(request):

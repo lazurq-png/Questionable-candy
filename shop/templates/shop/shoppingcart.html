@@ -3,5 +3,16 @@
 {% block main_class %}narrow{% endblock %}
 {% block content %}
 <h1>Your cart</h1>
+{% comment %}
+The detail popup can change a quantity while this page is behind it, so when a
+change comes from inside the popup the cart is fetched again and swapped in.
+Changes made on this page already return the cart themselves, which is what
+the filter excludes -- which must be a boolean: htmx only lets an event
+through a filter that is exactly true, and closest() returns an element.
+hx-disinherit keeps these attributes off the forms inside.
+{% endcomment %}
+<div hx-get="{% url 'shoppingcart' %}" hx-select="#cart" hx-target="#cart" hx-swap="outerHTML"
+     hx-trigger="shoppingcart-changed[!!event.target.closest('#candy-popup')] from:body" hx-disinherit="*">
 {% include "shop/partials/shoppingcart_contents.html" %}
+</div>
 {% endblock %}
