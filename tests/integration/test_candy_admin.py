@@ -69,3 +69,15 @@ def test_the_admin_list_shows_publication_state(admin_client):
     # The column header class, which only list_display renders -- the list
     # filter's links contain "is_published" whether or not the column exists.
     assert b"column-is_published" in response.content
+
+
+def test_the_admin_shows_timestamps_read_only(admin_client):
+    """Shown for reference; set by saving, never typed in."""
+    candy = Candy.objects.create(name="Old Candy", price=Decimal("1.00"), flaw="Old.")
+
+    response = admin_client.get(reverse("admin:shop_candy_change", args=[candy.pk]))
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Created at" in content and "Updated at" in content
+    assert 'name="created_at"' not in content  # displayed, not editable

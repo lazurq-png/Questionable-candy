@@ -30,4 +30,8 @@ class CandyAdmin(admin.ModelAdmin):
     list_display = ("name", "price", "stock", "is_published")
     list_filter = ("is_published",)
     search_fields = ("name", "flaw")
-    fields = ("name", "flaw", "description", "flavor", "price", "stock", "is_published", "image")
+    fields = (
+        "name", "flaw", "description", "flavor", "price", "stock", "is_published", "image",
+        "created_at", "updated_at",
+    )
+    readonly_fields = ("created_at", "updated_at")

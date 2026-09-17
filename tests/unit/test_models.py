@@ -135,3 +135,30 @@ def test_published_excludes_unpublished_candy():
     Candy.objects.create(name="Withdrawn Toffee", price=Decimal("1.00"), flaw="stale", is_published=False)
 
     assert list(Candy.objects.published()) == [shown]
+
+
+# --- Timestamps: docs/data-model.md section 3.3 -------------------------------
+
+@pytest.mark.django_db
+def test_a_new_candy_records_when_it_was_created_and_updated():
+    """Both are set by Django on save (auto_now_add/auto_now), not by callers."""
+    candy = Candy.objects.create(name="Taffy", price=Decimal("1.00"), flaw="sticky")
+
+    candy.refresh_from_db()
+    assert candy.created_at is not None
+    assert candy.updated_at is not None
+
+
+@pytest.mark.django_db
+def test_saving_again_moves_updated_at_but_not_created_at():
+    """created_at is history; updated_at follows every save."""
+    candy = Candy.objects.create(name="Taffy", price=Decimal("1.00"), flaw="sticky")
+    candy.refresh_from_db()
+    created, updated = candy.created_at, candy.updated_at
+
+    candy.price = Decimal("2.00")
+    candy.save()
+    candy.refresh_from_db()
+
+    assert candy.created_at == created
+    assert candy.updated_at > updated

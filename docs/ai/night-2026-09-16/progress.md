@@ -429,3 +429,50 @@ look good; that needs a human looking at the screenshots below.
   above. Not re-reviewed a second time, as the fixes are the reviewer's own
   wording. The reviewer also confirmed ordering belongs on the view, found no
   other unordered customer list, and noted collation (D8).
+
+### T9 — Candy timestamps — complete (derived)
+
+- **Branch:** `night-2026-09-16-t9-candy-timestamps`. Started 2026-09-16 16:17;
+  budget 14,649,641.
+  - **Session gap:** the session sat idle from about 16:20 and resumed at
+    **2026-09-17 09:46**, after the 08:00 deadline and 08:30 ceiling. The
+    human was present then and explicitly asked for this task to be finished
+    and the run reported, which is why it continued past the ceiling.
+- **Source:** `data-model.md` §3.3 gap table, "Missing: … timestamps".
+- **Changed:**
+  - `Candy.created_at` (`auto_now_add`) and `updated_at` (`auto_now`), NOT
+    NULL.
+  - Migrations: `0007` adds them nullable; `0008` makes them NOT NULL
+    (decisions.md D9, which explains why there are two).
+  - The admin shows both read-only.
+  - `data-model.md` gap table updated.
+- **Found during verification:** rows older than `0007` got the migration's run
+  time, not NULL as first documented. The docs, comments and a misleading test
+  were corrected, and `0008` was added (D9).
+- **Tests added:**
+  - Unit: a new candy gets both timestamps; a later save moves `updated_at`
+    and keeps `created_at`.
+  - Integration: the admin change page shows both read-only; a row created on
+    the `0006` schema and migrated forward carries a timestamp at or after the
+    migration time.
+- **Test-isolation repair:** the migration test first used
+  `django_db(transaction=True)` and failed in the full suite with
+  `SynchronousOnlyOperation`. pytest-django schedules transactional tests after
+  the e2e block, while Playwright's loop is alive, and the async opt-out is
+  scoped to `tests/e2e/`. It became an ordinary `django_db` test (PostgreSQL
+  rolls the DDL back). One repair cycle.
+- **Negative control:** without `auto_now` on `updated_at`, 2 unit tests
+  failed; restored.
+- **Verification:**
+  - `python scripts/dev.py test` exit 0 — 185 passed, coverage 97%; `0007`
+    and `0008` applied to the dev database; columns confirmed NOT NULL there.
+  - `python scripts/dev.py lint` exit 0 — 9.80/10, no messages beyond the
+    baseline.
+  - `python scripts/adr_guards.py` exit 0.
+  - `makemigrations --check --dry-run --noinput` exit 0.
+  - `lint:workflows` not run: no workflow changed.
+- **Review:** reviewer approved, after checking `sqlmigrate`, the schema
+  editor source, and both a fresh database and one with `0007` already
+  applied. Two low findings, both fixed:
+  1. `D9` was cited before it was written.
+  2. A docstring credited the database with setting the timestamps.

@@ -96,10 +96,10 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 
 | Aspect          | Target `Candy`                                                            | Current `shop.Candy`                |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| Present         | `name`, `flaw`, `price`, `description`, `is_published`                    | same five                           |
+| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps        | same; rows older than migration `0007` carry its run time in both fields |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
-| Missing         | `slug`, `sugar_content_g`, `allergens`, timestamps                        | —                                   |
+| Missing         | `slug`, `sugar_content_g`, `allergens`                                    | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification; `image` — interim static path, see below |
 | Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null **and** non\-blank |
 

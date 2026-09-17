@@ -28,6 +28,13 @@ class Candy(models.Model):
     # Media storage is undecided (docs/adr/0004-database.md), so images ship as
     # static files and this names one. Blank means the placeholder is shown.
     image = models.CharField(max_length=200, blank=True, default="")
+    # docs/data-model.md section 3.3. Rows that existed before migration 0007
+    # hold the time that migration ran, not when they were really created:
+    # Django's schema editor fills auto_now/auto_now_add columns with "now" for
+    # existing rows, even when the column is nullable
+    # (docs/ai/night-2026-09-16/decisions.md D9).
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     objects = CandyQuerySet.as_manager()
 

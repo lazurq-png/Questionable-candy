@@ -172,3 +172,29 @@ themes.
   - All 22 seeded names are ASCII Title Case, and the tests use names that sort
     the same under any collation, so nothing differs today or between local and
     CI.
+
+## D9. Candy timestamps: rows older than 0007 got its run time, not NULL
+
+- **What was intended:** migration `0007` added `created_at` (`auto_now_add`)
+  and `updated_at` (`auto_now`) as *nullable*, so that rows older than the
+  fields would hold NULL, "unknown", instead of an invented creation date.
+- **What happened:** Django's schema editor fills an `auto_now`/`auto_now_add`
+  column with `timezone.now()` for existing rows even when the column is
+  nullable (`_effective_default`, `django/db/backends/base/schema.py`;
+  `sqlmigrate shop 0007` shows `ADD COLUMN ... DEFAULT '<now>'` then
+  `DROP DEFAULT`). Found by querying the dev database after the gate: all 22
+  rows had one identical `created_at`. The first version's comment, data-model
+  note and one test all said NULL; that test passed only because it set NULL
+  by hand.
+- **Corrected forward, not by editing `0007`:** `0007` was already applied to
+  the development database, and undoing it means dropping columns, which an
+  unattended run may not do. Migration `0008` makes both fields NOT NULL,
+  matching the target model's "auto". It is safe because `0007` left no NULLs,
+  and every ORM path sets both fields on save.
+- **Consequence, stated plainly:** every candy that existed before `0007` has
+  its run time in both fields, not its real creation time. In the dev
+  database that is all 22 seeded candies (one shared timestamp). A test now
+  migrates a pre-`0007` row forward and asserts exactly this.
+- **Rejected — a data migration setting old rows to NULL:** it would need the
+  fields to stay nullable forever to express "unknown", for data nobody reads
+  yet.
