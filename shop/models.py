@@ -1,6 +1,14 @@
 from django.db import models
 
-# Create your models here.
+
+class CandyQuerySet(models.QuerySet):
+    """Query helpers, so every view shares one definition of available."""
+
+    def published(self):
+        """The candy a customer may see or buy (UC-01 step 2, UC-03 ext. 2a)."""
+        return self.filter(is_published=True)
+
+
 class Candy(models.Model):
     name = models.CharField(max_length=200)
     # UC-03 step 2 renders this on the detail page. Not null (docs/data-model.md
@@ -13,6 +21,22 @@ class Candy(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     flaw = models.CharField(max_length=200)
+    # docs/data-model.md section 3.3. Default True so rows that existed before
+    # the field keep appearing in the catalog; hiding them is a per-row decision.
+    is_published = models.BooleanField(default=True)
+    # A path under static/, e.g. "shop/candy/sour-bricks.svg" -- not an upload.
+    # Media storage is undecided (docs/adr/0004-database.md), so images ship as
+    # static files and this names one. Blank means the placeholder is shown.
+    image = models.CharField(max_length=200, blank=True, default="")
+    # docs/data-model.md section 3.3. Rows that existed before migration 0007
+    # hold the time that migration ran, not when they were really created:
+    # Django's schema editor fills auto_now/auto_now_add columns with "now" for
+    # existing rows, even when the column is nullable
+    # (docs/ai/night-2026-09-16/decisions.md D9).
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = CandyQuerySet.as_manager()
 
     class Meta:
         # Django would otherwise pluralise the class name to "candys".

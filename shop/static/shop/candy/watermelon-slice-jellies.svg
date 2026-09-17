@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Watermelon Slice Jellies</title>
+  <rect width="160" height="160" rx="24" fill="#e9f7e6"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M28 70a52 52 0 0 0 104 0z" fill="#2e7d32"/>
+  <path d="M36 70a44 44 0 0 0 88 0z" fill="#ef476f"/>
+  <ellipse cx="62" cy="84" rx="2.5" ry="4" fill="#222"/><ellipse cx="80" cy="96" rx="2.5" ry="4" fill="#222"/><ellipse cx="98" cy="84" rx="2.5" ry="4" fill="#222"/>
+</svg>

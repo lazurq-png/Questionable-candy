@@ -1,32 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ candy.name }} — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
 {% block content %}
+{% comment %}
+The page behind a candy's link, for anyone the popup does not reach: without
+JavaScript, or arriving by the URL itself. The popup shows the same details
+(candy_details.html).
+{% endcomment %}
 <h1>{{ candy.name }}</h1>
 
-<p data-testid="candy-price">${{ candy.price }}</p>
-
-<p data-testid="candy-description">{{ candy.description }}</p>
-
-{% comment %}
-UC-06 step 3: the flaw renders alongside the description, and is labelled as a
-flaw rather than left as unmarked prose -- a disclosure the reader cannot tell
-apart from the sales copy has not disclosed anything.
-
-Before the add-to-cart button, deliberately: UC-06's success guarantee is that
-every detail view shows a flaw, which is worth little if the customer has
-already clicked past it.
-{% endcomment %}
-<section data-testid="candy-flaw">
-  <h2>Known flaw</h2>
-  <p>{{ candy.flaw }}</p>
-</section>
-
-{% include "shop/partials/add_to_cart_button.html" %}
+{% include "shop/partials/candy_details.html" with place="page" %}
 
 {% comment %}
 UC-03 step 3: the customer returns to the catalog or adds to the cart, so both
 ways out are on the page. A plain link rather than history.back() -- the detail
 page is reachable by its own URL, not only by having come from the catalog.
 {% endcomment %}
-<p><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+<p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
 {% endblock %}

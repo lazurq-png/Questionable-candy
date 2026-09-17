@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Ginger Snap Drops</title>
+  <rect width="160" height="160" rx="24" fill="#fbf0dd"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <circle cx="64" cy="94" r="24" fill="#e09f3e"/>
+  <circle cx="100" cy="84" r="24" fill="#c97c1a"/>
+  <path d="M54 86a10 10 0 0 1 10-6M92 76a10 10 0 0 1 10-6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+</svg>

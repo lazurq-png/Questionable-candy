@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Blue Raspberry Ropes</title>
+  <rect width="160" height="160" rx="24" fill="#e2f0fb"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M24 70c30-20 50 30 80 10s30-10 32-12" stroke="#1e88e5" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M24 102c30-20 50 30 80 10s30-10 32-12" stroke="#42a5f5" stroke-width="14" fill="none" stroke-linecap="round"/>
+</svg>

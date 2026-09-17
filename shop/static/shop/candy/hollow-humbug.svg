@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Hollow Humbug</title>
+  <rect width="160" height="160" rx="24" fill="#e3f4ec"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <ellipse cx="80" cy="88" rx="44" ry="38" fill="#fff" stroke="#2e7d5b" stroke-width="3"/>
+  <path d="M52 60c10 20 10 50 0 58M80 50v76M108 60c-10 20-10 50 0 58" stroke="#2e7d5b" stroke-width="7" fill="none"/>
+  <ellipse cx="80" cy="88" rx="14" ry="12" fill="#e3f4ec" stroke="#2e7d5b" stroke-width="2" stroke-dasharray="4 3"/>
+</svg>

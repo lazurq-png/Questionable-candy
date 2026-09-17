@@ -1,0 +1,35 @@
+{% load static %}{% comment %}
+The inside of the header's cart dropdown, swapped into #cart-panel-contents
+(base.html). Read-only: quantities are changed with a candy's stepper, on the
+catalog, in its detail popup or on the checkout that Checkout leads to.
+
+Each line has a small copy of the candy's picture. Its alt text is empty
+because the name beside it already says what it shows.
+
+The close button hands focus back to the toggle, since the button itself is
+about to be hidden.
+{% endcomment %}
+<div class="cart-panel-header">
+  <h2>Cart</h2>
+  <button type="button" class="button-secondary" aria-label="Close cart"
+          x-on:click="cartOpen = false; document.getElementById('shoppingcart-link').focus()"><span aria-hidden="true">&times;</span></button>
+</div>
+<div class="notices">{% for notice in cart_notices %}<p>{{ notice }}</p>{% endfor %}</div>
+{% if lines %}
+  <ul class="cart-panel-lines">
+    {% for line in lines %}
+      <li class="cart-panel-line" data-testid="cart-panel-line">
+        <img src="{% static line.candy.image|default:'shop/candy/placeholder.svg' %}" alt="" width="48" height="48" class="cart-panel-line-image">
+        {% include "shop/partials/candy_link.html" with candy=line.candy link_class="cart-panel-line-name" %}
+        <span class="cart-panel-line-quantity">{{ line.quantity }} &times; ${{ line.candy.price }}</span>
+        <span class="cart-panel-line-total">${{ line.total }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  <div class="cart-panel-footer">
+    <p class="cart-total">Total: <span data-testid="cart-panel-total">${{ total }}</span></p>
+    <a href="{% url 'checkout' %}" class="button" data-testid="checkout-button">Checkout</a>
+  </div>
+{% else %}
+  <p data-testid="cart-panel-empty" class="empty-state">Your cart is empty.</p>
+{% endif %}

@@ -24,7 +24,9 @@ at 0.2.
 | Database      | PostgreSQL                                                 |
 | Tests         | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
 
-No CSS has been written yet. CI runs the ADR guards and the test suite on every
+Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
+and dark themes that follow the system setting and a toggle to override it;
+no CSS framework or build step. CI runs the ADR guards and the test suite on every
 push and pull request to `master` and `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
@@ -44,6 +46,15 @@ python scripts/dev.py run             # http://127.0.0.1:8000/
 
 `dev.py` applies migrations itself before every task, so no separate
 `manage.py migrate` step is needed.
+
+To fill an empty catalog with the shop's candy, pictures included:
+
+```sh
+python manage.py seed_candy
+```
+
+It is safe to run again: it creates only candy that is missing, and on candy
+that exists it fills in empty fields without overwriting anything.
 
 There is no SQLite fallback — a missing `DATABASE_URL` fails at startup by
 design. See [ADR 0004](docs/adr/0004-database.md).
@@ -138,4 +149,3 @@ New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 - Media storage for candy pictures is undecided — [ADR 0004](docs/adr/0004-database.md)
 - No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md)
 - `shop.Candy` is a partial implementation of the target `Candy` entity — [data model §3.3](docs/data-model.md)
-- `tests/e2e/` is empty; Playwright is installed and unblocked, but no browser test has been written yet — [ADR 0006](docs/adr/0006-frontend-htmx-alpine.md)

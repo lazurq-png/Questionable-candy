@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Green Apple Sour Belts</title>
+  <rect width="160" height="160" rx="24" fill="#eef8e0"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <path d="M22 96l116-36" stroke="#7cb518" stroke-width="22" stroke-linecap="round"/>
+  <path d="M22 96l116-36" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-dasharray="1 9" opacity=".35"/>
+</svg>

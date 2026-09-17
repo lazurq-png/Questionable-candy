@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}No longer available — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+UC-03 extension 2a. Rendered for an unpublished and for a deleted candy alike,
+so it names neither: which of the two happened is not the customer's business.
+{% endcomment %}
+<h1>No longer available</h1>
+<p data-testid="candy-unavailable" class="empty-state">This candy is no longer available.</p>
+<p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+{% endblock %}

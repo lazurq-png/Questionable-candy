@@ -96,12 +96,14 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 
 | Aspect          | Target `Candy`                                                            | Current `shop.Candy`                |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| Present         | `name`, `flaw`, `price`, `description`                                    | same four                           |
+| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps        | same; rows older than migration `0007` carry its run time in both fields |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
-| Missing         | `slug`, `sugar_content_g`, `allergens`, `is_published`, timestamps        | —                                   |
-| Extra           | —                                                                         | `flavor` — in no specification      |
+| Missing         | `slug`, `sugar_content_g`, `allergens`                                    | —                                   |
+| Extra           | —                                                                         | `flavor` — in no specification; `image` — interim static path, see below |
 | Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null **and** non\-blank |
+
+**`image` is interim, not part of the target.** It is a `CharField` naming a static file (e.g. `shop/candy/sour-bricks.svg`), blank meaning a placeholder, filled by `manage.py seed_candy`. It exists because candy needed pictures before the media\-storage decision [ADR 0004](adr/0004-database.md) leaves open was made; that decision should replace or keep it.
 
 **UC\-06's "enforced at the model level" intent now holds.** Since 2026\-09\-15 `flaw` carries a `CheckConstraint` (`candy_flaw_is_not_blank` — added by migration `0003` as `candyproduct_flaw_is_not_blank`, renamed by `0004`) requiring at least one non\-whitespace character, so the empty string — which satisfies NOT NULL perfectly well, and which `objects.create()` would happily write — is rejected by the database rather than only by a form. §5's design note is therefore satisfied for `flaw`.
 

@@ -1,6 +1,8 @@
 import pytest
 from django.test import Client
 from django.urls import reverse
+
+from shop.models import Candy
 from tests.factories.candy_factory import CandyFactory
 
 pytestmark = pytest.mark.django_db
@@ -99,6 +101,35 @@ def test_add_to_shoppingcart_rejects_post_without_csrf_token():
 
     assert response.status_code == 403
 
+def test_the_catalog_lists_candy_alphabetically(client):
+    """UC-01: a stable order. Created out of order, so insertion order cannot pass."""
+    for name in ("Zesty Lime Drops", "Anise Twists", "Mint Humbugs"):
+        CandyFactory(name=name)
+
+    content = client.get(reverse("candy_list")).content.decode()
+
+    positions = [content.index(name) for name in ("Anise Twists", "Mint Humbugs", "Zesty Lime Drops")]
+    assert positions == sorted(positions)
+
+
+def test_candy_sharing_a_name_keep_a_stable_order(client):
+    """Names are not unique; the older row comes first, every time.
+
+    Updating `first` moves it behind `second` in PostgreSQL's physical row
+    order, so without the primary-key tie-break the two come out reversed --
+    otherwise insertion order alone would pass this test.
+    """
+    first = CandyFactory(name="Gum", description="first")
+    second = CandyFactory(name="Gum", description="second")
+    Candy.objects.filter(pk=first.pk).update(description="first, edited")
+
+    content = client.get(reverse("candy_list")).content.decode()
+
+    first_link = f'href="{reverse("candy_detail", args=[first.pk])}"'
+    second_link = f'href="{reverse("candy_detail", args=[second.pk])}"'
+    assert content.index(first_link) < content.index(second_link)
+
+
 # --- UC-03: candy detail ---------------------------------------------------
 
 def test_candy_detail_shows_name_description_and_price(client):
@@ -130,19 +161,108 @@ def test_candy_detail_offers_both_ways_out(client):
     assert reverse("add_to_shoppingcart", args=[candy.id]).encode() in response.content
 
 
-def test_candy_detail_404s_for_an_item_that_does_not_exist(client):
-    """UC-03 extension 2a, as far as the current model can express it.
+POPUP = {"HX-Request": "true", "HX-Target": "candy-popup-contents"}
 
-    Publication state is not modelled, so 'unpublished' has no representation
-    and only deletion is testable -- see docs/ai/night-2026-09-15/questions.md
-    Q2. This asserts the status, so whichever way that question is answered has
-    a test to change rather than a gap to discover.
-    """
+
+def test_the_detail_popup_gets_the_details_without_the_page(client):
+    """The popup's own request: the details, the flaw and the stepper, no page around them."""
+    candy = CandyFactory(name="Hollow Humbug", description="Looks solid. Is not.", flaw="Hollow.")
+
+    response = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP)
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "<html" not in content
+    assert 'id="candy-popup-title">Hollow Humbug<' in content
+    assert "Looks solid. Is not." in content
+    assert 'data-testid="candy-flaw"' in content
+    assert f'id="dialog-cart-control-{candy.id}"' in content
+    assert "HX-Target" in response["Vary"]
+
+
+def test_every_candy_link_opens_the_popup(client):
+    """The catalog's link carries both: href for no JavaScript, hx-get for the popup."""
+    candy = CandyFactory(name="Sour Gummy Worms")
+
+    content = client.get(reverse("candy_list")).content.decode()
+
+    url = reverse("candy_detail", args=[candy.id])
+    assert f'href="{url}" class="candy-card-name" hx-get="{url}" hx-target="#candy-popup-contents"' in content
+
+
+def test_the_popup_for_an_unavailable_candy_says_so_with_200(client):
+    """htmx does not swap a 404, so the popup would never open; the wording names nothing."""
+    candy = CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    response = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP)
+
+    assert response.status_code == 200
+    assert b'data-testid="candy-unavailable"' in response.content
+    assert b"Withdrawn Toffee" not in response.content
+
+
+def test_a_deleted_candy_is_no_longer_available(client):
+    """UC-03 extension 2a: say so, and offer the way back to the catalog."""
     candy = CandyFactory()
     url = reverse("candy_detail", args=[candy.id])
     candy.delete()
 
-    assert client.get(url).status_code == 404
+    response = client.get(url)
+
+    assert response.status_code == 404
+    assert b'data-testid="candy-unavailable"' in response.content
+    assert f'href="{reverse("candy_list")}"'.encode() in response.content
+
+
+def test_an_unpublished_candy_is_no_longer_available_and_not_named(client):
+    """The same response as a deleted one, so the page leaks nothing about it."""
+    candy = CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    response = client.get(reverse("candy_detail", args=[candy.id]))
+
+    assert response.status_code == 404
+    assert b'data-testid="candy-unavailable"' in response.content
+    assert f'href="{reverse("candy_list")}"'.encode() in response.content
+    assert b"Withdrawn Toffee" not in response.content
+
+
+def test_catalog_hides_unpublished_candy(client):
+    """UC-01 step 2: the catalog lists published items only."""
+    CandyFactory(name="Sour Gummy Worms")
+    CandyFactory(name="Withdrawn Toffee", is_published=False)
+
+    response = client.get(reverse("candy_list"))
+
+    assert b"Sour Gummy Worms" in response.content
+    assert b"Withdrawn Toffee" not in response.content
+
+
+def test_an_unpublished_candy_cannot_be_added_to_the_cart(client):
+    """Otherwise a stale page or a guessed URL puts it in the cart anyway.
+
+    Refused with 200 and a message rather than 404: htmx does not swap a 4xx
+    response, so a 404 would leave the customer's click doing nothing visible.
+    """
+    candy = CandyFactory(is_published=False)
+
+    response = client.post(reverse("add_to_shoppingcart", args=[candy.id]))
+
+    assert response.status_code == 200
+    assert b"no longer available" in response.content
+    assert client.session.get("shoppingcart", {}) == {}
+
+
+def test_a_deleted_candy_cannot_be_added_to_the_cart(client):
+    """The same refusal for a candy deleted since the page was loaded."""
+    candy = CandyFactory()
+    url = reverse("add_to_shoppingcart", args=[candy.id])
+    candy.delete()
+
+    response = client.post(url)
+
+    assert response.status_code == 200
+    assert b"no longer available" in response.content
+    assert client.session.get("shoppingcart", {}) == {}
 
 
 def test_catalog_links_each_candy_to_its_detail_page(client):

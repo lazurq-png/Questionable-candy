@@ -29,11 +29,11 @@ Chosen option: "Django built-in session-based authentication (SessionMiddleware 
 
 ### Confirmation
 
-**Nothing enforces this decision.** `MIDDLEWARE` in `mysite/settings.py` is Django's stock seven, including `SessionMiddleware`, `AuthenticationMiddleware` and `CsrfViewMiddleware`, but no test or check asserts that, and no custom middleware has been written.
+`MIDDLEWARE` in `mysite/settings.py` is Django's stock seven, including `SessionMiddleware`, `AuthenticationMiddleware` and `CsrfViewMiddleware`. Since 2026-09-16 `tests/unit/test_middleware.py` fails if any of six is missing — `SecurityMiddleware`, `SessionMiddleware`, `CsrfViewMiddleware`, `AuthenticationMiddleware`, `MessageMiddleware`, `XFrameOptionsMiddleware` — or if `SessionMiddleware` stops preceding authentication and messages; until then nothing asserted it. `CommonMiddleware` and the rest of the order are not checked. No custom middleware has been written.
 
 CSRF protection is the one part with coverage: `tests/integration/test_views.py` asserts that a POST without a token is rejected and that the catalog page supplies one, using `enforce_csrf_checks=True` because the default test client bypasses CSRF entirely.
 
-The cart is **not** attached to every request by middleware as this ADR's problem statement anticipated — `shop/views.py` reads and writes `request.session["shoppingcart"]` directly in the view. That is a smaller mechanism than the one described here, and it has been adequate so far; revisit if cart state is needed across many views.
+The cart is **not** attached to every request by middleware as this ADR's problem statement anticipated. `shop/cart.py` reads and writes `request.session["shoppingcart"]`, the cart views call it, and a context processor (`shop.context_processors.shoppingcart`) supplies the item count to every page's header. That is a smaller mechanism than the one described here, and it has been adequate so far; revisit if cart state needs more than the count on every request.
 
 Two cookie settings are enforced rather than assumed: `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` derive from `DEBUG`, so turning `DEBUG` off secures them without anyone having to remember, and `tests/unit/test_settings.py` fails if either is pinned to `False`. That test exists because `manage.py check --deploy` reports these only as warnings and `check` exits 0 on warnings — a validation stage built on it would pass without checking anything.
 

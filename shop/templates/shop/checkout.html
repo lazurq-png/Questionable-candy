@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+UC-05 step 1: the order under review, and where its amounts are changed -- each
+line carries the same stepper as the catalog, so nothing has to be corrected
+somewhere else first. There is no way to pay yet: the health warning, the
+confirmations and payment (UC-05, UC-07, UC-08) come after this page and are
+not built.
+{% endcomment %}
+<h1>Checkout</h1>
+{% comment %}
+A stepper answers with its own bar and nothing else, so the lines and the total
+around it are fetched again on any change to the cart -- from a stepper here,
+or from a candy's detail popup. That reload is a GET and announces nothing, so
+it cannot set itself off again. hx-disinherit keeps these attributes off the
+steppers inside.
+{% endcomment %}
+<div hx-get="{% url 'checkout' %}" hx-select="#checkout" hx-target="#checkout" hx-swap="outerHTML"
+     hx-trigger="shoppingcart-changed from:body" hx-disinherit="*">
+<section id="checkout" data-testid="checkout">
+  <div class="notices">{% for notice in cart_notices %}<p>{{ notice }}</p>{% endfor %}</div>
+  {% if lines %}
+    <ul class="cart-lines">
+      {% for line in lines %}
+        <li data-testid="checkout-line" class="cart-line checkout-line">
+          {% include "shop/partials/candy_link.html" with candy=line.candy link_class="cart-line-name" %}
+          <span class="cart-line-unit">${{ line.candy.price }} each</span>
+          {% include "shop/partials/cart_stepper.html" with candy=line.candy %}
+          <span class="cart-line-total">${{ line.total }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="cart-total">Total: <span data-testid="checkout-total">${{ total }}</span></p>
+  {% else %}
+    <p data-testid="checkout-empty" class="empty-state">Your cart is empty.</p>
+    <p class="page-actions"><a href="{% url 'candy_list' %}">Browse the candy</a></p>
+  {% endif %}
+</section>
+</div>
+{% endblock %}

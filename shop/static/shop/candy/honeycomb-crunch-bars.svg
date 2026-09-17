@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img">
+  <title>Honeycomb Crunch Bars</title>
+  <rect width="160" height="160" rx="24" fill="#fff4d6"/>
+  <ellipse cx="80" cy="132" rx="46" ry="8" fill="#000" opacity=".12"/>
+  <rect x="28" y="62" width="104" height="58" rx="8" fill="#f4a261"/>
+  <path d="M46 78l8-5 8 5v10l-8 5-8-5zM72 78l8-5 8 5v10l-8 5-8-5zM98 78l8-5 8 5v10l-8 5-8-5zM59 98l8-5 8 5v10l-8 5-8-5zM85 98l8-5 8 5v10l-8 5-8-5z" fill="#e9c46a" stroke="#c9832e" stroke-width="2"/>
+</svg>

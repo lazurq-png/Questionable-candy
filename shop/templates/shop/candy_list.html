@@ -1,12 +1,15 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <h1>Candy shop</h1>
 {% if candies %}
-  <ul>
+  <ul class="candy-grid">
     {% for candy in candies %}
-      <li>
-        <a href="{% url 'candy_detail' candy.id %}">{{ candy.name }}</a> — ${{ candy.price }}
-        {% include "shop/partials/add_to_cart_button.html" %}
+      <li class="candy-card">
+        <img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="120" height="120" data-testid="candy-image">
+        {% include "shop/partials/candy_link.html" with link_class="candy-card-name" %}
+        <span class="candy-card-price">${{ candy.price }}</span>
+        {% include "shop/partials/cart_stepper.html" %}
       </li>
     {% endfor %}
   </ul>
@@ -15,6 +18,6 @@
   UC-01 extension 2a: an empty catalog must say so rather than render an
   empty page, which is indistinguishable from a broken one.
   {% endcomment %}
-  <p data-testid="catalog-empty">Nothing available right now. Please check back soon.</p>
+  <p data-testid="catalog-empty" class="empty-state">Nothing available right now. Please check back soon.</p>
 {% endif %}
 {% endblock %}

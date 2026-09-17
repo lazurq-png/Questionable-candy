@@ -1,0 +1,8 @@
+{% comment %}
+A candy's name, linking to its details: in the popup (base.html) when htmx is
+running, on the detail page otherwise. The popup is the same URL fetched with
+hx-target naming the popup, which views.candy_detail recognises.
+
+Used by the catalog, the cart dropdown, the cart page and the checkout, with
+`link_class` for each one's styling.
+{% endcomment %}<a href="{% url 'candy_detail' candy.pk %}" class="{{ link_class }}" hx-get="{% url 'candy_detail' candy.pk %}" hx-target="#candy-popup-contents" hx-swap="innerHTML">{{ candy.name }}</a>

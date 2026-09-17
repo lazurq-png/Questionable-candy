@@ -1,0 +1,25 @@
+{% load static %}{% comment %}
+A candy's details below its name: shared by the detail page and the detail
+popup, which each give it their own heading. `place` says which stepper this
+is (cart_stepper.html).
+
+UC-06 step 3: the flaw renders alongside the description, and is labelled as a
+flaw rather than left as unmarked prose -- a disclosure the reader cannot tell
+apart from the sales copy has not disclosed anything.
+
+Before the add-to-cart control, deliberately: UC-06's success guarantee is that
+every detail view shows a flaw, which is worth little if the customer has
+already clicked past it.
+{% endcomment %}
+<img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="240" height="240" data-testid="candy-image" class="candy-detail-image">
+
+<p data-testid="candy-price" class="candy-price">${{ candy.price }}</p>
+
+<p data-testid="candy-description">{{ candy.description }}</p>
+
+<section data-testid="candy-flaw" class="flaw">
+  <h2>Known flaw</h2>
+  <p>{{ candy.flaw }}</p>
+</section>
+
+{% include "shop/partials/cart_stepper.html" %}
