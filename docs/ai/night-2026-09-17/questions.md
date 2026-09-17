@@ -50,3 +50,26 @@ consequences, a recommendation, and what was done in the meantime.
 - **Recommendation:** (a); look at it on a phone first.
 - **In the meantime:** built as (a) and merged. Changing it touches only
   `account_nav.html` and `site.css`.
+
+## Q4. Three records the run could not correct itself
+
+T9 was given four sentences to fix. These turned up beside them and are outside
+what it was asked to change:
+
+- **`.claude/skills/night-run/SKILL.md` §9.3** says adding a CSS dependency
+  "would fail `adr_guards.py` anyway". It would not: the guards read
+  `requirements.txt`, and a CSS framework arrives through npm or a CDN tag.
+  That sentence is a **rule**, not a premise, and T9's instruction was to leave
+  §9's rules alone. ADR 0008's Confirmation section records the true position.
+- **`.claude/skills/night-run/SKILL.md` §9.6** tells a run to raise the styling
+  ADR as a question because none exists. ADR 0008 is now written (proposed), so
+  the next run should be pointed at it instead — again, a rule to change, not a
+  premise.
+- **`README.md`** still says "Most of what the specification describes —
+  accounts, orders, payment, the health warning and the triple-confirmation
+  gate — is not built yet", and lists `shop` as the only app. After T1-T6 that
+  is false: `accounts` exists, and so do orders, the warning and the
+  confirmations. Payment is still not built.
+- **Recommendation:** correct all three; the README one is the most visible.
+  None was touched, because each is either a rule this task was told not to
+  edit or a file outside its four named sentences.

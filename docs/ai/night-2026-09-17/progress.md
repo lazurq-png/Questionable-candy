@@ -447,3 +447,58 @@ Green. Requested work starts.
   `assert_page_is_fully_rendered`, the clearing-into-dark click now asserts
   `aria-pressed` (with the control above), and `shown()` reuses
   `systemTheme()` instead of repeating it.
+
+### T9 — Correct outdated records, propose ADR 0008 — done
+
+- **Branch:** `night-2026-09-17-t9-records`. Clock at start 21:35; budget
+  14,519,176.
+- **The five sentences changed**, quoted:
+  1. `docs/adr/0001-frontend.md`: "The choice of **Django Templates** stands
+     unchanged, and the hand-written-CSS half of this decision is still
+     unexercised — no CSS exists yet." → now says that half was unexercised
+     **until 2026-09-16**, names `shop/static/shop/site.css` and links ADR
+     0008.
+  2. `docs/adr/0006-frontend-htmx-alpine.md`: "its hand-written-CSS decision
+     stands as still-unexercised — no CSS of any kind exists yet, so nothing
+     about styling is settled here." → "was still unexercised **when this ADR
+     was written**, so nothing about styling **was** settled here. CSS arrived
+     on 2026-09-16; ADR 0008 proposes the conventions it set."
+  3. `docs/adr/0005-testing.md`: "`pytest-playwright` is installed and
+     `tests/e2e/` exists but is still empty" → past tense, plus a new
+     "**Update 2026-09-17 — `tests/e2e/` is no longer empty**" paragraph
+     listing what it now covers and noting CI runs it.
+  4. `.claude/skills/night-run/SKILL.md` §9's premise: "…is still unexercised
+     — no CSS of any kind exists in this project." → a paragraph saying CSS
+     has existed since 2026-09-16, that §9.4's three assertable checks run in
+     `tests/e2e/test_theme.py` (the screenshots are a run's own step), and
+     that what remains unlooked-at is how the pages appear. **§9.1-§9.6's
+     rules are untouched** (the reviewer confirmed byte-identical).
+  5. Not on the list, changed for coherence with 3: `docs/adr/0005-testing.md`
+     "There **is** a concrete first case waiting for it" → "There **was**".
+- **Added:** `docs/adr/0008-hand-written-css-themes.md`, status **proposed**,
+  following `0000-adr-template.md`; and a line for it in README's ADR index.
+- **Proof:** `grep -rn "no CSS exists yet\|no CSS of any kind exists\|exists but
+  is still empty" docs/ .claude/` matches only the run records that quote them
+  (night-2026-09-16 `questions.md`, this run's `plan.md`).
+  `python scripts/adr_guards.py` exit 0. `python scripts/dev.py lint` exit 0,
+  9.92/10, unchanged. `python scripts/dev.py test` exit 0, **407 passed**
+  (documentation only; nothing could move it). Drift 0.
+- **Review:** **request changes**, then fixed. It checked every claim against
+  the code and found two the ADR had invented, which is the very fault this
+  task exists to remove:
+  1. Medium: the ADR said the CDN scripts are "pinned with integrity hashes".
+     They are not — that is T10a, unbuilt. Rewritten to say they were pinned
+     by version alone when written. **T10a must correct this clause and ADR
+     0006's equivalent line once SRI lands.**
+  2. Medium: it said `adr_guards.py` would fail on a Tailwind dependency. It
+     would not; the guards read `requirements.txt` only. Rewritten, and it now
+     agrees with the ADR's own Confirmation section.
+  3. Medium: the README's ADR index did not list ADR 0008. Added.
+  4. Low: no `progress.md` entry yet, and the fifth (tense) edit unrecorded.
+     This entry.
+  5. Low: "1000-line stylesheet" — it is 1320. Now "1300-line".
+  6. Low: `templates/500.html` repeats the stylesheet link and the inline theme
+     script, so "one stylesheet, loaded from base.html" was incomplete. Said
+     so, with why.
+  7. Low: §9.4 has four checks, only three of them assertions. Corrected.
+  Its out-of-scope observations became questions.md Q4.
