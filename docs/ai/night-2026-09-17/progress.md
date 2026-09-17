@@ -479,7 +479,7 @@ Green. Requested work starts.
   following `0000-adr-template.md`; and a line for it in README's ADR index.
 - **Proof:** `grep -rn "no CSS exists yet\|no CSS of any kind exists\|exists but
   is still empty" docs/ .claude/` matches only the run records that quote them
-  (night-2026-09-16 `questions.md`, this run's `plan.md`).
+  (night-2026-09-16 `questions.md`, this run's `plan.md`, and this entry).
   `python scripts/adr_guards.py` exit 0. `python scripts/dev.py lint` exit 0,
   9.92/10, unchanged. `python scripts/dev.py test` exit 0, **407 passed**
   (documentation only; nothing could move it). Drift 0.
@@ -502,3 +502,57 @@ Green. Requested work starts.
      so, with why.
   7. Low: §9.4 has four checks, only three of them assertions. Corrected.
   Its out-of-scope observations became questions.md Q4.
+
+### T10a — Subresource integrity for the CDN scripts — done
+
+- **Branch:** `night-2026-09-17-t10a-sri`. Clock at start 21:53; budget
+  14,480,359.
+- **The granted network access, used exactly as granted:** two GETs, one per
+  script, to the unpkg URLs already in `templates/base.html`, following their
+  redirects (D17 has the URLs, sizes and hashes). Nothing else was fetched and
+  nothing downloaded was committed.
+- **Changed:** both `<script>` tags in `base.html` now name one exact file and
+  carry `integrity="sha384-…" crossorigin="anonymous"`; htmx's URL is the file
+  its package URL redirects to. New `tests/integration/test_script_integrity.py`
+  (3) and one e2e check that htmx and Alpine actually load.
+- **Also:** the two record nits the T9 reviewer left and T9's own polish script
+  did not reach before its commit (the grep parenthetical in T9's entry, and
+  Q4's missing "In the meantime" label).
+- **Verification actually run:**
+  - T10a's tests plus the catalog e2e suite: 12 passed.
+  - Negative controls, each failed as it should, then restored:
+    - htmx's hash altered by one character → the browser refused the script and
+      the e2e check failed;
+    - Alpine's `integrity` removed → the markup test failed;
+    - htmx's URL put back to the bare package → the one-file test failed.
+  - `python scripts/dev.py test`: exit 0, **411 passed**, coverage 99%.
+  - `python scripts/dev.py lint`: exit 0, 9.92/10, no new messages beyond
+    D1/D6/D13 (one mixed-line-ending fix).
+  - `python scripts/adr_guards.py`: exit 0. `makemigrations --check`: exit 0.
+- **Review:** approved, with five Low findings, all fixed:
+  1. the entry said "Full gate: below" with nothing below -- the numbers above
+     replace it;
+  2. Q5 missed a third stale paragraph (ADR 0006's Confirmation section) --
+     added;
+  3. T9's entry told T10a to correct the ADRs; that is superseded by the
+     plan's T9-only grant, and the record now says so;
+  4. the new browser test did not call `assert_page_is_fully_rendered`,
+     although this change added a comment block to `base.html`'s head -- it
+     does now;
+  5. the script-tag guard only matched a double-quoted `src`, so a
+     single-quoted third script would have slipped past "exactly two". It now
+     matches either quote style: with Alpine's tag rewritten single-quoted,
+     all three tests still pass, and removing its `integrity` then fails one.
+- **A mistake worth recording:** cleaning up after a control, I restored
+  `templates/base.html` with `git checkout`, which restores from the last
+  commit -- so it silently discarded T10a's own tag change. Caught by reading
+  the file straight afterwards, and restored from the copy taken before the
+  controls. The other controls used `cp` from a backup, which is what this one
+  should have done. Nothing outside this task's own uncommitted work was
+  touched.
+- **Not fixed here:** ADR 0006 and ADR 0008 still say the scripts have no
+  integrity hash. T9's entry above says "T10a must correct this clause and ADR
+  0006's equivalent line once SRI lands" -- that was the T9 reviewer's
+  instruction, and it is **superseded by the plan**, which grants editing a
+  decision record to T9 alone. So the correction moved to questions.md Q5,
+  with the exact wording to use, rather than being done or dropped.

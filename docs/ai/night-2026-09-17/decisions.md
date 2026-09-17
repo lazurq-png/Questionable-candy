@@ -313,3 +313,28 @@ third control to see or press.
   only -- a choice that could not be stored is gone on the next load, and one
   that could not be cleared comes back on it. The comment in `theme.js` now
   says both.
+
+## D17. T10a: the scripts are pinned to a file and a hash, not to a package
+
+The granted exception allowed exactly two GETs. Both were made, once each, from
+Python (`urllib`), and nothing fetched was committed:
+
+| URL requested | Resolved to | Bytes | sha384 |
+| ------------- | ----------- | ----- | ------ |
+| `unpkg.com/htmx.org@2.0.3` | `…/htmx.org@2.0.3/dist/htmx.min.js` | 50,387 | `0895/pl2…MRzHq` |
+| `unpkg.com/alpinejs@3.14.1/dist/cdn.min.js` | itself | 44,659 | `l8f0VcPi…T5Fh` |
+
+- **The htmx tag now names the resolved file**, not the package. A bare package
+  URL is a redirect, and unpkg could resolve it to a different file later,
+  which the hash would then refuse -- the site would lose htmx rather than
+  gain safety. A test asserts each `src` ends in `.js`.
+- **`crossorigin="anonymous"`** is required for the integrity check on a
+  cross-origin script. unpkg answers `Access-Control-Allow-Origin: *`, checked
+  when fetching.
+- **What this does not do:** it does not keep the file available (unpkg down is
+  still htmx gone), and it does not tell anyone when a version is outdated.
+  Changing a version means fetching that file and hashing it, which is a task
+  with a network grant, not a routine edit.
+- **Negative controls:** a wrong hash makes the browser refuse the script, and
+  the e2e check for it fails; a tag without `integrity` fails the markup test;
+  a bare package URL fails the one-file test.

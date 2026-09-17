@@ -71,5 +71,35 @@ what it was asked to change:
   is false: `accounts` exists, and so do orders, the warning and the
   confirmations. Payment is still not built.
 - **Recommendation:** correct all three; the README one is the most visible.
-  None was touched, because each is either a rule this task was told not to
-  edit or a file outside its four named sentences.
+- **In the meantime:** none was corrected. The two `SKILL.md` items are rules
+  T9 was told to leave alone, and the README's stale Status paragraph is not
+  one of T9's four sentences -- T9 edited README only to add ADR 0008 to its
+  index.
+
+## Q5. Two records still say the scripts have no integrity hash
+
+T10a added them, but correcting a decision record was granted to T9 only, so
+these were left alone:
+
+- `docs/adr/0006-frontend-htmx-alpine.md:51` — "Bad, because CDN script tags
+  are an unpinned runtime dependency on unpkg with no integrity hash and no
+  offline story". The no-integrity-hash half is now false; the rest still
+  holds.
+- `docs/adr/0008-hand-written-css-themes.md`, under "Adopt a classless CSS
+  framework from a CDN" — "they were pinned by version in the URL alone when
+  this was written, with no integrity hash". True as written, and dated, but it
+  reads as the current state.
+- `docs/adr/0006-frontend-htmx-alpine.md`, Confirmation section — "Nothing
+  pins the htmx or Alpine versions beyond the literal URLs in `base.html`; a
+  CDN outage or a deleted version breaks the page at runtime with no
+  build-time signal." The first clause is now false: each script is pinned to
+  one file and its sha384. The outage half still holds. That section also lists
+  what enforces the decision, and does not yet mention
+  `tests/integration/test_script_integrity.py`.
+- **Recommendation:** amend all three when ADR 0008 is accepted or rejected,
+  since
+  that decision touches the same paragraph. The exact wording: htmx and Alpine
+  are pinned to one file each with a sha384 integrity hash (2026-09-17); what
+  remains unsolved is availability and staleness.
+- **In the meantime:** nothing edited; `decisions.md` D17 and this entry are
+  the record.
