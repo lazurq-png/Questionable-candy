@@ -359,3 +359,14 @@ In addition to §7:
 - `findings.md` findings that were logged but not built, and why.
 
 ## Discretionary (added by the run)
+
+The exploration phase's survey is `findings.md`; the tasks it produced, in the
+order they were built:
+
+### T11 — The survey itself (`findings.md`)
+
+### T12 — F1: customer-specific pages must not be cached
+Acceptance: `Cache-Control` contains `no-store` on the cart, cart panel,
+checkout, warning, confirmation, receipt and allergies pages; a control
+failing without the decorator.
+

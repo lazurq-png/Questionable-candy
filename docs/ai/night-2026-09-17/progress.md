@@ -584,3 +584,22 @@ Green. Requested work starts.
   migrations sitting in the measured denominator. The reviewer reproduced the
   gate's behaviour independently, including that a filtered run, an empty
   suite and a partial suite all fail closed.
+
+### T11 — Exploration survey — done
+
+- **Branch:** `night-2026-09-17-t11-survey`. Clock at start 22:43; budget
+  14,439,941. All ten requested tasks were complete, verified, reviewed,
+  merged and pushed; the run branch was green and clean; well before 07:15.
+- **Produced:** `findings.md` — five findings, ranked, each with evidence, the
+  proof a fix would need, and a size; plus what was checked and found sound.
+- **Probes run** (throwaway tests, deleted afterwards):
+  - query counts per page: catalog 1 at 12 and at 24 candies, detail 1, cart 2,
+    checkout 2, warning 3, admin order list 5 — no N+1 anywhere;
+  - whether a candy can end up with a blank slug: it cannot, because the T7
+    check constraint rejects the empty string;
+  - `Cache-Control` on every customer-specific page: absent except where
+    Django or T3 added `never_cache` (**F1**);
+  - how form errors render: Django's own fields carry `aria-invalid` and
+    `aria-describedby`, but the confirmation page's hand-written controls do
+    not (**F2**).
+- **The plan's discretionary section** now lists the tasks the survey produced.
