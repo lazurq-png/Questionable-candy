@@ -72,15 +72,33 @@ class ConfirmOrderForm(forms.Form):
     required. `total` is the total the page showed.
     """
 
+    # Rendered as widgets rather than written out in the template, so Django
+    # marks a refused control aria-invalid and points aria-describedby at its
+    # own error message. Written by hand they carried neither, on the one page
+    # where refusals are routine by design (findings.md F2). The Alpine
+    # bindings ride along as widget attributes.
     checked_order = forms.BooleanField(
         error_messages={"required": "Tick the box to confirm you have checked your order."},
+        widget=forms.CheckboxInput(attrs={"x-model": "checked"}),
     )
     typed_total = forms.CharField(
         error_messages={"required": "Type the total to confirm the amount."},
+        widget=forms.TextInput(attrs={
+            "inputmode": "decimal", "autocomplete": "off",
+            "x-model": "typed", "x-bind:disabled": "!checked",
+        }),
     )
     place_order = forms.CharField(
         error_messages={"required": "Press Place my order to place it."},
     )
+
+    # Rendering through the form would otherwise add `required` to both
+    # controls, which the hand-written inputs never had. The browser would then
+    # refuse an empty control with a bubble of its own before the server could
+    # answer -- changing what a customer without JavaScript sees, and putting
+    # the refusals this page is built around out of reach. The three controls
+    # are checked here, and the page says so in words.
+    use_required_attribute = False
 
     def __init__(self, *args, total, **kwargs):
         super().__init__(*args, **kwargs)

@@ -631,3 +631,52 @@ Green. Requested work starts.
   reasoning is corrected, and the residual it names — the header shows the
   signed-in customer's username on those pages — is now **findings.md F6**,
   ranked last because closing it trades caching on the main pages.
+
+### T13 — F2: the confirmation page's controls are linked to their errors — done
+
+- **Branch:** `night-2026-09-17-t13-confirm-a11y`. Clock at start 23:07;
+  budget 14,405,890.
+- **Changed:** `ConfirmOrderForm` renders the tick and the typed total as
+  widgets (carrying the Alpine bindings as widget attributes) instead of the
+  template writing raw `<input>`s, so Django marks a refused control
+  `aria-invalid` and points `aria-describedby` at its own error list. The
+  template uses the form's own ids for its labels. The form sets
+  `use_required_attribute = False`, and the Place my order button points at
+  its message only when it has one -- both from the review, below.
+- **Verification actually run:**
+  - `tests/integration/test_checkout_confirm.py`: 23 passed, including four new
+    tests — the aria attributes on each refused control; that the typed value,
+    the ticked state, the Alpine bindings and `inputmode` survive; that neither
+    control gets a browser `required`; and that the button points at its
+    message only when it has one.
+  - Controls, each failed as it should, then restored: the tick written by hand
+    again → 2 failed (the aria test and the ticked-state one); the `required`
+    suppression removed → 1 failed; the button's conditional attribute removed
+    → 1 failed.
+  - `tests/e2e/test_checkout_confirm.py` and `test_orders.py`: 5 passed, so the
+    unlock order, the no-JavaScript path and the whole checkout still work.
+  - `python scripts/dev.py test`: exit 0, **424 passed**, coverage 98.80%.
+  - `python scripts/dev.py lint`: exit 0, no new messages (one trailing-newline
+    fix). `adr_guards` exit 0. Drift 0.
+- **Interrupted:** at about 23:15 the session hit its own rate limit (reset
+  01:10 Europe/Stockholm) while the `reviewer` was running; the agent was
+  terminated after four tool calls and delivered no report. **Nothing was
+  committed**, because an unattended commit needs that review (night-run §2
+  step 3), and the work sat uncommitted on its branch until the session could
+  run the review again at 01:19. Three hourly loop firings arrived during the
+  gap; each is the same session resuming this run.
+- **Review:** request changes, then approved on re-review. Three Low findings,
+  all acted on:
+  1. rendering through the form also added `required`, which a browser would
+     act on before the server could -- changing what a customer without
+     JavaScript sees, and putting the very refusals this task is about out of
+     reach. Fixed with `use_required_attribute = False`, so the markup is what
+     the hand-written inputs produced plus the aria pair;
+  2. `assert "checked" in tick` could not fail ("checked" is also in `name=`
+     and `x-model=`). It now asserts the attribute;
+  3. the Place my order button is not a form field, so its error list had
+     nothing pointing at it. It now does, conditionally, so the attribute can
+     never name an id that is not on the page.
+  The re-review's own two Low items are done: the button assertion is anchored
+  to the button's tag rather than the whole page, and this entry was refreshed
+  to match the diff it describes.

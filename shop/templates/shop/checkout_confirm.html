@@ -17,6 +17,13 @@ button, which Enter would press -- is a hidden, disabled one, and HTML submits
 nothing through a disabled default button. No script involved, so it holds
 before Alpine loads and without JavaScript too.
 
+The two inputs come from the form rather than being written out here, so a
+refused control is marked aria-invalid and points at its own error message
+(findings.md F2). The form sets use_required_attribute = False, so rendering
+them this way does not also hand the browser a `required` it never had: the
+refusals stay the server's, worded, and reachable. The Place my order button
+is not a form field; it points at its message only when there is one.
+
 `shown` posts back a fingerprint of the order this page showed; the view
 refuses a confirmation of any other. `token` names this showing of the page, so
 submitting it twice places one order (Order.objects.place).
@@ -55,21 +62,20 @@ decimal comma allowed) only to decide when to unlock the button.
   <ol class="confirm-steps">
     <li>
       {{ form.checked_order.errors }}
-      <label class="confirm-check" for="confirm-checked">
-        <input type="checkbox" id="confirm-checked" name="checked_order" x-model="checked"{% if form.checked_order.value %} checked{% endif %}>
+      <label class="confirm-check" for="{{ form.checked_order.id_for_label }}">
+        {{ form.checked_order }}
         I have checked my order: {{ items }} item{{ items|pluralize }}, ${{ total }}
       </label>
     </li>
     <li>
       {{ form.typed_total.errors }}
-      <label for="confirm-typed-total">Type the total, ${{ total }}, to confirm the amount</label>
-      <input type="text" id="confirm-typed-total" name="typed_total" inputmode="decimal" autocomplete="off"
-             value="{{ form.typed_total.value|default_if_none:'' }}"
-             x-model="typed" x-bind:disabled="!checked">
+      <label for="{{ form.typed_total.id_for_label }}">Type the total, ${{ total }}, to confirm the amount</label>
+      {{ form.typed_total }}
     </li>
     <li>
       {{ form.place_order.errors }}
       <button type="submit" name="place_order" value="yes" data-testid="place-order"
+              {% if form.place_order.errors %}aria-invalid="true" aria-describedby="id_place_order_error"{% endif %}
               x-bind:disabled="!(checked && matches())">Place my order</button>
     </li>
   </ol>

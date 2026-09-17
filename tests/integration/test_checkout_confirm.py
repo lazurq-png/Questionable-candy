@@ -192,3 +192,77 @@ def test_a_stock_cap_while_confirming_returns_to_the_warning_with_the_reason(ack
     assert response["Location"] == reverse("checkout_warning")
     warning = acknowledged.get(response["Location"]).content.decode()
     assert "Only 1 of Toffee left in stock, so the quantity is 1." in warning
+
+
+@pytest.mark.parametrize("field, error_id", [
+    ("checked_order", "id_checked_order_error"),
+    ("typed_total", "id_typed_total_error"),
+], ids=["the tick", "the typed total"])
+def test_a_refused_control_is_marked_invalid_and_points_at_its_own_message(acknowledged, field, error_id):
+    """Otherwise a screen reader calls the field valid and never reads the reason.
+
+    This page refuses routinely, by design -- three controls, each required --
+    and it is the page where money is about to be spent (findings.md F2).
+    """
+    response = confirm(acknowledged, checked_order=None, typed_total="nonsense")
+
+    content = response.content.decode()
+    control = [line for line in content.splitlines() if f'name="{field}"' in line]
+    assert control, content
+    assert 'aria-invalid="true"' in control[0], control[0]
+    assert f'aria-describedby="{error_id}"' in control[0], control[0]
+    assert f'<ul class="errorlist" id="{error_id}">' in content
+
+
+def test_the_controls_keep_what_was_typed_and_the_alpine_bindings(acknowledged):
+    """Rendering through the form must not lose the page's behaviour."""
+    response = confirm(acknowledged, typed_total="11.01")
+
+    content = response.content.decode()
+    typed_lines = [line for line in content.splitlines() if 'name="typed_total"' in line]
+    assert typed_lines, content
+    typed = typed_lines[0]
+    assert 'value="11.01"' in typed
+    assert 'x-model="typed"' in typed
+    assert 'x-bind:disabled="!checked"' in typed
+    assert 'inputmode="decimal"' in typed
+    tick = [line for line in content.splitlines() if 'name="checked_order"' in line]
+    assert tick, content
+    assert 'x-model="checked"' in tick[0]
+    # The attribute, not the substring: "checked" is also in name= and x-model=.
+    assert tick[0].rstrip().endswith("checked>"), tick[0]
+
+
+def test_the_controls_are_not_given_a_browser_required_attribute(acknowledged):
+    """The refusals stay the server's, worded, and reachable without JavaScript.
+
+    Rendering through the form would otherwise add `required`, and a browser
+    would answer an empty control with a bubble of its own before the server
+    ever saw it -- including on the no-JavaScript path, where the button is not
+    disabled.
+    """
+    content = acknowledged.get(CONFIRM).content.decode()
+
+    for field in ("checked_order", "typed_total"):
+        control = [line for line in content.splitlines() if f'name="{field}"' in line]
+        assert control, content
+        assert " required" not in control[0], control[0]
+
+
+def place_order_button(page):
+    """The Place my order button's own tag, which spans several lines."""
+    start = page.index('<button type="submit" name="place_order"')
+    return page[start:page.index(">", start) + 1]
+
+
+def test_the_place_order_button_points_at_its_message_only_when_there_is_one(acknowledged):
+    """An aria-describedby naming an id that is not on the page is worse than none."""
+    without = acknowledged.get(CONFIRM).content.decode()
+    assert "aria-describedby" not in place_order_button(without)
+
+    refused = confirm(acknowledged, place_order=None).content.decode()
+
+    button = place_order_button(refused)
+    assert 'aria-describedby="id_place_order_error"' in button, button
+    assert 'aria-invalid="true"' in button, button
+    assert '<ul class="errorlist" id="id_place_order_error">' in refused
