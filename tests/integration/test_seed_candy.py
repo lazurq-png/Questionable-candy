@@ -59,3 +59,36 @@ def test_seeding_fills_only_the_empty_fields_of_an_existing_candy():
     assert candy.price == Decimal("1.23")  # was set, kept
     assert candy.stock == 7
     assert candy.flaw == "An existing flaw."
+
+
+# --- Sugar and allergens (night-2026-09-17 plan T2) -------------------------
+
+def test_every_seeded_candy_has_known_sugar_and_valid_allergens():
+    """The UC-07 warning names candies with unknown sugar; seeded ones have none."""
+    seed()
+    for candy in Candy.objects.all():
+        assert candy.sugar_content_g is not None, candy.name
+        candy.clean_fields()  # sugar in range, allergens from the vocabulary
+
+
+def test_seeding_fills_empty_sugar_and_allergens_on_an_existing_candy():
+    """A candy created before these fields gets the seed's values."""
+    Candy.objects.create(name="Salted Caramel Chews", price=Decimal("1.00"), flaw="Sticky.")
+
+    seed()
+
+    candy = Candy.objects.get(name="Salted Caramel Chews")
+    assert candy.sugar_content_g == Decimal("48.0")
+    assert candy.allergens == ["milk"]
+
+
+def test_seeding_keeps_a_sugar_content_of_zero_and_edited_allergens():
+    """0 g is a real value, not an empty one, so a re-seed must not replace it."""
+    seed()
+    Candy.objects.filter(name="Salted Caramel Chews").update(sugar_content_g=Decimal("0"), allergens=["eggs"])
+
+    seed()
+
+    candy = Candy.objects.get(name="Salted Caramel Chews")
+    assert candy.sugar_content_g == Decimal("0.0")
+    assert candy.allergens == ["eggs"]

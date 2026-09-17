@@ -81,3 +81,42 @@ def test_the_admin_shows_timestamps_read_only(admin_client):
     content = response.content.decode()
     assert "Created at" in content and "Updated at" in content
     assert 'name="created_at"' not in content  # displayed, not editable
+
+
+# --- Sugar and allergens (night-2026-09-17 plan T2) -------------------------
+
+def test_an_administrator_records_sugar_and_ticks_allergens(admin_client):
+    """Sugar is typed and allergens ticked, and both are saved."""
+    response = admin_client.post(
+        reverse("admin:shop_candy_add"),
+        candy_form(sugar_content_g="48.0", allergens=["soy", "milk"]),
+    )
+
+    assert response.status_code == 302
+    candy = Candy.objects.get(name="Sour Bricks")
+    assert candy.sugar_content_g == Decimal("48.0")
+    assert sorted(candy.allergens) == ["milk", "soy"]
+
+
+def test_the_admin_offers_a_checkbox_per_allergen(admin_client):
+    """One checkbox for each of the 14, not a free-text box."""
+    response = admin_client.get(reverse("admin:shop_candy_add"))
+
+    content = response.content.decode()
+    assert content.count('type="checkbox" name="allergens"') == 14
+
+
+def test_the_admin_rejects_an_allergen_outside_the_vocabulary(admin_client):
+    """A crafted post with an unknown allergen is not saved."""
+    response = admin_client.post(reverse("admin:shop_candy_add"), candy_form(allergens=["chocolate"]))
+
+    assert response.status_code == 200
+    assert not Candy.objects.exists()
+
+
+def test_the_admin_rejects_sugar_above_100_per_100g(admin_client):
+    """The form holds sugar to 0-100 before the database has to."""
+    response = admin_client.post(reverse("admin:shop_candy_add"), candy_form(sugar_content_g="120"))
+
+    assert response.status_code == 200
+    assert not Candy.objects.exists()

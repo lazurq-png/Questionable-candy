@@ -85,3 +85,53 @@ Green. Requested work starts.
 - **Remaining, known:** with JavaScript on, a stale CSRF token on an htmx post
   still does nothing visible, because htmx does not swap a 403. That predates
   this task and is out of T1's scope; see questions.md Q1.
+
+### T2 — Health data on Candy — done
+
+- **Branch:** `night-2026-09-17-t2-health-data`. Clock at start 16:13; budget
+  14,911,182.
+- **Changed:**
+  - `shop/allergens.py`: the EU 14 as `(key, label)` pairs, with `names()`
+    (decisions.md D3).
+  - `Candy.sugar_content_g`: `Decimal(4,1)`, null means unknown, validators
+    0-100, and the check constraint `candy_sugar_per_100g_in_range`.
+  - `Candy.allergens`: `ArrayField` of vocabulary keys, default `[]`.
+  - `User.allergies`: choices from the same vocabulary.
+  - Migrations: `shop 0009_candy_health_data` (two ADD COLUMNs and one ADD
+    CONSTRAINT, all additive) and `accounts 0002_user_allergies_vocabulary`
+    (`sqlmigrate`: no-op).
+  - Admin: both fields on the Candy form, with allergens as 14 checkboxes;
+    `UserAdminChangeForm` with allergies as 14 checkboxes.
+  - `seed_candy`: sugar and allergens for all 22 candies. The emptiness check
+    is now `is_empty()` (None, "" or []), so 0 g sugar is kept, not refilled.
+  - Detail partial (page and popup): "Sugar and allergens" after the flaw,
+    showing "N g per 100 g" or "Unknown", and allergen names or "None listed".
+    Styled in `site.css`.
+  - `docs/data-model.md` §3.1 and §3.3 updated: `sugar_content_g` and
+    `allergens` are no longer "Missing".
+  - Dev database: migrated by `dev.py`, then `seed_candy` run twice (22
+    unchanged, 22 filled; then all unchanged). 0 candies with null sugar, 8
+    with allergens.
+- **Verification actually run:**
+  - T2's tests: 77 passed. With a fresh database (`--create-db`), the health,
+    view and detail tests: 51 passed.
+  - Negative controls, each failed as it should, then restored:
+    - seed emptiness back to falsiness → 1 seed test failed;
+    - the `AddConstraint` removed from migration 0009 (fresh test database) →
+      2 database tests failed;
+    - choices removed from `Candy.allergens` → 1 failed;
+    - choices removed from `User.allergies` → 1 failed;
+    - the health section removed from the template → 4 failed (3
+      integration, 1 e2e).
+  - Two earlier controls were invalid and were redone: one broke the
+    migration's syntax, and one left the section's text in place.
+  - `python scripts/dev.py test`: exit 0, **272 passed**, coverage 98%.
+  - `python scripts/dev.py lint`: exit 0, **9.88/10**. Against the baseline:
+    one message fixed (the final newline in `shop/models.py`); still only
+    T1's R0801 extra. Along the way, a first run showed mixed line endings
+    from heredoc appends and 17 missing docstrings; all fixed.
+  - `python scripts/adr_guards.py`: exit 0. `makemigrations --check`: exit 0.
+- **Review:** `reviewer` approved with one Low finding: the user admin silently
+  drops legacy free-text allergies. Not fixed in code, for the reason in
+  decisions.md D4; raised as questions.md Q2. The comment nit on `KEY_LENGTH`
+  was fixed.

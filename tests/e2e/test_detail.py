@@ -206,3 +206,15 @@ def test_an_unpublished_candy_is_hidden_and_says_it_is_unavailable(
 
     page.get_by_test_id("back-to-catalog").click()
     expect(page.get_by_role("heading", name="Candy shop")).to_be_visible()
+
+
+def test_the_popup_shows_sugar_and_allergens(live_server, page, assert_page_is_fully_rendered):
+    """Sugar per 100 g and the allergens' names, after the flaw (night-2026-09-17 T2)."""
+    CandyFactory(name="Hollow Humbug", sugar_content_g=Decimal("97.0"), allergens=["milk", "gluten"])
+
+    page.goto(live_server.url)
+    popup = open_popup(page, "Hollow Humbug")
+
+    expect(popup.get_by_test_id("candy-sugar")).to_have_text("97.0 g per 100 g")
+    expect(popup.get_by_test_id("candy-allergens")).to_have_text("Cereals containing gluten, Milk")
+    assert_page_is_fully_rendered(page)

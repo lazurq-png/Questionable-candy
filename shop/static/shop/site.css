@@ -445,6 +445,33 @@ input[type="number"] {
   font-weight: 600;
 }
 
+/* Sugar and allergens: two label/value rows, headed like the flaw box. */
+.candy-health {
+  margin: 1.5rem 0;
+}
+
+.candy-health h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.candy-health dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem var(--space);
+  margin: 0;
+}
+
+.candy-health dt {
+  font-weight: 600;
+}
+
+.candy-health dd {
+  margin: 0;
+}
+
 .page-actions {
   margin-top: 1.5rem;
 }

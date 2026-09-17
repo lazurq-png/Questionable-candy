@@ -317,3 +317,35 @@ def test_admin_user_page_lets_an_administrator_edit_allergies(admin_client, djan
 
     assert response.status_code == 200
     assert b'name="allergies"' in response.content
+
+
+# --- Sugar and allergens on the detail view (night-2026-09-17 plan T2) ------
+
+def test_candy_detail_shows_sugar_per_100g_and_allergen_names(client):
+    """Sugar per 100 g, and allergens by name in vocabulary order."""
+    candy = CandyFactory(sugar_content_g="48.0", allergens=["soy", "milk"])
+
+    content = client.get(reverse("candy_detail", args=[candy.id])).content.decode()
+
+    assert "48.0 g per 100 g" in content
+    assert "Soybeans, Milk" in content
+
+
+def test_candy_detail_says_unknown_sugar_and_no_listed_allergens(client):
+    """Unknown is not zero, and an empty list is not a promise of none."""
+    candy = CandyFactory(sugar_content_g=None, allergens=[])
+
+    content = client.get(reverse("candy_detail", args=[candy.id])).content.decode()
+
+    assert '<dd data-testid="candy-sugar">Unknown</dd>' in content
+    assert '<dd data-testid="candy-allergens">None listed</dd>' in content
+
+
+def test_the_detail_popup_shows_sugar_and_allergens_too(client):
+    """The popup shares the partial; 0 g must read as a value, not as unknown."""
+    candy = CandyFactory(sugar_content_g="0.0", allergens=["sulphites"])
+
+    content = client.get(reverse("candy_detail", args=[candy.id]), headers=POPUP).content.decode()
+
+    assert "0.0 g per 100 g" in content  # zero sugar is a value, not "Unknown"
+    assert "Sulphur dioxide and sulphites" in content

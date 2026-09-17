@@ -55,7 +55,7 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | password         | CharField(128)        | not null                      | Hash. Can be set unusable for accounts that never log in with a password.                                   |
 | first_name       | CharField(150)        | not null, blank allowed       | `""` means no name; it is never `NULL`.                                                                     |
 | last_name        | CharField(150)        | not null, blank allowed       | As `first_name`.                                                                                            |
-| allergies        | ArrayField(CharField(100)) | not null, default empty  | `[]` is the only way to say "none"; "never asked" is not distinguishable. Cross\-referenced against `Candy.allergens` for the UC\-07 warning. No fixed vocabulary yet. |
+| allergies        | ArrayField(CharField(100)) | not null, default empty  | `[]` is the only way to say "none"; "never asked" is not distinguishable. Cross\-referenced against `Candy.allergens` for the UC\-07 warning. Keys from `shop/allergens.py`, the EU's 14 major allergens, checked by `full_clean()` and forms (since 2026\-09\-17). |
 | is_staff         | Boolean               | default false                 | Grants the admin site — the Site Administrator actor (UC\-06).                                              |
 | is_superuser     | Boolean               | default false                 |                                                                                                             |
 | is_active        | Boolean               | default true                  | `False` blocks login. The way to disable an account without deleting it.                                    |
@@ -86,8 +86,8 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | flaw            | TextField             | **not null**        | Mandatory design/feature downside (UC\-06) — enforced at the model level, not just the UI. |
 | price           | DecimalField          | not null            |                                                                                            |
 | stock_quantity  | PositiveIntegerField  | not null, default 0 | Checked on every ShoppingCart mutation and at checkout.                                    |
-| sugar_content_g | DecimalField          | nullable            | Feeds the checkout health warning (UC\-07).                                                |
-| allergens       | ArrayField(CharField) | default empty       | PostgreSQL array; cross\-referenced against `User.allergies`.                           |
+| sugar_content_g | DecimalField          | nullable            | Grams per 100 g, 0\-100 (a check constraint). Null means unknown, not zero. Feeds the checkout health warning (UC\-07). |
+| allergens       | ArrayField(CharField) | default empty       | PostgreSQL array of keys from `shop/allergens.py` (the EU 14); cross\-referenced against `User.allergies`. |
 | is_published    | Boolean               | default true        | Unpublished items are hidden from the catalog.                                             |
 | created_at      | DateTimeField         | auto                |                                                                                            |
 | updated_at      | DateTimeField         | auto                |                                                                                            |
@@ -96,10 +96,10 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 
 | Aspect          | Target `Candy`                                                            | Current `shop.Candy`                |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps        | same; rows older than migration `0007` carry its run time in both fields |
+| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps, `sugar_content_g`, `allergens` | same; rows older than migration `0007` carry its run time in both fields |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
-| Missing         | `slug`, `sugar_content_g`, `allergens`                                    | —                                   |
+| Missing         | `slug`                                                                    | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification; `image` — interim static path, see below |
 | Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null **and** non\-blank |
 
