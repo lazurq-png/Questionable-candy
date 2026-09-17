@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Page not found — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+Django's page_not_found renders this with the request, so it can extend
+base.html like any page. Shown only with DEBUG off; with it on, Django shows
+its own debug page instead. A candy that is no longer available has its own
+page (shop/candy_unavailable.html), which this does not replace.
+{% endcomment %}
+<h1>This page melted away</h1>
+<p data-testid="error-message" class="empty-state">Whatever was here has turned into a sticky puddle. The rest of the shop is still perfectly crunchy.</p>
+<p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+{% endblock %}
