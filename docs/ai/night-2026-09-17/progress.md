@@ -1,5 +1,145 @@
 # Progress — night-2026-09-17
 
+## Morning report
+
+**All ten requested tasks are done, verified, independently reviewed, merged
+into `night-2026-09-17` and pushed, and so are six exploration tasks after
+them.** Nothing is provisional and nothing was abandoned. The run branch is
+green on its tip: **428 passed, coverage 100.00%**, lint exit 0 at 9.93/10,
+`adr_guards` exit 0, `makemigrations --check` exit 0.
+
+The run ended because **the work ran out, not the clock or the budget**: the
+plan's list was finished and the exploration phase's findings were exhausted,
+with both survivors being decisions for you rather than defects (§6). It
+stopped at 03:12, nearly five hours before the 08:00 deadline, having used
+about 4.7% of the session's budget.
+
+A customer can now go from the catalog to a placed order: browse, read a
+candy's flaw, fill a cart, log in or sign up, read a health warning built from
+what is in the cart, confirm three times, and get a receipt. **Payment is not
+connected**, so an order stays `pending` and nothing is ever charged.
+
+### Completed
+
+| Task | Branch (all pushed) | Commit | Verification actually run |
+| ---- | ------------------- | ------ | ------------------------- |
+| T1. Error pages: 404, 500, CSRF 403 | `...-t1-error-pages` | `453524c` | 243 passed, cov 98%; lint 9.87; guards 0; drift 0; 3 controls; reviewer approved, 2 lows fixed |
+| T2. Sugar per 100 g and EU-14 allergens | `...-t2-health-data` | `bad390a` | 272 passed, cov 98%; lint 9.88; migrations additive, `sqlmigrate` read; 5 controls; reviewer approved, 1 low recorded (D4/Q2) |
+| T3. Log in, log out, sign up, My allergies | `...-t3-accounts` | `5682203` | 297 passed, cov 98%; lint 9.89; 4 controls; reviewer approved, 3 lows fixed (incl. password masking) |
+| T4. UC-07 health warning | `...-t4-health-warning` | `575362f` | 320 passed, cov 98%; 7 controls; reviewer approved, 2 lows fixed (D10) |
+| T5. UC-08 triple confirmation | `...-t5-confirmation` | `59b3ad3` | 358 passed, cov 98%; 8 controls; reviewer **requested changes** (1 medium, 2 low), all fixed, approved on re-review |
+| T6. Orders without payment | `...-t6-orders` | `0907069` | 381 passed, cov 99%; migrations 0010-0012 additive, probed against existing rows; 8 controls; reviewer **requested changes** (a double-click placed two orders), fixed (D14), approved |
+| T7. Slug URLs and unique names | `...-t7-slugs` | `a4dfa6c` | 405 passed, cov 99%; migrations 0013-0015; 9 controls; reviewer approved twice, 6 findings acted on (D15) |
+| T8. Theme toggle returns to the system | `...-t8-theme-reset` | `30e72d0` | 407 passed, cov 99%; 3 controls; reviewer approved, 4 lows fixed |
+| T9. Outdated records; ADR 0008 proposed | `...-t9-records` | `e524d97` | guards 0; grep proof; reviewer **requested changes** -- it caught two claims the new ADR itself had invented -- all 7 fixed, approved |
+| T10a. SRI hashes on the CDN scripts | `...-t10a-sri` | `ac8984c` | 411 passed; 4 controls, including the browser refusing a wrong hash; reviewer approved, 5 lows fixed |
+| T10b. Coverage floor of 95% | `...-t10b-coverage-floor` | `069c9a4` | 411 passed, "Required test coverage of 95% reached"; the floor at 100 fails the run; reviewer approved |
+
+### Exploration (after the requested list, under the plan's grant)
+
+| Task | Branch (all pushed) | Commit | What it did |
+| ---- | ------------------- | ------ | ----------- |
+| T11 | `...-t11-survey` | `f0dc8fb` | The survey: five ranked findings in `findings.md`, each with evidence and the proof a fix would need |
+| T12 | `...-t12-never-cache` | `54a211e` | F1: the cart, checkout, warning, confirmation, receipt and allergies pages are `never_cache`. A browser could serve them from its history after the customer had gone |
+| T13 | `...-t13-confirm-a11y` | `b44255c` | F2: the confirmation page's controls now carry `aria-invalid` and point at their own error messages |
+| T14 | `...-t14-readme` | `604ca9d` | F4: the README describes the site as it now is |
+| T15 | `...-t15-entry-points` | `2d1b732` | F3: `wsgi.py`, `asgi.py` and both settings guards are tested -- **coverage reached 100%** |
+| T16 | `...-t16-theme-helper` | `6ec71a3` | F5: one shared theme-setup helper; pylint's R0801 is gone, not suppressed |
+| T17 | `...-t17-survey-2` | `312f139` | A second survey. Its one finding was built, reviewed, and **removed as out of scope** -- below |
+
+**T17 is where I overstepped and was pulled back.** Having run out of findings,
+I built customer-facing 400 and 403 error pages. The reviewer objected that
+nothing behaved wrongly -- only the body changed, to new copy, which is a
+product decision -- and found that a `403.html` is *also the admin's* 403 page,
+so staff without a model permission would have been shown the shop's customer
+page inside `/admin/`. I agree, and removed it. That commit carries the survey
+alone, and the decision is yours in **questions.md Q6**.
+
+### Questions for you, most consequential first
+
+1. **Q6** -- should 400 and 403 get pages of their own? Two things found while
+   building and discarding them: a `403.html` is the admin's page too, and a
+   `400.html` cannot be made context-free.
+2. **Q3** -- the header's account control on a phone: only "Log in" fits below
+   30rem, and the logged-in items sit behind the username. Worth looking at on
+   a real phone.
+3. **Q5** -- ADR 0006 and ADR 0008 still say the scripts have no integrity
+   hash. They have had one since T10a; editing a decision record was granted to
+   T9 alone. The exact replacement wording is in the entry.
+4. **Q4** -- three records this run could not correct itself: two night-run
+   rules (§9.3's claim that a CSS dependency would fail `adr_guards.py`, which
+   it would not; §9.6, now answered by ADR 0008) and the README's Status
+   paragraph, which T14 has since fixed.
+5. **Q2** -- free-text allergies stored before T2's vocabulary would be dropped
+   by the admin. No user has any today.
+6. **Q1** -- a stale CSRF token on an htmx action still does nothing visible;
+   T1's page only reaches customers without JavaScript.
+7. **F6** in `findings.md` -- the catalog and detail pages stay cacheable, and
+   their header names the signed-in customer. Closing it trades away caching on
+   the two pages most worth caching.
+
+Also for you: **ADR 0008 is `proposed`** and wants accepting, amending or
+rejecting; and the `docs/requirements.md` §5 open issues this plan settled
+(authentication timing, guest checkout, warning content, confirmation layout,
+alternative login methods) are unrecorded there, because the plan put that
+document out of scope.
+
+### Clock and budget
+
+- **Start:** 2026-09-17 15:57. **Deadline:** 2026-09-18 08:00. **Stopped:**
+  03:12, because the task list and the findings ran out.
+- **Budget:** started at 14,999,689 tokens and ended near 14,300,000 -- about
+  700,000 used, 4.7%. Never near the 30% roundup threshold.
+- **Task starts:** T1 16:00, T2 16:13, T3 16:28, T4 16:52, T5 17:13, T6 17:48,
+  T7 18:39, T8 21:12, T9 21:35, T10a 21:53, T10b 22:20, T11 22:43, T12 22:46,
+  T13 23:07, T14 01:49, T15 01:59, T16 02:32, T17 02:46.
+- **One interruption:** at about 23:15 the session hit its own rate limit
+  (reset 01:10) while T13's reviewer was running. Nothing was committed without
+  its review; the work sat uncommitted on its branch and the review ran at
+  01:19. Three hourly `/loop` firings arrived during the gap, each of them this
+  same session resuming.
+
+### Provisional and abandoned
+
+**None of either.** Every task was completed, verified, reviewed and merged --
+or, in T17's case, deliberately reduced to its survey.
+
+### State
+
+- **Run branch:** `night-2026-09-17` at `312f139`, 18 commits ahead of `dev`,
+  green as measured above. Working tree clean.
+- **Branches:** 18 task branches, every one merged and pushed, plus the run
+  branch. Nothing unmerged, nothing local-only.
+- **Pushed; CI triggered on every branch, result not observable from here.** A
+  `night-**` push does hand the branch to the ADR guards, lint and the full
+  suite including the browser tests -- but that runs on GitHub, and this session
+  cannot see it.
+- **Lint:** 9.93/10 against the 9.87 baseline in `lint-baseline.txt`. Three
+  messages differ from it: `shop/models.py`'s missing final newline is fixed,
+  and two refactor notes were introduced and recorded -- R0901 on `SignUpForm`
+  (D6, Django's own form hierarchy) and R0903 on `OrderManager` (D13). The
+  R0801 duplicate-code pair the baseline showed is gone (T16).
+- **Coverage: 100.00%**, gated at 95% since T10b.
+- **Migrations:** eight added (shop 0009-0015, accounts 0002), all additive. No
+  existing migration was edited, and nothing was dropped or renamed.
+- **The dev database** has all of them applied, and was re-seeded once (T2).
+
+### What no test here has done
+
+**Nobody has looked at these pages.** The browser tests measure four things --
+no sideways scroll at 375px, a one-row header, 44x44 controls, 4.5:1 text
+contrast -- on every page in both themes. They say nothing about whether the new
+checkout pages read well, whether the warning reads as a warning, or whether
+the confirmation page's three steps feel like three steps. The browser suite is
+Chromium only.
+
+**Two mistakes worth knowing about**, both mine, both caught and repaired.
+Twice, cleaning up after a control, I used `git checkout <file>` -- which
+restores from the last commit, and so discarded that task's own uncommitted
+work (T10a's script tags, T15's test helper). Both were spotted immediately and
+rewritten; every other control restored from a copy taken first, which is what
+all of them should have done.
+
 ## Session 1
 
 ### Preflight (§1)
