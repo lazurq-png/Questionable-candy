@@ -29,6 +29,13 @@ run's own branches, never a shared one, never with `--force`. Everything a push
 makes permanent, it makes permanent on someone else's machine too, so the gate
 is the finished, verified, reviewed task and nothing less.
 
+A second thing now also reaches outside the machine, and it is read-only: §2.6
+polls GitHub's REST API for the CI result of a commit this run just pushed
+itself. It never writes anything, never uses a token (the repository is public,
+so unauthenticated requests are enough), and never looks at anything this run
+did not push. §3 names this exception precisely so it cannot silently widen
+into "check whatever you like."
+
 ---
 
 ## 1. Preflight
@@ -451,11 +458,94 @@ review — with these additions:
    guards, lint, and the suite including `tests/e2e/` against a real PostgreSQL
    and a real browser.
 
-   You cannot see the result. CI runs on GitHub; this session has no way to
-   observe it and must never report one (`CLAUDE.md` §9). So the honest line in
-   the morning report is *"pushed; CI will have run on it, result unseen from
-   here"* — never "CI passed". If the push itself was rejected or skipped
-   (§1.4), say that instead, because then not even CI has looked.
+   **Waiting on CI.** Unlike a normal session (`CLAUDE.md` §9), this run *can*
+   observe the result, narrowly: the repository is public, so its Actions runs
+   are readable over GitHub's REST API without a token. This does not apply
+   outside night-run — no `gh` CLI is installed, and nothing here installs one
+   (§3).
+
+   Only do this after a push that actually reached the remote (§1.4's
+   local-only case has nothing to poll, and a rejected push per §2.6 stops
+   pushing for the rest of the run). Because `--ff-only` makes the task branch
+   and the run branch the same commit, one poll covers both pushes — key it on
+   the commit, not the branch:
+
+   ```bash
+   SHA=$(git rev-parse HEAD)          # right after both pushes, tree still clean
+   ```
+
+   Then check clock and budget (§8.2) — the wait below is a real cost, and this
+   is the checkpoint for it — and poll:
+
+   ```bash
+   python - "$SHA" <<'PY'
+import json, sys, time, urllib.request
+
+sha = sys.argv[1]
+url = f"https://api.github.com/repos/lazurq-png/Questionable-candy/actions/runs?head_sha={sha}"
+req = urllib.request.Request(url, headers={
+    "Accept": "application/vnd.github+json",
+    "User-Agent": "night-run",
+})
+with urllib.request.urlopen(req, timeout=30) as resp:
+    data = json.load(resp)
+for run in data.get("workflow_runs", []):
+    print(run["name"], run["status"], run.get("conclusion"), run["html_url"])
+PY
+   ```
+
+   - **Wait at least 10 minutes before the first poll.** CI here runs
+     migrations, lint, ADR guards and a Postgres-backed Playwright suite; a
+     check that fires immediately after push will only ever see `queued`.
+   - **If nothing is `completed` yet, keep polling** every ~3 minutes, up to
+     **30 minutes total** elapsed since the push. This is a genuine wait for
+     external state, not a retry loop — use the Bash tool's own wait, not a
+     tight loop of short sleeps.
+   - **Still not `completed` at 30 minutes** → stop polling, record in
+     `progress.md` that the result timed out unobserved, and report it exactly
+     that way — not as a pass, not as a failure. Move on.
+   - **`conclusion` is `success`** (for every run the poll listed, including a
+     separate `lint:workflows` job if one exists) → record it as CI-verified in
+     `progress.md`, with the run URL. This is the one case allowed to say "CI
+     passed."
+   - **`conclusion` is `failure`** → this is a real verification failure
+     discovered late, not a new kind of event. Treat it exactly as
+     `.claude/rules/debugging.md` §8 treats any failed verify → repair cycle,
+     *continuing* this task's attempt count rather than starting a fresh one:
+
+     1. List the failing job(s)/step(s) — the same API, with `/jobs` appended
+        to the run URL's path, is enough to name them; do not fetch raw logs
+        (that reaches further than the narrow exception in §3 allows, and
+        needs auth this run does not have).
+     2. Reproduce locally using the ordinary verification for what that job
+        runs (`test`, `lint`, `lint:workflows`, `adr_guards.py`) and form a
+        hypothesis, same as any other debugging pass.
+     3. Fix with a **new commit** on the task branch — never `--amend`, the
+        commit is already pushed (§3) — then repeat §2 steps 1–6: verify
+        locally, re-review if the fix is non-trivial, record, commit, merge
+        `--ff-only`, push both branches again, poll again on the new SHA.
+     4. **Three such cycles on one task, counting from the first CI failure,
+        is the limit** — the same limit as any other failure, not a separate
+        budget. On the third, stop: leave the task's branches pushed exactly as
+        they are (§3 forbids force-push and forbids rewriting a pushed commit,
+        so there is no "undo" here), record all three hypotheses and what each
+        attempt's CI run showed, and move to the next independent task. A
+        *second* task hitting this limit is still a full stop-the-run condition
+        (§6).
+
+     A CI failure that does not reproduce locally is evidence the local and CI
+     environments disagree — record that explicitly rather than guessing at a
+     fix for a failure you cannot see; an unreproduced hypothesis still counts
+     toward the three-cycle limit if you act on it.
+   - **The API call itself fails** (network, rate limit, non-200) → this is not
+     a CI failure. Retry once after a short wait; if it still fails, record
+     *"pushed; CI status could not be retrieved"* and move on. Never infer a
+     result from a failed status check.
+
+   Whatever the outcome, the morning report line (§7) reflects exactly what was
+   observed: `success` with the run URL, `failure` with what was done about it,
+   or genuinely unseen — never "CI passed" without a `success` conclusion in
+   hand.
 
 7. **Leave the tree clean.** After the merge the run branch is checked out with
    nothing modified, which is exactly what the next task's step 0 requires.
@@ -506,7 +596,12 @@ Never, unattended, regardless of how reasonable it seems at the time:
 - Installing software, changing PATH, or modifying anything outside this
   repository — except starting the PostgreSQL cluster per §1.1
 - Deleting a file you did not create in this run
-- Contacting any external service
+- Contacting any external service, **except** the two narrow, deliberate cases
+  this document itself names: `git push`/`fetch` to `origin` for this run's own
+  branches (§2.6), and the read-only GitHub Actions status poll on a commit
+  this run just pushed (§2.6, "Waiting on CI"). Nothing else — no other API, no
+  other host, no write call to GitHub, no token, no check on a commit this run
+  did not push itself
 
 **If a task requires one of these, abandon the task.** Write to `questions.md`
 what was needed, why the rule blocked it, and the exact command or diff you
@@ -651,9 +746,11 @@ push outcomes that the per-task entries could not contain get filled in.
   remote, whether the run branch is green, whether anything is uncommitted, and
   the lint score against the §1.6 baseline
 
-On pushing, say what it did and did not buy. A pushed `night-**` branch *is*
-picked up by CI, but this session cannot see the outcome — so write "pushed; CI
-triggered, result not observable from here", never "CI passed". The difference
+On pushing, say what it did and did not buy, using whatever §2.6's poll actually
+observed for that task's commit: "CI passed" only with a `success` conclusion in
+hand and the run URL; "CI failed, fixed in N cycles" or "CI failed, task
+abandoned after 3 cycles" with what the failing job was; or "pushed; CI status
+not observed" if the poll timed out or the API call failed. The difference
 matters to a reader deciding whether to look.
 
 Report only what was observed. `CLAUDE.md` §9 applies with full force here: there
@@ -745,6 +842,13 @@ threshold you can only observe at a task boundary cannot fire during the task it
 is meant to govern. Do not check in the middle of a verify cycle; interrupting
 one tells you less and takes longer.
 
+**The CI poll in §2.6 is always a checkpoint, not only after 07:00** — it is a
+10–30 minute wait on every pushed task, the single largest per-task cost this
+protocol has, so check both before starting the wait and after it resolves
+(success, failure, or timeout). A task that was fine to start at 07:20 can still
+run past 07:30 waiting on CI; that is expected, not a violation — §8.2's rule
+is about starting new work, and the wait belongs to a task already in flight.
+
 The table below is the clock. §8.6 has the budget's, with the same three stages;
 whichever threshold is reached first governs.
 
@@ -760,7 +864,9 @@ whichever threshold is reached first governs.
 You will estimate badly, so anchor on measurement rather than feel. In the
 2026-09-15 run a task took **20–45 minutes** of wall clock end to end, including
 the `reviewer` pass (4–7 minutes on its own) and several full `dev.py test`
-runs.
+runs. That figure predates §2.6's CI poll, which adds its own **10–30 minutes**
+per push on top — so budget a task at roughly **30–75 minutes** now, and treat
+the low end as optimistic.
 
 So: **do not start a task after 07:30**, and do not start one you believe is
 large after 07:00. The overrun in §8.4 is there to save a task that is nearly
