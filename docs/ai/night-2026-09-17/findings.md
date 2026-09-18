@@ -7,7 +7,9 @@ Ranked by what a customer or a reader loses, divided by cost.
 
 Re-ranked after each task, because the code changes underneath.
 
-**Built so far:** F1 (T12), F2 (T13), F4 (T14), F3 (T15). **Remaining, in order:** F5, F6.
+**Built so far:** F1 (T12), F2 (T13), F4 (T14), F3 (T15), F5 (T16).
+**Remaining:** F6 only, and it is a trade-off rather than a defect -- see its
+entry.
 
 ## F1 — Pages showing a customer's cart, order or allergies can be cached
 

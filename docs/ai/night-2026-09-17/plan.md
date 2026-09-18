@@ -380,3 +380,7 @@ Acceptance: every claim in its Status section checks out against the code.
 ### T15 — F3: the deployment entry points and settings guards are tested
 Acceptance: `mysite/wsgi.py`, `mysite/asgi.py` and both `ImproperlyConfigured`
 guards are covered, each with a control that fails without the guard.
+
+### T16 — F5: one theme-setup helper instead of two copies
+Acceptance: pylint's R0801 between the two browser suites is gone, without
+suppressing it, and both suites still pass.

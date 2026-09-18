@@ -113,6 +113,23 @@ def background(page):
     return page.evaluate("getComputedStyle(document.body).backgroundColor")
 
 
+def show_theme(page, case):
+    """Set up a (system setting, stored choice, theme shown) case at phone width.
+
+    Returns the background that theme should paint, so a test can assert what
+    the visitor actually sees. Shared with `test_error_pages.py`, which measures
+    the error pages in these same cases (findings.md F5). The other suites
+    measure both themes too, but from the system setting alone, so they
+    parametrize on the scheme and do not go through this.
+    """
+    system, stored, shown = case
+    page.set_viewport_size(PHONE)
+    page.emulate_media(color_scheme=system)
+    if stored:
+        page.add_init_script(f"window.localStorage.setItem('theme', '{stored}')")
+    return DARK_BG if shown == "dark" else LIGHT_BG
+
+
 def check_page(page, name, assert_page_is_fully_rendered):
     """The four measurable properties, for whichever page is showing."""
     assert_page_is_fully_rendered(page)
@@ -135,12 +152,7 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     live_server, page, assert_page_is_fully_rendered, case
 ):
     """Phone width, each theme from the system and from the toggle, every page."""
-    system, stored, shown = case
-    page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=system)
-    if stored:
-        page.add_init_script(f"window.localStorage.setItem('theme', '{stored}')")
-    expected = DARK_BG if shown == "dark" else LIGHT_BG
+    expected = show_theme(page, case)
 
     page.goto(live_server.url)
     expect(page.get_by_test_id("catalog-empty")).to_be_visible()

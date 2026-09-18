@@ -14,6 +14,9 @@ refactor-class message, outside T1. It is a refactor note, not a warning or an
 error, and the lint gate passes. Left for Exploration, where "duplicated code"
 is an allowed category.
 
+**Closed in T16** (findings.md F5): both copies became one `show_theme` helper
+in `test_theme.py`, and the message is gone from lint rather than suppressed.
+
 ## D2. T1: 404 and CSRF pages extend base.html, the 500 page does not
 
 Django's `page_not_found` and `csrf_failure` render with the request (context

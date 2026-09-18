@@ -11,20 +11,11 @@ reproduces with a native form.submit(), which htmx does not intercept.
 import pytest
 from playwright.sync_api import expect
 
-from tests.e2e.test_theme import DARK_BG, LIGHT_BG, PHONE, background, check_page
+from tests.e2e.test_theme import background, check_page, show_theme
 from tests.factories.candy_factory import CandyFactory
 
 # (system setting, stored toggle choice, theme expected on screen)
 THEMES = [("light", None, "light"), ("dark", None, "dark"), ("light", "dark", "dark")]
-
-
-def _show(page, case):
-    system, stored, shown = case
-    page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=system)
-    if stored:
-        page.add_init_script(f"window.localStorage.setItem('theme', '{stored}')")
-    return DARK_BG if shown == "dark" else LIGHT_BG
 
 
 def _back_to_the_catalog(page, live_server):
@@ -39,7 +30,7 @@ def test_the_404_page_leads_back_to_the_catalog(
 ):
     """404.html extends base.html, so it is measured as any other page is."""
     settings.DEBUG = False
-    expected = _show(page, case)
+    expected = show_theme(page, case)
 
     response = page.goto(f"{live_server.url}/no-such-page/")
 
@@ -57,7 +48,7 @@ def test_the_500_page_is_styled_and_leads_back_to_the_catalog(
 ):
     """500.html stands alone, so this checks its stylesheet and theme script load."""
     settings.DEBUG = False
-    expected = _show(page, case)
+    expected = show_theme(page, case)
 
     response = page.goto(f"{live_server.url}/boom/")
 
@@ -73,7 +64,7 @@ def test_a_plain_form_post_with_a_stale_token_shows_the_stale_form_page(
 ):
     """A cart page left open until its cookies are gone, then Remove without htmx."""
     settings.DEBUG = False
-    expected = _show(page, THEMES[0])
+    expected = show_theme(page, THEMES[0])
     CandyFactory(name="Taffy", stock=5)
     page.goto(live_server.url)
     page.get_by_role("button", name="Add to cart: Taffy").click()

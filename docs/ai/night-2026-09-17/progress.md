@@ -746,3 +746,29 @@ Green. Requested work starts.
 - **Also:** the plan's `## Discretionary (added by the run)` section now lists
   T13, T14 and T15, which the Exploration section asks for and which the
   previous three tasks had skipped.
+
+### T16 — F5: one theme-setup helper instead of two copies — done
+
+- **Branch:** `night-2026-09-17-t16-theme-helper`. Clock at start 02:32; budget
+  14,339,679.
+- **Changed:** `show_theme(page, case)` in `tests/e2e/test_theme.py`, beside the
+  `background` and `check_page` that suite already shares; `test_error_pages.py`
+  calls it instead of keeping its own copy. Test-only.
+- **Verification actually run:**
+  - both browser suites: 20 passed.
+  - Control: the helper stopped storing the theme choice → 4 failed, exactly
+    the four cases whose expected background comes from a stored choice rather
+    than the system setting.
+  - `python scripts/dev.py test`: exit 0, **428 passed**, coverage 100.00%.
+  - `python scripts/dev.py lint`: exit 0, 9.93/10. **R0801 is gone from the
+    report** — removed, not suppressed; `.pylintrc` has no `disable` and there
+    is no pragma. Against the baseline only D6's R0901 and D13's R0903 remain,
+    plus `shop/models.py`'s missing final newline now fixed.
+  - `adr_guards` exit 0. Drift 0.
+- **Review:** approved, two Low items, both taken: the helper's docstring
+  claimed more callers than it has (the other suites measure both themes from
+  the system setting alone and do not go through it), and decisions.md D1 still
+  read as open — it now points at this task.
+- **The findings list is now empty but for F6**, which is a caching-versus-
+  privacy trade-off on the catalog and detail pages rather than a defect, and
+  is left for the human.
