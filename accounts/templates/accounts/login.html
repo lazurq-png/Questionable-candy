@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Log in — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+Django's LoginView. `next` rides in a hidden field so the customer returns to
+where they were; LoginView ignores it if it points at another site.
+{% endcomment %}
+<h1>Log in</h1>
+<form method="post" action="{% url 'accounts:login' %}" class="account-form" data-testid="login-form">
+  {% csrf_token %}
+  {{ form }}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit">Log in</button>
+</form>
+<p class="page-actions">New here? <a href="{% url 'accounts:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}" data-testid="signup-from-login">Create an account</a></p>
+{% endblock %}

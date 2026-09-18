@@ -38,8 +38,8 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | Candy           | partial     | `shop.Candy` — see the note in §3\.3                                        |
 | ShoppingCart    | not started | Cart state currently lives in `request.session["shoppingcart"]`, not in a table    |
 | ShoppingCartItem| not started | —                                                                                  |
-| Order           | not started | —                                                                                  |
-| OrderItem       | not started | —                                                                                  |
+| Order           | implemented | `shop.Order`, placed by `Order.objects.place` (2026\-09\-17). `user` is `PROTECT`; only `pending` is ever set, as payment is not connected. Adds `confirmation_token` (unique UUID), so a confirmation submitted twice places one order |
+| OrderItem       | implemented | `shop.OrderItem`; `candy` is `PROTECT`. Check constraints: `quantity >= 1`, `subtotal = quantity × unit_price` |
 
 `ArrayField` on `User.allergies` and `Candy.allergens` is viable: [ADR 0004](adr/0004-database.md) is implemented, the application runs on PostgreSQL, and `django.contrib.postgres` is installed.
 
@@ -55,7 +55,7 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | password         | CharField(128)        | not null                      | Hash. Can be set unusable for accounts that never log in with a password.                                   |
 | first_name       | CharField(150)        | not null, blank allowed       | `""` means no name; it is never `NULL`.                                                                     |
 | last_name        | CharField(150)        | not null, blank allowed       | As `first_name`.                                                                                            |
-| allergies        | ArrayField(CharField(100)) | not null, default empty  | `[]` is the only way to say "none"; "never asked" is not distinguishable. Cross\-referenced against `Candy.allergens` for the UC\-07 warning. No fixed vocabulary yet. |
+| allergies        | ArrayField(CharField(100)) | not null, default empty  | `[]` is the only way to say "none"; "never asked" is not distinguishable. Cross\-referenced against `Candy.allergens` for the UC\-07 warning. Keys from `shop/allergens.py`, the EU's 14 major allergens, checked by `full_clean()` and forms (since 2026\-09\-17). |
 | is_staff         | Boolean               | default false                 | Grants the admin site — the Site Administrator actor (UC\-06).                                              |
 | is_superuser     | Boolean               | default false                 |                                                                                                             |
 | is_active        | Boolean               | default true                  | `False` blocks login. The way to disable an account without deleting it.                                    |
@@ -81,13 +81,13 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | --------------- | --------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
 | id              | BigAutoField          | PK                  |                                                                                            |
 | name            | CharField             | unique, not null    |                                                                                            |
-| slug            | SlugField             | unique, not null    | Used in catalog/detail URLs.                                                               |
+| slug            | SlugField             | unique, not null    | Used in catalog/detail URLs. Never digits alone \(`candy_slug_is_not_all_digits`, migration `0015`\), so it cannot be read as the old `/candy/<pk>/` address. |
 | description     | TextField             | not null            | Shown on the detail view (UC\-03). Implemented 2026\-09\-15 as `TextField(blank=True, default="")` — not null, but not mandatory; only `flaw` is. |
 | flaw            | TextField             | **not null**        | Mandatory design/feature downside (UC\-06) — enforced at the model level, not just the UI. |
 | price           | DecimalField          | not null            |                                                                                            |
 | stock_quantity  | PositiveIntegerField  | not null, default 0 | Checked on every ShoppingCart mutation and at checkout.                                    |
-| sugar_content_g | DecimalField          | nullable            | Feeds the checkout health warning (UC\-07).                                                |
-| allergens       | ArrayField(CharField) | default empty       | PostgreSQL array; cross\-referenced against `User.allergies`.                           |
+| sugar_content_g | DecimalField          | nullable            | Grams per 100 g, 0\-100 (a check constraint). Null means unknown, not zero. Feeds the checkout health warning (UC\-07). |
+| allergens       | ArrayField(CharField) | default empty       | PostgreSQL array of keys from `shop/allergens.py` (the EU 14); cross\-referenced against `User.allergies`. |
 | is_published    | Boolean               | default true        | Unpublished items are hidden from the catalog.                                             |
 | created_at      | DateTimeField         | auto                |                                                                                            |
 | updated_at      | DateTimeField         | auto                |                                                                                            |
@@ -96,18 +96,18 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 
 | Aspect          | Target `Candy`                                                            | Current `shop.Candy`                |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps        | same; rows older than migration `0007` carry its run time in both fields |
+| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps, `sugar_content_g`, `allergens` | same; rows older than migration `0007` carry its run time in both fields |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
-| Missing         | `slug`, `sugar_content_g`, `allergens`                                    | —                                   |
+| Missing         | —                                                                         | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification; `image` — interim static path, see below |
-| Constraints     | `name`/`slug` unique, `flaw` not null                                     | no uniqueness; `flaw` not null **and** non\-blank |
+| Constraints     | `name`/`slug` unique, `flaw` not null                                     | same, since 2026\-09\-17; `flaw` also non\-blank; slug never digits alone; sugar 0\-100 |
 
 **`image` is interim, not part of the target.** It is a `CharField` naming a static file (e.g. `shop/candy/sour-bricks.svg`), blank meaning a placeholder, filled by `manage.py seed_candy`. It exists because candy needed pictures before the media\-storage decision [ADR 0004](adr/0004-database.md) leaves open was made; that decision should replace or keep it.
 
 **UC\-06's "enforced at the model level" intent now holds.** Since 2026\-09\-15 `flaw` carries a `CheckConstraint` (`candy_flaw_is_not_blank` — added by migration `0003` as `candyproduct_flaw_is_not_blank`, renamed by `0004`) requiring at least one non\-whitespace character, so the empty string — which satisfies NOT NULL perfectly well, and which `objects.create()` would happily write — is rejected by the database rather than only by a form. §5's design note is therefore satisfied for `flaw`.
 
-The uniqueness constraints on `name`/`slug` still do not exist, and the remaining fields are a migration, not an edit; it has not been scheduled. The rename from `CandyProduct` was migration `0004`.
+`slug` was added by migrations `0013`\-`0014` (2026\-09\-17), which also made `name` unique; the slug is set from the name when a candy is first saved and is not changed by renaming it, so shared links keep working. `/candy/<pk>/` redirects permanently to `/candy/<slug>/`. What still differs from the target is the `stock`/`stock_quantity` name, `flaw`'s type, and the extra `flavor` and `image` fields. The rename from `CandyProduct` was migration `0004`.
 
 > **Deployment precondition for migration `0003`.** `AddConstraint` compiles to a plain `ALTER TABLE ... ADD CONSTRAINT ... CHECK`, which PostgreSQL validates against every existing row. Rows with a blank `flaw` were legal before it, so on any database holding one, `migrate` aborts — transactionally, leaving the old schema intact, but with a Postgres error that names no row. Such a database predates migration `0004`, so the table still has its old name. Find them with:
 >

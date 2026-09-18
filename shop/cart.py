@@ -16,6 +16,7 @@ view can hand them to an htmx partial or to the messages framework alike.
 from dataclasses import dataclass
 from decimal import Decimal
 
+from .checkout import SESSION_KEY as CHECKOUT_SESSION_KEY
 from .models import Candy
 
 SESSION_KEY = "shoppingcart"
@@ -50,7 +51,14 @@ def _stored(request):
 
 
 def _save(request, stored):
+    """Write the cart back -- and forget any checkout progress made for the old one.
+
+    The health warning (UC-07) and the confirmations after it were for the
+    order as it was; any change to the cart means reading them again, even a
+    change that is later undone (shop/checkout.py).
+    """
     request.session[SESSION_KEY] = stored
+    request.session.pop(CHECKOUT_SESSION_KEY, None)
     request.session.modified = True
 
 
@@ -147,6 +155,11 @@ def remove(request, pk):
     stored = _stored(request)
     if stored.pop(str(pk), None) is not None:
         _save(request, stored)
+
+
+def clear(request):
+    """Empty the cart, once its order has been placed (UC-05 step 7)."""
+    _save(request, {})
 
 
 def remove_one(request, pk):

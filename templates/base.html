@@ -23,8 +23,23 @@
     </script>
     <link rel="stylesheet" href="{% static 'shop/site.css' %}">
     <script defer src="{% static 'shop/theme.js' %}"></script>
-    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    {% comment %}
+    Pinned to one exact file each, with the hash of that file: the browser
+    refuses a script whose contents do not match, so a tampered or swapped
+    CDN response cannot run here (ADR 0006 named this gap). htmx's URL is the
+    file unpkg redirects the bare package URL to -- a redirect target could
+    change, a hash cannot. crossorigin="anonymous" is required for the check
+    on a cross-origin script; unpkg answers with Access-Control-Allow-Origin.
+
+    Replacing a version means replacing its hash, which means fetching the new
+    file and hashing it (docs/ai/night-2026-09-17/decisions.md D17).
+    {% endcomment %}
+    <script src="https://unpkg.com/htmx.org@2.0.3/dist/htmx.min.js"
+            integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq"
+            crossorigin="anonymous"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"
+            integrity="sha384-l8f0VcPi/M1iHPv8egOnY/15TDwqgbOR1anMIJWvU6nLRgZVLTLSaNqi/TOoT5Fh"
+            crossorigin="anonymous"></script>
 </head>
 {% comment %}
 hx-headers is inherited by every htmx request on the page, so each hx-post
@@ -50,6 +65,7 @@ toggle -- unless the detail popup is open, whose Escape closes only itself.
         <nav aria-label="Site" class="site-nav">
             <a href="{% url 'candy_list' %}" class="site-brand">Candy shop</a>
             <button type="button" class="theme-toggle" data-theme-toggle data-testid="theme-toggle" aria-pressed="false" hidden><span class="theme-toggle-label">Dark theme</span></button>
+            {% include "accounts/partials/account_nav.html" %}
             {% include "shop/partials/shoppingcart_link.html" %}
         </nav>
     </header>

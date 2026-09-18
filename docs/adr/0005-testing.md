@@ -37,7 +37,7 @@ The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_
 
 Tests now run against PostgreSQL, because `pytest-django` derives the test database from the same `DATABASE_URL` the application uses and [ADR 0004](0004-database.md) leaves no SQLite fallback to fall into.
 
-Not enforced: there is no coverage threshold. `dev test` reports coverage but does not gate on it — add `--cov-fail-under` in `scripts/dev.py` once a target is agreed.
+**Update 2026-09-17 — the threshold exists.** `scripts/dev.py` passes `--cov-fail-under=95` to the full `dev test` run, so coverage is gated as well as reported, in CI too. 95 was chosen against a suite then at 99%: high enough that a new untested module fails the run, with enough slack that a line or two does not. A single suite (`test:unit`, say) is still ungated, because its coverage of the whole application is not a meaningful number.
 
 ## Pros and Cons of the Options
 
@@ -73,9 +73,11 @@ Not enforced: there is no coverage threshold. `dev test` reports coverage but do
 
 Playwright is decided but dormant — revisit when the templates from ADR 0001 exist and there are interactive flows to drive. Related: [0001](0001-frontend.md)
 
-**Update 2026-09-14 — that condition is now met.** The templates exist and [ADR 0006](0006-frontend-htmx-alpine.md) confirms the htmx interactivity layer they use, so Playwright is no longer dormant by its own terms. `pytest-playwright` is installed and `tests/e2e/` exists but is still empty; `python scripts/dev.py test:e2e` reports it as empty rather than passing silently.
+**Update 2026-09-14 — that condition is now met.** The templates exist and [ADR 0006](0006-frontend-htmx-alpine.md) confirms the htmx interactivity layer they use, so Playwright is no longer dormant by its own terms. `pytest-playwright` is installed and `tests/e2e/` existed but was still empty; `python scripts/dev.py test:e2e` reported it as empty rather than passing silently.
 
-There is a concrete first case waiting for it. The add-to-cart button 403'd in a real browser for two commits while the integration suite stayed green, because `django.test.Client` does not enforce CSRF. That gap is now covered by an `enforce_csrf_checks=True` test, but a browser test is what would have caught it natively — and the same blind spot applies to every future htmx interaction.
+**Update 2026-09-17 — `tests/e2e/` is no longer empty.** It was filled from 2026-09-16 and now covers the catalog, the candy detail page and its popup, the cart and its dropdown, the themes, the admin, accounts, the checkout warning, the confirmations, orders and the error pages. `python scripts/dev.py test:e2e` runs them, and CI runs them too, having gained a `playwright install` step.
+
+There was a concrete first case waiting for it. The add-to-cart button 403'd in a real browser for two commits while the integration suite stayed green, because `django.test.Client` does not enforce CSRF. That gap is now covered by an `enforce_csrf_checks=True` test, but a browser test is what would have caught it natively — and the same blind spot applies to every future htmx interaction.
 
 DRF-specific test tooling (`APIClient`, `pytest-drf`, `schemathesis`) is deferred, not rejected — revisit if ADR 0003 is reopened and an API layer is added. Related: [0003](0003-backend.md)
 

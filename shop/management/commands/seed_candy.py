@@ -3,7 +3,7 @@
     python manage.py seed_candy
 
 Safe to run any number of times. Each candy is matched by name: a missing one
-is created, and an existing one only has its *empty* text fields filled in.
+is created, and an existing one only has its *empty* fields filled in.
 Nothing that already has a value is overwritten -- an administrator's edit to a
 price or a flaw survives every later seed.
 
@@ -17,8 +17,19 @@ from django.db import transaction
 
 from shop.models import Candy
 
-# Only text fields count as "empty": a stock of 0 or a price is a real value.
-FILLABLE_TEXT_FIELDS = ("description", "flavor", "flaw", "image")
+# The fields a later seed may fill on an existing candy, when they are empty.
+# Price and stock are never filled: 0 stock is a real value, not a gap.
+FILLABLE_FIELDS = ("description", "flavor", "flaw", "image", "sugar_content_g", "allergens")
+
+
+def is_empty(value):
+    """Whether a field holds nothing yet.
+
+    A sugar content of 0 is a real value, so emptiness is None, "" or [] --
+    never mere falsiness, which would refill a sugar-free candy on every seed.
+    """
+    return value is None or value in ("", [])
+
 
 CANDIES = [
     # The first two existed in the development database before this command,
@@ -30,6 +41,8 @@ CANDIES = [
         "flavor": "sour",
         "price": Decimal("12.50"),
         "stock": 10,
+        "sugar_content_g": Decimal("62.0"),
+        "allergens": [],
         "flaw": "Chips a tooth on contact.",
         "image": "shop/candy/sour-bricks.svg",
     },
@@ -40,6 +53,8 @@ CANDIES = [
         "flavor": "mint",
         "price": Decimal("9.00"),
         "stock": 3,
+        "sugar_content_g": Decimal("97.0"),
+        "allergens": [],
         "flaw": "Entirely hollow inside.",
         "image": "shop/candy/hollow-humbug.svg",
     },
@@ -50,6 +65,8 @@ CANDIES = [
         "flavor": "lemon",
         "price": Decimal("3.50"),
         "stock": 40,
+        "sugar_content_g": Decimal("92.0"),
+        "allergens": [],
         "flaw": "The fizz is gone in ten seconds and leaves a long, faintly soapy aftertaste.",
         "image": "shop/candy/fizzing-lemon-drops.svg",
     },
@@ -60,6 +77,8 @@ CANDIES = [
         "flavor": "licorice",
         "price": Decimal("4.25"),
         "stock": 25,
+        "sugar_content_g": Decimal("45.0"),
+        "allergens": ["gluten"],
         "flaw": "Stains teeth and tongue grey-black for the better part of an hour.",
         "image": "shop/candy/midnight-licorice-coils.svg",
     },
@@ -69,6 +88,8 @@ CANDIES = [
         "flavor": "strawberry",
         "price": Decimal("5.00"),
         "stock": 30,
+        "sugar_content_g": Decimal("58.0"),
+        "allergens": [],
         "flaw": "Melts into a sticky puddle within minutes in a warm pocket.",
         "image": "shop/candy/strawberry-cloud-marshmallows.svg",
     },
@@ -79,6 +100,8 @@ CANDIES = [
         "flavor": "salted caramel",
         "price": Decimal("6.75"),
         "stock": 18,
+        "sugar_content_g": Decimal("48.0"),
+        "allergens": ["milk"],
         "flaw": "Chewy enough to pull out loose fillings.",
         "image": "shop/candy/salted-caramel-chews.svg",
     },
@@ -89,6 +112,8 @@ CANDIES = [
         "flavor": "blue raspberry",
         "price": Decimal("3.25"),
         "stock": 50,
+        "sugar_content_g": Decimal("50.0"),
+        "allergens": ["gluten"],
         "flaw": "The dye rubs off on fingers, lips and any light-coloured fabric.",
         "image": "shop/candy/blue-raspberry-ropes.svg",
     },
@@ -99,6 +124,8 @@ CANDIES = [
         "flavor": "dark chocolate",
         "price": Decimal("8.90"),
         "stock": 12,
+        "sugar_content_g": Decimal("44.0"),
+        "allergens": ["milk", "soy"],
         "flaw": "Looks so much like real pebbles that people throw them out by mistake.",
         "image": "shop/candy/dark-chocolate-sea-pebbles.svg",
     },
@@ -108,6 +135,8 @@ CANDIES = [
         "flavor": "cinnamon",
         "price": Decimal("4.00"),
         "stock": 22,
+        "sugar_content_g": Decimal("90.0"),
+        "allergens": [],
         "flaw": "The burn keeps building for a full minute after swallowing.",
         "image": "shop/candy/cinnamon-fire-hearts.svg",
     },
@@ -117,6 +146,8 @@ CANDIES = [
         "flavor": "peach",
         "price": Decimal("3.75"),
         "stock": 35,
+        "sugar_content_g": Decimal("55.0"),
+        "allergens": [],
         "flaw": "Fuse into one solid lump if the bag is stored anywhere warm.",
         "image": "shop/candy/peach-gummy-rings.svg",
     },
@@ -126,6 +157,8 @@ CANDIES = [
         "flavor": "maple",
         "price": Decimal("7.50"),
         "stock": 8,
+        "sugar_content_g": Decimal("78.0"),
+        "allergens": ["milk"],
         "flaw": "So sweet the back of the throat aches by the second square.",
         "image": "shop/candy/maple-fudge-squares.svg",
     },
@@ -136,6 +169,8 @@ CANDIES = [
         "flavor": "watermelon",
         "price": Decimal("3.95"),
         "stock": 28,
+        "sugar_content_g": Decimal("60.0"),
+        "allergens": [],
         "flaw": "The black 'seeds' are poppy seeds that lodge between teeth all day.",
         "image": "shop/candy/watermelon-slice-jellies.svg",
     },
@@ -145,6 +180,8 @@ CANDIES = [
         "flavor": "honey",
         "price": Decimal("5.50"),
         "stock": 16,
+        "sugar_content_g": Decimal("85.0"),
+        "allergens": [],
         "flaw": "Draws moisture from the air and turns chewy within a day of opening.",
         "image": "shop/candy/honeycomb-crunch-bars.svg",
     },
@@ -154,6 +191,8 @@ CANDIES = [
         "flavor": "green apple",
         "price": Decimal("3.60"),
         "stock": 45,
+        "sugar_content_g": Decimal("52.0"),
+        "allergens": ["gluten"],
         "flaw": "The sour coating sheds everywhere and leaves the tongue sore.",
         "image": "shop/candy/green-apple-sour-belts.svg",
     },
@@ -163,6 +202,8 @@ CANDIES = [
         "flavor": "coconut",
         "price": Decimal("4.80"),
         "stock": 20,
+        "sugar_content_g": Decimal("65.0"),
+        "allergens": [],
         "flaw": "Loose coconut flakes catch in the throat and start a coughing fit.",
         "image": "shop/candy/coconut-snowballs.svg",
     },
@@ -172,6 +213,8 @@ CANDIES = [
         "flavor": "cola",
         "price": Decimal("3.10"),
         "stock": 60,
+        "sugar_content_g": Decimal("57.0"),
+        "allergens": [],
         "flaw": "Only the sugar coating tastes of cola; the inside is plain gelatin.",
         "image": "shop/candy/cola-bottle-gummies.svg",
     },
@@ -182,6 +225,8 @@ CANDIES = [
         "flavor": "lavender",
         "price": Decimal("6.20"),
         "stock": 10,
+        "sugar_content_g": Decimal("98.0"),
+        "allergens": [],
         "flaw": "Tastes like soap to roughly half the people who try it.",
         "image": "shop/candy/lavender-rock-candy.svg",
     },
@@ -191,6 +236,8 @@ CANDIES = [
         "flavor": "coffee",
         "price": Decimal("7.25"),
         "stock": 14,
+        "sugar_content_g": Decimal("70.0"),
+        "allergens": ["milk"],
         "flaw": "Each piece carries as much caffeine as half a cup of coffee.",
         "image": "shop/candy/espresso-bean-toffees.svg",
     },
@@ -200,6 +247,8 @@ CANDIES = [
         "flavor": "mixed fruit",
         "price": Decimal("2.95"),
         "stock": 38,
+        "sugar_content_g": Decimal("95.0"),
+        "allergens": [],
         "flaw": "Every colour tastes exactly the same.",
         "image": "shop/candy/rainbow-lollipop-swirls.svg",
     },
@@ -209,6 +258,8 @@ CANDIES = [
         "flavor": "ginger",
         "price": Decimal("3.40"),
         "stock": 26,
+        "sugar_content_g": Decimal("93.0"),
+        "allergens": [],
         "flaw": "The ginger is strong enough to make eyes water on the first suck.",
         "image": "shop/candy/ginger-snap-drops.svg",
     },
@@ -218,6 +269,8 @@ CANDIES = [
         "flavor": "butterscotch",
         "price": Decimal("4.60"),
         "stock": 1,
+        "sugar_content_g": Decimal("85.0"),
+        "allergens": ["milk"],
         "flaw": "Weld together in the tin and only come apart by shattering.",
         "image": "shop/candy/butterscotch-pillows.svg",
     },
@@ -227,6 +280,8 @@ CANDIES = [
         "flavor": "chili mango",
         "price": Decimal("5.25"),
         "stock": 0,
+        "sugar_content_g": Decimal("68.0"),
+        "allergens": ["sulphites"],
         "flaw": "The chili dust puffs up when unwrapped and stings the eyes.",
         "image": "shop/candy/chili-mango-chews.svg",
     },
@@ -248,7 +303,10 @@ class Command(BaseCommand):
                 created += 1
                 continue
 
-            empty = [f for f in FILLABLE_TEXT_FIELDS if not getattr(candy, f) and data.get(f)]
+            empty = [
+                f for f in FILLABLE_FIELDS
+                if is_empty(getattr(candy, f)) and not is_empty(data.get(f))
+            ]
             for field in empty:
                 setattr(candy, field, data[field])
             if empty:

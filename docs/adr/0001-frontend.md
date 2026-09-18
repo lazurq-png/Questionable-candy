@@ -7,8 +7,10 @@ decision-makers: "Martin Larsson"
 > **Superseded in part by [ADR 0006](0006-frontend-htmx-alpine.md) (2026-09-14).**
 > The deferral of htmx and Alpine.js recorded below ended when the cart work
 > added both to `templates/base.html`. ADR 0006 records that adoption.
-> The choice of **Django Templates** stands unchanged, and the hand-written-CSS
-> half of this decision is still unexercised — no CSS exists yet.
+> The choice of **Django Templates** stands unchanged. The hand-written-CSS
+> half was unexercised until 2026-09-16, when `shop/static/shop/site.css`
+> became the site's one stylesheet; [ADR 0008](0008-hand-written-css-themes.md)
+> proposes the conventions that came with it.
 > The Decision Outcome below is left as written; it is the history, not the
 > current state.
 

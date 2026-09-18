@@ -945,8 +945,18 @@ This is the **one** exception to §6's rule against inventing work, and it is
 narrow. It exists because the repository has reached a state its own records
 keep describing as a gap: `.claude/rules/frontend.md` and every morning report
 so far end with some version of *"nothing has looked at how these pages
-appear"*, and [ADR 0001](../../../docs/adr/0001-frontend.md)'s hand-written-CSS
-half is still unexercised — no CSS of any kind exists in this project.
+appear"*.
+
+**Since 2026-09-16 the project does have CSS** —
+`shop/static/shop/site.css` styles every page, with light and dark themes
+([ADR 0001](../../../docs/adr/0001-frontend.md)'s hand-written-CSS half, now
+exercised; [ADR 0008](../../../docs/adr/0008-hand-written-css-themes.md)
+proposes its conventions) — and §9.4's three assertable
+checks run in `tests/e2e/test_theme.py`; the screenshots remain a run's own
+step, since no test takes them. So a run reaching this section is extending a
+stylesheet rather than starting one. What no test has done is look at how the
+pages appear; that is still the gap, and §9.5 is still true of anything built
+here.
 
 ### 9.1 When it may start
 

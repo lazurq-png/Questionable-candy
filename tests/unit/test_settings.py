@@ -10,17 +10,23 @@ hardcoding either flag to False breaks the suite.
 """
 import importlib.util
 import os
+from contextlib import nullcontext
 from pathlib import Path
 from unittest import mock
 
 SETTINGS_PATH = Path(__file__).resolve().parents[2] / "mysite" / "settings.py"
 
 
-def load_settings(**env):
+def load_settings(*, without=(), **env):
     """Import settings.py fresh under `env`, and return it as a module.
 
     Loaded under a throwaway module name so the django.conf.settings already
     configured for this test run is left alone.
+
+    `without` names variables to remove instead of supplying -- for testing what
+    settings.py does when one is missing. Removing one also stubs out
+    `load_dotenv`, since otherwise the `.env` on a developer's machine would put
+    it straight back.
 
     DJANGO_SECRET_KEY and DATABASE_URL are supplied because settings.py raises
     ImproperlyConfigured without them; passing them here keeps the test from
@@ -30,19 +36,25 @@ def load_settings(**env):
     that key in their .env would otherwise be testing their machine rather than
     the DEBUG-derived default.
     """
+    missing = (without,) if isinstance(without, str) else tuple(without)
     environment = {
         "DJANGO_SECRET_KEY": "not-a-real-key-" + "x" * 40,
         "DATABASE_URL": "postgresql://user@localhost:5432/example",
         **env,
     }
+    for name in missing:
+        environment.pop(name, None)
 
     with mock.patch.dict(os.environ, environment, clear=False):
         if "DJANGO_SECURE_COOKIES" not in env:
             os.environ.pop("DJANGO_SECURE_COOKIES", None)
+        for name in missing:
+            os.environ.pop(name, None)
 
         spec = importlib.util.spec_from_file_location("_settings_probe", SETTINGS_PATH)
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        with mock.patch("dotenv.load_dotenv", return_value=False) if missing else nullcontext():
+            spec.loader.exec_module(module)
 
     return module
 

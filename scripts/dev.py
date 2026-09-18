@@ -61,9 +61,25 @@ WORKFLOW_TOOLS = {
 }
 
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
-# Reported, not gated: ADR 0005 chose pytest-cov but agreed no threshold. Add
-# --cov-fail-under here once there is a target to hold the suite to.
-COV_ARGS = ["--cov=accounts", "--cov=shop", "--cov=mysite", "--cov-report=term-missing"]
+# Gated since 2026-09-17: the target ADR 0005 left open is 95%, a little under
+# the 99% the suite reaches, so an untested helper fails the run while a line
+# or two of slack does not. Raising it is a decision; lowering it to make a
+# run pass is not (docs/ai/night-2026-09-17/decisions.md D18).
+#
+# Applies to `dev.py test`, which runs every suite -- and so to CI, which runs
+# that task. A single suite (`test:unit`, say) is not measured against it: its
+# coverage of the whole application is not a meaningful number, and narrowing
+# the full task (`dev.py test -- -k something`) fails on coverage for the same
+# reason. Narrow with test:unit/test:int/test:e2e instead. Switching the gate
+# off from the command line (`-- --no-cov`) is for looking at a failure, never
+# what "dev.py test passed" means.
+# coverage rounds the total before comparing (precision 0), so 94.6% passes a
+# floor of 95 and 94.5% does not.
+COVERAGE_FLOOR = 95
+COV_ARGS = [
+    "--cov=accounts", "--cov=shop", "--cov=mysite", "--cov-report=term-missing",
+    f"--cov-fail-under={COVERAGE_FLOOR}",
+]
 
 
 def run(*args):

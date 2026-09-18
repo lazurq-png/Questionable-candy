@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Sign up — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+accounts.views.SignUpView: a username, a password twice and optional
+allergies. Signing up logs the customer straight in and returns them to `next`.
+{% endcomment %}
+<h1>Sign up</h1>
+<form method="post" action="{% url 'accounts:signup' %}" class="account-form" data-testid="signup-form">
+  {% csrf_token %}
+  {{ form }}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit">Create account</button>
+</form>
+<p class="page-actions">Already have an account? <a href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Log in</a></p>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Health warning — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+UC-07: a distinct checkout step, before anything about payment, that cannot be
+dismissed by accident -- a page of its own with a checkbox and a button, not a
+notice that goes away. Built from the order (shop/checkout.py).
+
+Sugar: each bag counts as 100 g, because the shop records sugar per 100 g and
+no bag weights; the page says so. A candy whose sugar is unknown is named, not
+counted as sugar-free.
+
+Allergens: every one in the order, with the candies containing it. One the
+customer listed under My allergies is marked in words ("You listed this
+allergy") as well as by its styling, so it does not depend on colour.
+{% endcomment %}
+<h1>Before you order: health warning</h1>
+<div class="notices" data-testid="warning-notices">{% for message in messages %}<p>{{ message }}</p>{% endfor %}{% for notice in notices %}<p>{{ notice }}</p>{% endfor %}</div>
+
+<section class="warning-section" data-testid="warning-sugar" aria-labelledby="warning-sugar-heading">
+  <h2 id="warning-sugar-heading">Sugar</h2>
+  <p class="warning-headline">This order holds about <strong data-testid="warning-total-sugar">{{ warning.total_sugar_g }} g</strong> of sugar{% if warning.unknown_sugar %} that we know of{% endif %}.</p>
+  <p class="warning-note">Counted as 100 g of candy per bag.</p>
+  <div class="warning-table">
+    <table>
+      <thead><tr><th scope="col">Candy</th><th scope="col">Bags</th><th scope="col">Per 100 g</th><th scope="col">Sugar</th></tr></thead>
+      <tbody>
+        {% for line in warning.sugar_lines %}
+        <tr data-testid="warning-sugar-line">
+          <th scope="row">{{ line.name }}</th>
+          <td>{{ line.quantity }}</td>
+          <td>{% if line.per_100g is None %}Unknown{% else %}{{ line.per_100g }} g{% endif %}</td>
+          <td>{% if line.grams is None %}Unknown{% else %}{{ line.grams|floatformat:1 }} g{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if warning.unknown_sugar %}
+  <p class="warning-unknown" data-testid="warning-unknown-sugar">Sugar is unknown for {{ warning.unknown_sugar|join:", " }}, so the total above does not include {% if warning.unknown_sugar|length == 1 %}it{% else %}them{% endif %}.</p>
+  {% endif %}
+</section>
+
+<section class="warning-section" data-testid="warning-allergens" aria-labelledby="warning-allergens-heading">
+  <h2 id="warning-allergens-heading">Allergens</h2>
+  {% if warning.matches %}
+  <p class="warning-match-summary" data-testid="warning-match-summary"><span aria-hidden="true">&#9888;</span> This order contains {{ warning.matches|length }} allergen{{ warning.matches|length|pluralize }} you listed under My allergies.</p>
+  {% endif %}
+  {% if warning.allergens %}
+  <ul class="warning-allergens">
+    {% for allergen in warning.allergens %}
+    <li data-testid="warning-allergen"{% if allergen.yours %} class="warning-allergen-yours"{% endif %}>
+      <strong>{{ allergen.label }}</strong>{% if allergen.yours %} <span class="warning-yours" data-testid="warning-yours">You listed this allergy</span>{% endif %}
+      <span class="warning-candies">in {{ allergen.candies|join:", " }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p data-testid="warning-no-allergens">No allergens are listed for the candy in this order.</p>
+  {% endif %}
+  <p class="warning-note">{% if warning.your_allergies %}Your allergies: {{ warning.your_allergies|join:", " }}.{% else %}You have not listed any allergies.{% endif %}</p>
+  <p class="page-actions warning-change"><a href="{% url 'accounts:my_allergies' %}">Change my allergies</a></p>
+</section>
+
+{% if acknowledged %}
+<div class="notices"><p data-testid="warning-acknowledged">You have acknowledged this warning.</p></div>
+<p class="page-actions"><a href="{% url 'checkout_confirm' %}" class="button" data-testid="warning-continue">Continue to confirm your order</a></p>
+{% else %}
+<form method="post" action="{% url 'checkout_warning' %}" class="account-form warning-form" data-testid="warning-form">
+  {% csrf_token %}
+  {{ form.fingerprint }}
+  {% comment %}
+  By hand rather than {{ form }}, which puts the checkbox beside its label:
+  inside it, the whole label is the tap target, not a 20px box.
+  {% endcomment %}
+  <div>
+    {{ form.acknowledge.errors }}
+    <label class="warning-acknowledge" for="{{ form.acknowledge.id_for_label }}">{{ form.acknowledge }} {{ form.acknowledge.label }}</label>
+  </div>
+  <button type="submit">Continue</button>
+</form>
+{% endif %}
+<p class="page-actions"><a href="{% url 'checkout' %}">Back to the order</a></p>
+{% endblock %}

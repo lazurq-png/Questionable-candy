@@ -1,4 +1,6 @@
 """Validation of what a customer submits (docs/adr/0003-backend.md)."""
+from decimal import Decimal, InvalidOperation
+
 from django import forms
 
 
@@ -41,3 +43,80 @@ class StepperQuantityForm(QuantityForm):
             "min_value": "Cannot be below 0",
         },
     )
+
+
+class HealthWarningForm(forms.Form):
+    """UC-07 step 3: the customer acknowledges the warning -- deliberately.
+
+    A checkbox as well as the button, so a stray press of Continue is not an
+    acknowledgment. `fingerprint` names the warning that was on the page; the
+    view compares it with the warning as it stands now (shop/checkout.py).
+    """
+
+    acknowledge = forms.BooleanField(
+        label="I have read this health warning",
+        error_messages={"required": "Tick the box to confirm you have read the health warning."},
+    )
+    fingerprint = forms.CharField(widget=forms.HiddenInput)
+
+
+class ConfirmOrderForm(forms.Form):
+    """UC-08: three distinct, deliberate confirmations, all checked here.
+
+    1. a checkbox, worded with the order's item count and total;
+    2. the total typed back, which must equal the total shown;
+    3. the Place my order button itself, which submits `place_order`.
+
+    The page unlocks them one after another with Alpine, but nothing depends
+    on that: without JavaScript all three are there, and each is still
+    required. `total` is the total the page showed.
+    """
+
+    # Rendered as widgets rather than written out in the template, so Django
+    # marks a refused control aria-invalid and points aria-describedby at its
+    # own error message. Written by hand they carried neither, on the one page
+    # where refusals are routine by design (findings.md F2). The Alpine
+    # bindings ride along as widget attributes.
+    checked_order = forms.BooleanField(
+        error_messages={"required": "Tick the box to confirm you have checked your order."},
+        widget=forms.CheckboxInput(attrs={"x-model": "checked"}),
+    )
+    typed_total = forms.CharField(
+        error_messages={"required": "Type the total to confirm the amount."},
+        widget=forms.TextInput(attrs={
+            "inputmode": "decimal", "autocomplete": "off",
+            "x-model": "typed", "x-bind:disabled": "!checked",
+        }),
+    )
+    place_order = forms.CharField(
+        error_messages={"required": "Press Place my order to place it."},
+    )
+
+    # Rendering through the form would otherwise add `required` to both
+    # controls, which the hand-written inputs never had. The browser would then
+    # refuse an empty control with a bubble of its own before the server could
+    # answer -- changing what a customer without JavaScript sees, and putting
+    # the refusals this page is built around out of reach. The three controls
+    # are checked here, and the page says so in words.
+    use_required_attribute = False
+
+    def __init__(self, *args, total, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.total = total
+
+    def clean_typed_total(self):
+        """Equal to the total shown, allowing a leading $ and a decimal comma."""
+        typed = self.cleaned_data["typed_total"].strip().removeprefix("$").strip().replace(",", ".")
+        try:
+            amount = Decimal(typed)
+        except InvalidOperation:
+            amount = None
+        if amount is None or not amount.is_finite() or amount != self.total:
+            raise forms.ValidationError(f"That is not the total. Type {self.total} to confirm.")
+        return amount
+
+    def clean_place_order(self):
+        """Only the Place my order button sends this value."""
+        if self.cleaned_data["place_order"] != "yes":
+            raise forms.ValidationError("Press Place my order to place it.")
+        return True

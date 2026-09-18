@@ -113,6 +113,23 @@ def background(page):
     return page.evaluate("getComputedStyle(document.body).backgroundColor")
 
 
+def show_theme(page, case):
+    """Set up a (system setting, stored choice, theme shown) case at phone width.
+
+    Returns the background that theme should paint, so a test can assert what
+    the visitor actually sees. Shared with `test_error_pages.py`, which measures
+    the error pages in these same cases (findings.md F5). The other suites
+    measure both themes too, but from the system setting alone, so they
+    parametrize on the scheme and do not go through this.
+    """
+    system, stored, shown = case
+    page.set_viewport_size(PHONE)
+    page.emulate_media(color_scheme=system)
+    if stored:
+        page.add_init_script(f"window.localStorage.setItem('theme', '{stored}')")
+    return DARK_BG if shown == "dark" else LIGHT_BG
+
+
 def check_page(page, name, assert_page_is_fully_rendered):
     """The four measurable properties, for whichever page is showing."""
     assert_page_is_fully_rendered(page)
@@ -135,12 +152,7 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     live_server, page, assert_page_is_fully_rendered, case
 ):
     """Phone width, each theme from the system and from the toggle, every page."""
-    system, stored, shown = case
-    page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=system)
-    if stored:
-        page.add_init_script(f"window.localStorage.setItem('theme', '{stored}')")
-    expected = DARK_BG if shown == "dark" else LIGHT_BG
+    expected = show_theme(page, case)
 
     page.goto(live_server.url)
     expect(page.get_by_test_id("catalog-empty")).to_be_visible()
@@ -297,3 +309,59 @@ def test_the_contrast_check_refuses_text_with_nothing_painted_behind_it(live_ser
     failures = page.evaluate(CONTRAST_FAILURES)
 
     assert any("no opaque background" in failure for failure in failures), failures
+
+
+def test_toggling_back_to_the_system_theme_stops_overriding_it(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """Answering night-2026-09-16 Q3: the toggle is a way back, not a one-way door.
+
+    A visitor who once pressed it is not pinned for good: pressing it back to
+    the theme their system uses removes the stored choice, so a later system
+    change reaches them again, live and after a reload.
+    """
+    page.emulate_media(color_scheme="light")
+    page.goto(live_server.url)
+    assert_page_is_fully_rendered(page)
+    toggle = page.get_by_role("button", name="Dark theme")
+
+    toggle.click()  # away from the system: dark, and stored
+    expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    assert page.evaluate("window.localStorage.getItem('theme')") == "dark"
+
+    toggle.click()  # back to what the system says: nothing stored
+
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") is None
+    assert page.evaluate("window.localStorage.getItem('theme')") is None
+    assert background(page) == LIGHT_BG
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+
+    # Following the system again: live, without a reload...
+    page.emulate_media(color_scheme="dark")
+    expect(page.locator("body")).to_have_css("background-color", DARK_BG)
+    expect(toggle).to_have_attribute("aria-pressed", "true")
+    # ...and still after one.
+    page.reload()
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") is None
+    assert background(page) == DARK_BG
+
+
+def test_toggling_back_works_from_a_choice_stored_earlier(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """The choice may predate this visit: the stored value is what it undoes."""
+    page.add_init_script("window.localStorage.setItem('theme', 'light')")
+    page.emulate_media(color_scheme="dark")
+    page.goto(live_server.url)
+    assert_page_is_fully_rendered(page)
+    assert background(page) == LIGHT_BG  # the stored choice wins at first
+    toggle = page.get_by_test_id("theme-toggle")
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+
+    toggle.click()
+
+    assert page.evaluate("window.localStorage.getItem('theme')") is None
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") is None
+    assert background(page) == DARK_BG  # the system's dark, not a stored dark
+    # The clearing click itself has to move the button, not only the colours.
+    expect(toggle).to_have_attribute("aria-pressed", "true")

@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
+from shop import allergens
+
 
 class User(AbstractUser):
     """The site's user: Django's stock user plus the customer's allergies.
@@ -19,4 +21,9 @@ class User(AbstractUser):
     # Not null, default empty: an empty list is the single way to say "none".
     # docs/data-model.md section 3.1 records that this loses the distinction
     # between "never asked" and "no allergies".
-    allergies = ArrayField(models.CharField(max_length=100), blank=True, default=list)
+    #
+    # Keys from shop.allergens, the same vocabulary as Candy.allergens, so the
+    # UC-07 warning can match them exactly. Checked by full_clean() and forms.
+    allergies = ArrayField(
+        models.CharField(max_length=100, choices=allergens.ALLERGENS), blank=True, default=list
+    )

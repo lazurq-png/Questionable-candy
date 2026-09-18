@@ -5,9 +5,8 @@
 {% comment %}
 UC-05 step 1: the order under review, and where its amounts are changed -- each
 line carries the same stepper as the catalog, so nothing has to be corrected
-somewhere else first. There is no way to pay yet: the health warning, the
-confirmations and payment (UC-05, UC-07, UC-08) come after this page and are
-not built.
+somewhere else first. Continue leads to the health warning (UC-07), which is
+where logging in is required; the confirmations and payment come after it.
 {% endcomment %}
 <h1>Checkout</h1>
 {% comment %}
@@ -33,6 +32,7 @@ steppers inside.
       {% endfor %}
     </ul>
     <p class="cart-total">Total: <span data-testid="checkout-total">${{ total }}</span></p>
+    <p class="page-actions cart-checkout"><a href="{% url 'checkout_warning' %}" class="button" data-testid="checkout-continue">Continue</a></p>
   {% else %}
     <p data-testid="checkout-empty" class="empty-state">Your cart is empty.</p>
     <p class="page-actions"><a href="{% url 'candy_list' %}">Browse the candy</a></p>

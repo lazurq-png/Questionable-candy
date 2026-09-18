@@ -121,7 +121,7 @@ def test_the_detail_page_stepper_shows_what_is_in_the_cart(shopper):
     candy = CandyFactory(stock=9)
     add(shopper, candy)
 
-    content = shopper.get(reverse("candy_detail", args=[candy.pk])).content.decode()
+    content = shopper.get(reverse("candy_detail", args=[candy.slug])).content.decode()
 
     assert 'data-testid="cart-stepper-quantity" value="1"' in content
 

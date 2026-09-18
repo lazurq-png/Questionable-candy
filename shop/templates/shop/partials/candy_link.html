@@ -5,4 +5,4 @@ hx-target naming the popup, which views.candy_detail recognises.
 
 Used by the catalog, the cart dropdown, the cart page and the checkout, with
 `link_class` for each one's styling.
-{% endcomment %}<a href="{% url 'candy_detail' candy.pk %}" class="{{ link_class }}" hx-get="{% url 'candy_detail' candy.pk %}" hx-target="#candy-popup-contents" hx-swap="innerHTML">{{ candy.name }}</a>
+{% endcomment %}<a href="{% url 'candy_detail' candy.slug %}" class="{{ link_class }}" hx-get="{% url 'candy_detail' candy.slug %}" hx-target="#candy-popup-contents" hx-swap="innerHTML">{{ candy.name }}</a>

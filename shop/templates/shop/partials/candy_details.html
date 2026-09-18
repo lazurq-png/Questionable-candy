@@ -10,6 +10,11 @@ apart from the sales copy has not disclosed anything.
 Before the add-to-cart control, deliberately: UC-06's success guarantee is that
 every detail view shows a flaw, which is worth little if the customer has
 already clicked past it.
+
+Sugar and allergens (docs/data-model.md section 3.3) come after the flaw and
+before the stepper for the same reason. Unknown sugar says so rather than
+showing nothing, which would read as none; an empty allergen list says "None
+listed", which is what the record holds, not a promise that there are none.
 {% endcomment %}
 <img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="240" height="240" data-testid="candy-image" class="candy-detail-image">
 
@@ -20,6 +25,16 @@ already clicked past it.
 <section data-testid="candy-flaw" class="flaw">
   <h2>Known flaw</h2>
   <p>{{ candy.flaw }}</p>
+</section>
+
+<section data-testid="candy-health" class="candy-health">
+  <h2>Sugar and allergens</h2>
+  <dl>
+    <dt>Sugar</dt>
+    <dd data-testid="candy-sugar">{% if candy.sugar_content_g is None %}Unknown{% else %}{{ candy.sugar_content_g }} g per 100 g{% endif %}</dd>
+    <dt>Allergens</dt>
+    <dd data-testid="candy-allergens">{{ candy.allergen_names|join:", "|default:"None listed" }}</dd>
+  </dl>
 </section>
 
 {% include "shop/partials/cart_stepper.html" %}
