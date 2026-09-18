@@ -772,3 +772,38 @@ Green. Requested work starts.
 - **The findings list is now empty but for F6**, which is a caching-versus-
   privacy trade-off on the catalog and detail pages rather than a defect, and
   is left for the human.
+
+### T17 — A second survey pass; its one finding logged, not built — done
+
+- **Branch:** `night-2026-09-17-t17-survey-2`. Clock at start 02:46; budget
+  14,327,674.
+- **Probed** (throwaway tests, deleted): heading order on the catalog, detail
+  page and popup (h1 then h2s, and the popup is labelled by its own heading);
+  a cart of 30 different candies (still 2 queries on the cart page); and what
+  the remaining error statuses render. Only the last produced a finding.
+- **F7:** with `DEBUG` off, a bad `Host` answers 400 with Django's bare page,
+  and a `PermissionDenied` would answer 403 the same way. T1 covered the three
+  statuses the plan named.
+- **Built, then removed.** `templates/400.html`, `templates/403.html` and two
+  tests were written and passing (430 passed, coverage 100%), with controls.
+  The reviewer said the work was out of scope and I agree:
+  - nothing behaves wrongly — same status, headers and logging; only the body
+    changes, to **new customer-facing copy**, which is a product decision the
+    human took once by naming three pages in T1. A test that fails only
+    because a file is absent is true of any new feature;
+  - and it would have changed what **admin staff** see: Django's `handler403`
+    loads `templates/403.html`, `django.contrib.admin` raises
+    `PermissionDenied` in about eight places, and the admin ships no 403
+    template — so a staff member without a model permission would have got the
+    shop's customer page, cart header and all, inside `/admin/`. Untested, and
+    the template's own comment said the opposite.
+  The reviewer also showed a standalone `400.html` could not avoid the session
+  the way `500.html` does: `bad_request` renders with the request, so every
+  context processor runs, and with `SECURE_SSL_REDIRECT` on the page would
+  raise inside the error handler.
+- **So this task's commit carries the survey only** — `findings.md` with F7
+  logged and unbuilt, and questions.md Q6 with the options, both discoveries
+  and a recommendation. The suite is back to **428 passed**.
+- **This ends the exploration phase:** both remaining findings (F6, F7) are
+  decisions for a human rather than defects, so there is nothing left that
+  meets the bar.

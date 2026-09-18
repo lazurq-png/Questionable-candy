@@ -384,3 +384,8 @@ guards are covered, each with a control that fails without the guard.
 ### T16 — F5: one theme-setup helper instead of two copies
 Acceptance: pylint's R0801 between the two browser suites is gone, without
 suppressing it, and both suites still pass.
+
+### T17 — a second survey pass
+Acceptance: the survey is recorded in `findings.md`. It produced one finding,
+F7, which is logged rather than built — building it was out of this phase's
+scope, and the reasoning is in F7 and questions.md Q6.

@@ -7,9 +7,14 @@ Ranked by what a customer or a reader loses, divided by cost.
 
 Re-ranked after each task, because the code changes underneath.
 
-**Built so far:** F1 (T12), F2 (T13), F4 (T14), F3 (T15), F5 (T16).
+**Built:** F1 (T12), F2 (T13), F4 (T14), F3 (T15), F5 (T16).
+**Logged, not built:** F7 (see it), F6.
 **Remaining:** F6 only, and it is a trade-off rather than a defect -- see its
 entry.
+
+A second survey pass (T17) produced F7 and nothing else: headings run in order
+on every page, the detail popup is labelled by its own heading, and a cart of
+30 different candies still costs 2 queries.
 
 ## F1 — Pages showing a customer's cart, order or allergies can be cached
 
@@ -128,6 +133,44 @@ entry.
 - **Size:** small to build, but it is a performance-versus-privacy trade-off on
   the site's main pages -- closer to a product decision than the other
   findings, so it is **ranked last and may be one for the human**.
+
+## F7 — Two error statuses still show Django's bare page
+
+- **Category:** bug, the same one T1 fixed at three other statuses.
+- **Evidence:** with `DEBUG` off, a request with a `Host` this site does not
+  serve answers **400** with Django's built-in page and no template of ours
+  (probed: `template: []`). `PermissionDenied` anywhere outside the admin would
+  answer 403 the same way. T1 covered 404, 500 and the CSRF 403 because those
+  were the ones named; these two were not.
+- **Why it matters:** the same unstyled page in front of a customer, from a
+  site that otherwise has its own. A misconfigured `DJANGO_ALLOWED_HOSTS` is
+  the likeliest way to meet it, which is exactly when a page that says what
+  happened helps.
+- **Proof:** integration tests with `DEBUG` off — a bad `Host` gives 400 with
+  the new page; a view raising `PermissionDenied` gives 403 with it. Controls:
+  removing either template falls back to Django's.
+- **Size:** small, but see below.
+- **LOGGED, NOT BUILT.** It was built in T17 and then removed, for two reasons
+  the reviewer gave and I accept:
+  1. **Scope.** Nothing behaves wrongly here: the status codes, headers and
+     logging are identical, and only the body changes — to newly invented
+     customer-facing copy. The exploration phase allows bug fixes, and the
+     wording of an error page is a product decision the human already took once
+     by naming three pages in T1. A test that fails only because a file does not
+     exist is true of every new feature, so it does not meet this phase's bar.
+  2. **It would have changed what admin staff see.** Django's `handler403`
+     loads `templates/403.html`, and `django.contrib.admin` raises
+     `PermissionDenied` in about eight places; the admin ships no 403 template
+     of its own. A staff member without a model permission would have been
+     shown the shop's customer page — cart header, CDN scripts, "Back to the
+     catalog" — inside `/admin/`. Untested, and my own comment in the template
+     asserted the opposite.
+  Also found while checking: a standalone `400.html` would not avoid the
+  session the way `500.html` does, because `bad_request` renders with the
+  request, so every context processor runs — including the cart's. With
+  `SECURE_SSL_REDIRECT` on, a bad-Host request never reaches
+  `SessionMiddleware`, and the page would raise inside the error handler.
+- **For a human:** questions.md Q6.
 
 ## Checked and found sound (not findings)
 

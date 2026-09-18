@@ -103,3 +103,33 @@ these were left alone:
   remains unsolved is availability and staleness.
 - **In the meantime:** nothing edited; `decisions.md` D17 and this entry are
   the record.
+
+## Q6. Should 400 and 403 get pages of their own?
+
+- **The question:** T1 gave the site its own 404, 500 and CSRF-403 pages,
+  because those were the three the plan named. With `DEBUG` off, a request for
+  a Host this site does not serve still answers **400** with Django's bare
+  page, and a `PermissionDenied` would answer **403** the same way
+  (findings.md F7).
+- **Why it was not simply added:** the exploration phase allows bug fixes, and
+  this is new customer-facing copy rather than wrong behaviour — a product
+  decision. It was built, reviewed, and removed on that ground. Two facts came
+  out of building it, and they should inform the decision:
+  - **A `403.html` is the admin's page too.** Django's `handler403` loads it,
+    `django.contrib.admin` raises `PermissionDenied` in about eight places, and
+    the admin ships no 403 template. Adding one shows staff the shop's
+    customer-facing page — cart header, CDN scripts and all — inside `/admin/`.
+    If that is unwanted, the page needs to detect an admin path, or the admin
+    needs its own `admin/403.html`.
+  - **A `400.html` cannot be made context-free.** `bad_request` renders with
+    the request, so every context processor runs, including the cart's, which
+    touches the session. With `SECURE_SSL_REDIRECT` on, a bad-Host request is
+    rejected before `SessionMiddleware`, and the page would raise inside the
+    error handler — turning the 400 into a 500. Closing that means making
+    `shop.context_processors.shoppingcart` tolerate a request with no session.
+- **Options:** (a) leave both as Django's default pages; (b) add a 400 page
+  only, with the context-processor fix; (c) add both, with an admin-aware 403.
+- **Recommendation:** (b) then (c), supervised, once someone has written the
+  wording they want.
+- **In the meantime:** nothing built; the second survey's other results are in
+  findings.md.
