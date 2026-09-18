@@ -712,3 +712,37 @@ Green. Requested work starts.
   5. A sentence the diff passed over said CI runs the guards and the suite on
      `master` and `dev`; it runs three jobs including lint, and on `night-**`
      pushes too — which is what checks this run's own branches.
+
+### T15 — F3: the deployment entry points and the settings guards are tested — done
+
+- **Branch:** `night-2026-09-17-t15-entry-points`. Clock at start 01:59; budget
+  14,364,869.
+- **Changed:** `tests/unit/test_deployment_entry_points.py` (4 tests) and a
+  `without=` parameter on `tests/unit/test_settings.py`'s existing
+  `load_settings`, which runs `settings.py` under a throwaway module name.
+- **Verification actually run:**
+  - `python scripts/dev.py test`: exit 0, **428 passed**, coverage **100.00%**
+    — these were the last uncovered lines in the project.
+  - Controls, each failed as it should, then restored: the secret-key guard
+    removed → 1 failed; `wsgi.application` broken → 1 failed; the `load_dotenv`
+    stub removed, letting `.env` put the variable back → 2 failed.
+  - `python scripts/dev.py lint`: exit 0, no new messages. `adr_guards` exit 0.
+    Drift 0.
+- **Review:** request changes, then approved after a rewrite. The first version
+  reloaded the live `mysite.settings` module and undid itself with a
+  `try/finally` and an environment restore — while the repository already had
+  a loader written so that testing `settings.py` leaves the configured settings
+  alone. Rewritten on that loader: the reload, the `finally`, the env restore
+  and a doubled `pytest.raises` all went away, and the reviewer confirmed the
+  helper's extension is inert for its three existing callers, that no
+  environment or module state leaks, and that removing either guard makes the
+  test fail.
+- **A mistake, the same one as in T10a:** cleaning up after a control I used
+  `git checkout tests/unit/test_settings.py`, which restores from the last
+  commit and so discarded the helper extension this task had just written. Spotted
+  immediately (the control's own grep showed the parameter gone) and rewritten.
+  Every control in this run should use `cp` from a copy taken first; two did
+  not.
+- **Also:** the plan's `## Discretionary (added by the run)` section now lists
+  T13, T14 and T15, which the Exploration section asks for and which the
+  previous three tasks had skipped.

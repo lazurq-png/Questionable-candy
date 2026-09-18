@@ -370,3 +370,13 @@ Acceptance: `Cache-Control` contains `no-store` on the cart, cart panel,
 checkout, warning, confirmation, receipt and allergies pages; a control
 failing without the decorator.
 
+### T13 — F2: the confirmation page's controls are linked to their errors
+Acceptance: a refused control carries `aria-invalid` and an `aria-describedby`
+naming its own error list, with the page's behaviour unchanged.
+
+### T14 — F4: the README describes the site as it now is
+Acceptance: every claim in its Status section checks out against the code.
+
+### T15 — F3: the deployment entry points and settings guards are tested
+Acceptance: `mysite/wsgi.py`, `mysite/asgi.py` and both `ImproperlyConfigured`
+guards are covered, each with a control that fails without the guard.
