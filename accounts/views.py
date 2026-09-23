@@ -57,18 +57,3 @@ def my_allergies(request):
         messages.success(request, "Your allergies are saved.")
         return redirect("accounts:my_allergies")
     return render(request, "accounts/my_allergies.html", {"form": form})
-
-@never_cache
-@login_required
-def my_profile(request):
-    """The signed-in customer changes their own allergies.
-
-    The form is bound to request.user and the URL carries no id, so there is no
-    way to name somebody else's record.
-    """
-    form = AllergiesForm(request.POST if request.method == "POST" else None, instance=request.user)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Your allergies are saved.")
-        return redirect("accounts:my_allergies")
-    return render(request, "accounts/my_allergies.html", {"form": form})
