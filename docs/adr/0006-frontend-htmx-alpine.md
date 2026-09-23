@@ -40,6 +40,28 @@ Since 2026-09-15 a stronger confirmation exists: `tests/e2e/test_catalog.py::tes
 
 Nothing pins the htmx or Alpine versions beyond the literal URLs in `base.html`; a CDN outage or a deleted version breaks the page at runtime with no build-time signal. That is the accepted cost of the no-build-step option and the trigger for revisiting the vendoring alternative below.
 
+**Amended 2026-09-17 — the integrity gap above is closed.** The two paragraphs
+above are left as written because they are the history of this decision, not
+the current state: they describe the gap as it stood when this ADR was
+written, and that gap is what the night-2026-09-17 run closed (T10a,
+[`decisions.md` D17](../ai/night-2026-09-17/decisions.md)) without reopening
+this ADR. `templates/base.html` now names each script's resolved file rather
+than its redirecting package URL, and pins it with a `sha384` `integrity`
+attribute plus `crossorigin="anonymous"`, so a CDN response that does not
+match the hash is refused by the browser rather than run. Three tests
+enforce this: `tests/integration/test_script_integrity.py`'s
+`test_every_external_script_is_pinned_by_hash` and
+`test_each_script_url_names_one_file_not_a_package`, and
+`tests/e2e/test_catalog.py::test_the_cdn_scripts_pass_their_integrity_check_and_run`,
+which loads the real page in a browser and asserts htmx and Alpine both ran.
+
+This still does not vendor the scripts: unpkg being unreachable still takes
+htmx and Alpine down with it, and updating a version is still a manual fetch
+outside `pip`/`npm` rather than a routine edit (see D17 for the procedure).
+The "Adopt htmx + Alpine.js but vendor them as static files" option below
+remains the fallback if that turns out to matter more than the no-build-step
+property this ADR was written to keep.
+
 ## Pros and Cons of the Options
 
 ### Adopt htmx + Alpine.js via CDN and supersede ADR 0001
@@ -48,7 +70,7 @@ Nothing pins the htmx or Alpine versions beyond the literal URLs in `base.html`;
 - Good, because htmx returns HTML fragments, which fits ADR 0003's server-rendered monolith without introducing serializers or a JSON API
 - Good, because two script tags need no npm, no bundler and no build step, keeping the "no build step" property ADR 0001 valued
 - Neutral, because it spends the deferral ADR 0001 was holding in reserve, leaving Tailwind as the only remaining deferred item
-- Bad, because CDN script tags are an unpinned runtime dependency on unpkg with no integrity hash and no offline story
+- Bad, because CDN script tags are an unpinned runtime dependency on unpkg with no integrity hash and no offline story (as of this ADR's writing — the integrity-hash half was closed 2026-09-17, see the Confirmation section's amendment; the offline story was not)
 
 ### Revert base.html and rewrite the cart as plain form POSTs
 

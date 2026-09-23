@@ -48,9 +48,9 @@ Things that have actually gone wrong here, and are worth checking every time:
 - **Unintended migrations.** `scripts/dev.py` runs `makemigrations`, which
   *writes* files. A migration in the diff that the task did not call for is a
   finding.
-- **ADR guards.** `requirements.txt` is constrained by ADR 0003 (no DRF) and
-  ADR 0005 (test stack ≤ 5 packages). A new dependency may be an ADR violation,
-  not just a dependency.
+- **ADR guards.** `requirements.txt` is constrained by ADR 0003 (no DRF). ADR
+  0005 prefers a small test stack but sets no number: a new test package is
+  fine when it earns its place, and worth questioning when it does not.
 - **Architecture.** ADR 0003 chose a Django MVT monolith with no API layer.
   A new service layer, repository class, or `services.py` is an abstraction that
   ADR explicitly did not choose — flag it.

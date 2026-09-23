@@ -44,6 +44,8 @@ Use repository evidence rather than assumptions about frameworks or conventions.
 
 If the repository contains more specific instructions in nested directories, follow those instructions for files in their scope.
 
+For recorded decisions and constraints, read `docs/README.md` first — one row per ADR — and open a full ADR only when the task touches its decision. `docs/overview.html` is the human version; do not read it for facts.
+
 If the task touches a specific domain, read the matching reference in `.claude/rules/` before implementing:
 
 * `.claude/rules/architecture.md` — boundaries, layering, refactors

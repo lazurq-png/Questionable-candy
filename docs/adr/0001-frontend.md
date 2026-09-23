@@ -23,7 +23,7 @@ A candy ordering website (Customer flow: View the candy → Read about it → Ch
 ## Decision Drivers
 
 - Test what Django provides out of the box before adding dependencies
-- Learning new approaches and technologies.
+- Learning new Django and Python.
 - Create a professional website, with a dash of satire.
 
 ## Considered Options

@@ -121,6 +121,8 @@ A useful decision record explains:
 
 Do not document trivial implementation choices.
 
+A new or changed record under `docs/` also updates its row in `docs/README.md` and its part of the plain-language `docs/overview.html`, then `python scripts/adr_guards.py --stamp`. The guard fails until it does.
+
 ---
 
 ## 8. Review

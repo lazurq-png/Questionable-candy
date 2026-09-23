@@ -13,7 +13,7 @@ The project currently consists of `manage.py` and the `mysite/` settings package
 ## Decision Drivers
 
 - Has to be actually used in real django projects professionally
-- Should not require more than 3-5 different packages, if possible
+- Keep the stack simple: a few well-known packages rather than many tools and technologies. This is a preference, not a limit; if a later need calls for more packages, add them and revisit this decision
 - Choosing now costs nothing because there are zero tests, whereas choosing later means rewriting whatever suite exists by then
 
 ## Considered Options
@@ -25,13 +25,13 @@ The project currently consists of `manage.py` and the `mysite/` settings package
 
 ## Decision Outcome
 
-Chosen option: "pytest-django stack", because it is the default in professional Django work today and it lands exactly inside the package budget at five entries — `pytest`, `pytest-django`, `pytest-cov`, `factory_boy` and `pytest-playwright` — with Faker arriving transitively through factory_boy rather than as a sixth choice.
+Chosen option: "pytest-django stack", because it is the default in professional Django work today and it stays small, at five entries — `pytest`, `pytest-django`, `pytest-cov`, `factory_boy` and `pytest-playwright` — with Faker arriving transitively through factory_boy rather than as a sixth choice.
 
 The stack is adopted as one decision but not installed all at once: `pytest-django`, `pytest-cov` and `factory_boy` apply from the first app that has a model, while Playwright is decided here and stays dormant until the ADR 0001 templates give it a page to open. Mocking adds no package to the count — `unittest.mock` is in the standard library, and the HTTP-specific alternatives (`responses`, `requests-mock`) are not counted because nothing in the project makes an outbound call yet.
 
 ### Confirmation
 
-`python scripts/adr_guards.py` reads `requirements.txt` and fails when the test stack exceeds five packages, so adding a sixth breaks CI rather than passing unnoticed. The same script enforces [ADR 0003](0003-backend.md)'s exclusion of DRF. It runs as its own job in `.github/workflows/ci.yml`, needing no database and no installed dependencies.
+Keeping the stack small is a judgement made when a package is proposed, not a number anything checks. **Amended 2026-09-23:** `scripts/adr_guards.py` used to fail CI at a sixth test package, which read the simplicity driver as a hard cap it was never meant to be. That check was removed; the script still enforces [ADR 0003](0003-backend.md)'s exclusion of DRF.
 
 The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_SETTINGS_MODULE`, so the runner choice is a config invariant rather than a convention.
 
@@ -43,7 +43,7 @@ Tests now run against PostgreSQL, because `pytest-django` derives the test datab
 
 ### Django's built-in `unittest` stack (`django.test.TestCase`, JSON fixtures, `LiveServerTestCase` with Selenium)
 
-- Good, because it ships with Django and requires no extra dependency at all, satisfying the package budget trivially
+- Good, because it ships with Django and requires no extra dependency at all, the simplest option possible
 - Good, because `self.client`, `assertTemplateUsed` and transactional test-database wrapping are integrated out of the box, and `LiveServerTestCase` hands Selenium a running server with no glue code
 - Bad, because the assertion API is verbose and the class-based `setUp`/`tearDown` boilerplate scales badly once several tests need the same Candy and User objects
 - Bad, because Selenium needs manual `WebDriverWait` calls, which makes browser tests slower and more flaky than the auto-waiting alternatives
@@ -52,7 +52,7 @@ Tests now run against PostgreSQL, because `pytest-django` derives the test datab
 
 - Good, because fixture-based dependency injection and plain `assert` statements remove the `setUp` boilerplate and the `assertEqual` zoo, and the plugin ecosystem (`pytest-xdist` for parallel runs, `pytest-mock`) is there when the suite grows
 - Good, because factory_boy composes test objects programmatically, so a schema change breaks one factory instead of every JSON fixture that mentioned the field
-- Neutral, because five packages sits at the very top of the 3-5 budget, leaving no room for a sixth without revisiting this decision
+- Neutral, because five packages is already a handful, so each further addition should earn its place
 - Bad, because it needs configuration that the built-in runner does not (`pytest.ini` or `pyproject.toml` plus `DJANGO_SETTINGS_MODULE`) and is a steeper start for anyone who only knows unittest
 
 ### pytest-django core only, without factories or a browser layer
@@ -67,7 +67,7 @@ Tests now run against PostgreSQL, because `pytest-django` derives the test datab
 - Good, because tox/nox pin reproducible environments across Python and Django versions, and schemathesis property-tests an API against its OpenAPI schema
 - Good, because hosted coverage reporting puts a threshold and a PR comment in front of every change once CI exists
 - Bad, because the DRF test tooling is dead weight while ADR 0003 defers DRF and there is no API layer to point it at
-- Bad, because tox/nox is overkill for an application targeting a single Python and Django version, and the additions push the count well past the 3-5 package budget
+- Bad, because tox/nox is overkill for an application targeting a single Python and Django version, and the additions bring in tools and technologies this project does not need
 
 ## More Information
 

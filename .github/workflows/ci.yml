@@ -35,9 +35,9 @@ jobs:
         with:
           python-version: '3.13'
 
-      # docs/adr/0003-backend.md (no DRF) and docs/adr/0005-testing.md (test
-      # stack capped at five packages) both name this as their enforcement.
-      - name: Check ADR 0003 and ADR 0005
+      # docs/adr/0003-backend.md (no DRF) names this as its enforcement. It also
+      # fails when a record in docs/ has changed since docs/overview.html was.
+      - name: Check ADR 0003 and the docs overview
         run: python scripts/adr_guards.py
 
   # pylint-django calls django.setup(), so this needs the runtime dependencies
