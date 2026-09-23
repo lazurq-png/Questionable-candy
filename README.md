@@ -138,12 +138,12 @@ silently skips a rule whose tool it cannot find and still reports clean.
 
 ### ADR guards
 
-Two decisions are enforced rather than merely recorded. `python scripts/adr_guards.py`
-fails if
-`djangorestframework` appears in `requirements.txt` ([ADR 0003](docs/adr/0003-backend.md)
-defers it) or if the test stack exceeds five packages ([ADR 0005](docs/adr/0005-testing.md)
-budgets 3–5). Everything else in `docs/adr/` is unenforced, and each ADR's
-Confirmation section says so plainly.
+One decision is enforced rather than merely recorded. `python scripts/adr_guards.py`
+fails if `djangorestframework` appears in `requirements.txt`
+([ADR 0003](docs/adr/0003-backend.md) defers it). It also fails when a record in
+`docs/` has changed since [`docs/overview.html`](docs/overview.html), the
+plain-language summary, was last brought up to date. Everything else in
+`docs/adr/` is unenforced, and each ADR's Confirmation section says so plainly.
 
 ## Documentation
 

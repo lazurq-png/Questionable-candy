@@ -1,0 +1,13 @@
+# Hashes of the records docs/overview.html was last updated against.
+# Regenerate with `python scripts/adr_guards.py --stamp`, and only
+# after updating the page and docs/README.md to match.
+e3fa0a8e398d687f  adr/0001-frontend.md
+f467f14a16da3216  adr/0002-middleware.md
+4af59b3c4bdb1319  adr/0003-backend.md
+8b6dfd9e71e0c307  adr/0004-database.md
+7778c3272736a777  adr/0005-testing.md
+5dab4489673a2d1b  adr/0006-frontend-htmx-alpine.md
+aff6216842f2e39c  adr/0007-custom-user-model.md
+4e898bfab45a55bc  adr/0008-hand-written-css-themes.md
+7eb4512a87951bd3  requirements.md
+5cd5c57b650efca2  data-model.md

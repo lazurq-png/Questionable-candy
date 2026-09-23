@@ -1,43 +1,46 @@
 ---
 name: night-run
-description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions, including ones spanning several sessions. Executes a human-written plan read from docs/ai/night-<today>/plan.md (and stops if there is none). Defines preflight and how to resume a run already in progress, a branch per task pushed as each one finishes, durable state, forbidden operations, the 08:00 Europe/Stockholm deadline, a per-session budget reserve that protects the morning report or a handoff, bounded discretionary visual work when the task list runs out, and stop conditions. Use when starting an unsupervised run, resuming one, or when a session discovers mid-flight that nobody is there.
+description: Protocol for running unattended, with no human available to answer questions — overnight or long autonomous sessions, including ones spanning several sessions. Executes a human-written plan read from docs/ai/night-<today>/plan.md (and stops if there is none). Defines preflight and how to resume a run already in progress, a branch per task pushed as each one finishes, CI polled in the background while the next task proceeds, durable state, forbidden operations, the 08:00 Europe/Stockholm deadline, a per-session budget reserve that protects the morning report or a handoff, bounded discretionary visual work when the task list runs out, stop conditions, and a morning report that shows each task's code with what it does and why it was added. Use when starting an unsupervised run, resuming one, or when a session discovers mid-flight that nobody is there.
 ---
 
 # Unattended Run
 
-This is how this repository is worked on when nobody is watching.
-
-Everything in `AGENTS.md` and `CLAUDE.md` still applies. This document changes
-only what *cannot* work without a human: asking questions, looking at a page,
-and knowing when to stop.
+`AGENTS.md` and `CLAUDE.md` still apply. This document changes only what cannot
+work without a human: asking questions, looking at a page, and knowing when to
+stop.
 
 ## Read this first
 
-An unattended session runs with permission prompts bypassed. Nothing in
-`.claude/settings.json` is consulted — a `deny` entry there will not stop
-anything, because the harness never asks. **Every guardrail below is honoured
-because you choose to honour it.** There is no second line of defence and no one
-to catch a mistake before morning.
-
-Work accordingly: prefer the reversible action, commit early so there is always a
-known-good point to return to, and when a step feels like it needs permission,
-that is the signal to log it rather than the signal to proceed.
-
-One thing here does reach outside the machine: §2.6 pushes each completed task's
-branch, and the run branch with it. That is deliberate and it is narrow — the
-run's own branches, never a shared one, never with `--force`. Everything a push
-makes permanent, it makes permanent on someone else's machine too, so the gate
-is the finished, verified, reviewed task and nothing less.
+- **Permission prompts are bypassed** and `.claude/settings.json` is not
+  consulted. Every guardrail here holds only because you hold it. Prefer the
+  reversible action, commit early, and when a step feels like it needs
+  permission, log it rather than proceed.
+- **Two things reach outside the machine**, both narrow, both in §3's list:
+  pushing this run's own branches, and a read-only, unauthenticated poll of
+  GitHub Actions for commits this run pushed (§2.6).
+- **Work in parallel wherever nothing depends.** Independent reads and checks go
+  in one message of parallel tool calls. Long jobs (the full suite, the
+  `reviewer`, the CI poll) run in the background while you do the next
+  independent thing; the harness re-invokes you when a background command or
+  agent finishes. Never poll one yourself, and never `sleep` in the foreground,
+  which is blocked anyway.
+- **The state files are the memory.** Write what the report will need into
+  `docs/ai/night-<YYYY-MM-DD>/progress.md` when it happens. Quote files and
+  `git`, not recollection, because context may already have been compacted.
 
 ---
 
 ## 1. Preflight
 
-**First, establish which of two things is happening.** A run may span several
-sessions (§10), so the session you are in is not necessarily the run's first:
+Run these together, in one message. All are read-only:
 
 ```bash
-date '+%F %H:%M'
+date '+%F %H:%M'                                              # §8.1
+powershell -NoProfile -Command "[System.TimeZoneInfo]::Local.Id"
+~/Binaries/pgsql/bin/pg_isready -h localhost -p 5432; echo "exit $?"   # §1.1
+git status --short
+git remote -v
+cat "docs/ai/night-$(date +%F)/plan.md"                       # §1.0
 for b in $(git branch --list 'night-*' --format='%(refname:short)' \
            | grep -E '^night-[0-9]{4}-[0-9]{2}-[0-9]{2}$'); do
   git show "$b:docs/ai/$b/progress.md" 2>/dev/null \
@@ -45,357 +48,239 @@ for b in $(git branch --list 'night-*' --format='%(refname:short)' \
 done
 ```
 
-- **The loop prints a run branch** → you are **resuming** that run. Go to
-  §10.2, which does an abbreviated preflight and picks up the plan. Do *not* run
-  §1.0, §1.3 or §1.5: the branch and the state files already exist, and
-  recreating them is how a run loses its own history.
-- **It prints nothing** → a new run. Do §1.0–§1.6 in order.
+- **The loop prints a run branch** → you are **resuming** it: go to §10.2. Do
+  not run §1.0, §1.3 or §1.5. Recreating the branch or state files is how a run
+  loses its history.
+- **It prints nothing** → a new run: §1.0–§1.6 in order.
 
-Decide on the **branch**, not the directory. A new run's directory already
-exists before the run does, because a human put the plan in it (§1.0).
+The loop reads `progress.md` from each run branch, never from the working tree.
+A new run is cut from `dev`, which lacks unmerged earlier runs, so the tree
+would make a finished run look unfinished. A run branch with no committed
+`progress.md` counts as in progress, which is correct.
 
-Read `progress.md` **from the run branch itself**, as above, never from the
-working tree. The tree holds whatever the checked-out branch holds. A new run
-is cut from `dev`, and `dev` lacks any earlier run that has not been merged into
-it yet. Read from the tree, that earlier run looks unfinished and gets resumed
-in place of the new one. A run branch whose `progress.md` has not been committed
-yet counts as in progress, which is correct: its first task never merged.
-
-Whichever it is, if a step fails in a way the step does not tell you how to
-recover from, stop and write why to `docs/ai/<branch>/progress.md`.
+If a step fails in a way it does not say how to recover from, stop and write why
+into `progress.md`.
 
 ### 1.0 The plan
 
-**The run does not write its own plan. It reads one.** A human writes it
-beforehand, in a prompt session, at:
-
-```text
-docs/ai/night-<YYYY-MM-DD>/plan.md      <YYYY-MM-DD> = today, from `date +%F`
-```
-
-```bash
-cat "docs/ai/night-$(date +%F)/plan.md"
-```
+**The run reads a plan; it does not write one.** A human writes
+`docs/ai/night-<YYYY-MM-DD>/plan.md` beforehand, where the date is today's
+`date +%F`.
 
 | Result | Action |
 | ------ | ------ |
-| The file exists and lists at least one task | Continue. This is the run's task list. |
-| The file is missing, empty, or lists no task | **Stop the run.** Create no branch and touch nothing else. Write `docs/ai/night-<YYYY-MM-DD>/progress.md` (uncommitted) saying no plan was found at that path, and end. |
+| Exists and lists at least one task | Continue. This is the task list. |
+| Missing, empty, or no task | **Stop.** Create no branch. Write an uncommitted `progress.md` in that directory saying no plan was found at that path, and end. |
 
-Only today's directory counts. Do not pick up a plan from another date's
-directory, and do not write one yourself from `docs/requirements.md`. A run
-without a human's plan has no requested work, and §6 forbids inventing it.
+Only today's directory counts. Never borrow another date's plan or derive one
+from `docs/requirements.md`, because a run without a human's plan has no
+requested work (§6).
 
-The plan is the human's, so it is **read-only** to the run:
+The plan is **read-only** to the run:
 
-- **Do not add, remove, reorder or reword its tasks**, and do not mark them done
-  in it. Progress goes in `progress.md`. The one thing a run may add is §9.2's
-  discretionary list, appended under its own heading below everything the human
-  wrote.
-- **Where a task is underspecified**, derive its acceptance criteria while you
-  explore it (§2), and record them in `decisions.md`. Where it has two
-  defensible readings, that is §4. Do not settle it by editing the plan.
-- **Task numbers come from the plan.** Use its own numbering, or the order its
-  tasks appear in if it has none. That is `<N>` in every branch name (§2
-  step 0).
-- **The plan does not switch off this document.** A task that needs a §3
-  operation is abandoned as §3 says. There is one exception: an exception the
-  human wrote into the plan *explicitly*, naming the rule it lifts and the task
-  it applies to. That exception covers exactly what it names and nothing else.
-  No plan can lift the push rules in §2.6 or §3: nothing outside this run's
-  namespace, and no `--force`.
+- Do not add, remove, reorder, reword or tick off its tasks. Progress goes in
+  `progress.md`. The one addition allowed is §9.2's list, under its own heading
+  below everything the human wrote.
+- An underspecified task gets acceptance criteria derived while exploring it,
+  recorded in `decisions.md`. A task with two defensible readings goes to §4.
+- `<N>` in branch names is the plan's own numbering, or the order of its tasks
+  if it has none.
+- The plan does not switch off this document. The exception is one the human
+  wrote *explicitly*, naming the rule it lifts and the task it applies to, and
+  it covers exactly that. No plan lifts the push rules (§2.6, §3).
 
-The plan may be uncommitted when the run starts. It usually is, because it was
-written minutes earlier. Check which, before §1.3 moves HEAD:
-
-```bash
-git status --short -- "docs/ai/night-$(date +%F)/"
-```
-
-An untracked plan comes along through `git checkout dev` untouched. The first
-task branch commits it, together with the other state files (§1.5). If it was
-committed on some branch other than `dev`, checking out `dev` makes it vanish:
-confirm it is still readable after §1.3, and if it is not, stop as for a
-missing plan. Do not go and fetch it from the other branch.
+The plan is usually uncommitted. `git status --short -- docs/ai/night-<date>/`
+tells you. An untracked plan survives `git checkout dev`, and the first task
+commits it exactly as the human left it. If it was committed on a branch other
+than `dev`, check it is still readable after §1.3. If it is not, stop as for a
+missing plan and do not fetch it from that branch.
 
 ### 1.1 Database
 
-Every `scripts/dev.py` task begins with `makemigrations` and `migrate`, so a
-cluster that is down fails *all* verification, including `test:unit`. `dev.py`
-no longer starts it — the `db:start`/`db:stop` tasks were removed.
-
-```bash
-"%USERPROFILE%\Binaries\pgsql\bin\pg_isready" -h localhost -p 5432
-```
-
-Branch on the **exit code**, never on the message text — this cluster's messages
-are localised and are not in English:
+Every `dev.py` task except `lint`/`lint:workflows` runs `makemigrations` and
+`migrate` first, so a down cluster fails all verification. Branch on the **exit
+code** of the `pg_isready` above. The messages are localised, and the
+`%USERPROFILE%\…` form of the path does not expand in bash: it fails with exit
+1, which would be misread as "starting up".
 
 | Code | Meaning | Action |
 | ---- | ------- | ------ |
-| 0 | accepting connections | continue |
-| 1 | rejecting (starting up / shutting down) | wait 5s and retry, up to 3 times |
-| 2 | no response — not running | start it, below |
-| 3 | no attempt made (bad invocation) | stop the run; the command itself is wrong |
-
-To start it:
+| 0 | accepting | continue |
+| 1 | starting / shutting down | retry after 5s, up to 3 times |
+| 2 | not running | start it (below) |
+| 3 | bad invocation | stop the run |
 
 ```bash
-"%USERPROFILE%\Binaries\pgsql\bin\pg_ctl" start -D "%USERPROFILE%\Binaries\pgsql\data" -l "%USERPROFILE%\Binaries\pgsql\server.log"
+~/Binaries/pgsql/bin/pg_ctl start -D ~/Binaries/pgsql/data -l ~/Binaries/pgsql/server.log
 ```
 
-Then re-check `pg_isready` until it returns 0. If it has not within ~30s, read
-the tail of `server.log`, record it, and stop the run.
-
-Starting the cluster is the **only** environment repair permitted unattended. Do
-not install packages, create databases, modify `pg_hba.conf`, edit `.env`, or
-alter anything else about the machine. If the database exists but is empty or
-wrong, that is a stop, not a fix.
+Re-check until exit 0. If it is not up within ~30s, record the tail of
+`server.log` and stop. Starting the cluster is the **only** environment repair
+allowed. An empty or wrong database is a stop, not a fix.
 
 ### 1.2 Migration drift
-
-`dev.py` *writes* missing migrations rather than failing on them, so an
-unexpected migration file can appear without anyone deciding it should. Record
-the starting state:
 
 ```bash
 python manage.py makemigrations --check --dry-run --noinput
 ```
 
-Exit 0 means models and migrations agree. Non-zero means drift already exists —
-note it in `progress.md` as pre-existing, so a migration appearing later is not
-misattributed to your work.
+Non-zero means drift already exists. Record it as pre-existing, so a migration
+`dev.py` writes later is not misattributed.
 
 ### 1.3 Branches
 
-The run uses **one integration branch plus one branch per task**:
+One integration branch, plus one branch per task, each cut when its task starts
+(§2 step 0):
 
 ```text
-dev                              the base; never committed to
-└── night-<YYYY-MM-DD>           the run's integration branch
-    ├── night-<YYYY-MM-DD>-t1-<slug>    task 1, cut from the run branch
-    ├── night-<YYYY-MM-DD>-t2-<slug>    task 2, cut from it again, after t1 merged
-    └── …
+dev                                     base; never committed to
+└── night-<YYYY-MM-DD>                  the run branch; moves only by fast-forward
+    ├── night-<YYYY-MM-DD>-t1-<slug>
+    └── night-<YYYY-MM-DD>-t2-<slug>    cut after t1 merged
 ```
 
 ```bash
-git status                       # nothing mid-conflict or mid-rebase
-git checkout dev                 # the base, explicitly -- not wherever HEAD was
-git checkout -b night-<YYYY-MM-DD>
+git checkout dev && git checkout -b night-<YYYY-MM-DD>
 ```
 
-Never run unattended on `master` or `dev`.
-
-**The separator is a hyphen, not a slash, and that is not cosmetic.** Git stores
-refs as paths, so `night-2026-09-15` and `night-2026-09-15/t1-detail-page`
-cannot both exist — the first is a file where the second needs a directory. The
-slash form is the one you will reach for, and it fails on the *second* branch,
-after the run branch is already made:
-
-```text
-fatal: cannot lock ref 'refs/heads/night-2026-09-15/t1-detail-page':
-'refs/heads/night-2026-09-15' exists; cannot create
-'refs/heads/night-2026-09-15/t1-detail-page'
-```
-
-Task branches are cut in §2 as each task starts, not up front: a task branch cut
-before the task before it has merged is cut from the wrong commit.
-
-**`<YYYY-MM-DD>` is the date the run *started*, and never changes.** An
-overnight run crosses midnight, so by the second session `date` disagrees with
-the branch name — a run begun at 22:00 on the 16th is still `night-2026-09-16`
-at 03:00 on the 17th. Take the date from the existing branch when resuming
-(§10.2), never from today's clock. Two directories for one night is the failure
-this prevents.
+- **The separator is a hyphen.** Git stores refs as paths, so
+  `night-2026-09-15/t1-x` cannot coexist with `night-2026-09-15`. The failure
+  (`cannot lock ref`) only appears at the second branch.
+- **`<YYYY-MM-DD>` is the date the run started** and never changes, even after
+  midnight. A resumed session takes it from the branch, never from `date`.
+- Never work unattended on `master` or `dev`.
 
 ### 1.4 Remote
 
-Pushing is part of the loop now (§2.6), so establish up front whether it can
-work:
-
 ```bash
-git remote -v                    # is there an origin at all?
 git ls-remote --heads origin "night-<YYYY-MM-DD>*"
 ```
 
 | Result | Action |
 | ------ | ------ |
-| No remote configured | The run is local-only. Record it in `progress.md` and skip every push; this is not a failure. |
-| Remote reachable, no matching branches | Normal. Continue. |
-| Remote already has a branch in this run's namespace, **and you are resuming that run** (§10.2) | Expected — an earlier session pushed it. Confirm the remote tip is an ancestor of, or equal to, your local run branch (`git fetch origin && git merge-base --is-ancestor origin/night-<date> night-<date>`) and continue. |
-| Remote already has a branch in this run's namespace, **and you are starting a new run** | **Stop.** Either a run of the same date is still live elsewhere or someone else owns that name, and picking a different name unattended risks two agents writing to one namespace. |
-| Remote configured but unreachable | Continue local-only, record why. A network problem is not a reason to abandon work you can still do. |
+| No remote | Local-only run: record it, skip every push and poll. Not a failure. |
+| Reachable, no matching branch | Normal. |
+| Matching branch, **resuming** | Expected. Confirm with `git fetch origin && git merge-base --is-ancestor origin/night-<date> night-<date>`, then continue. |
+| Matching branch, **new run** | **Stop.** Someone else owns the namespace. |
+| Unreachable | Continue local-only, record why. |
 
-Do not create, delete or fetch anything else on the remote during preflight.
+Create, delete or fetch nothing else on the remote.
 
 ### 1.5 State
 
-Pre-existing uncommitted changes are **not yours**. Leave them alone, carry them
-onto the branch untouched, and list them in `progress.md` so the morning diff is
-readable. Never `git stash`, `git checkout --` or `git restore` a file you did
-not modify in this run.
-
-The human's `plan.md` is the one exception. It is the run's input, not someone
-else's unrelated work, so the first task commits it along with the state files
-it writes. Commit it exactly as the human left it.
-
-Then add `progress.md`, `decisions.md` and `questions.md` beside the plan in
-`docs/ai/night-<YYYY-MM-DD>/`. `docs/ai/README.md` says what each holds.
-`plan.md` already exists (§1.0). Do not create, overwrite or template it.
-
-**One state directory for the whole run**, named after the *run* branch, never
-after a task branch. It is committed on each task branch as that task updates
-it, and reaches the run branch when the task merges. Splitting it per task would
-scatter the record across branches that a reader has to find first.
-
-**Record two starting readings in `progress.md` before the first task**: the
-wall clock (§8.1) and the session budget figure the harness reports (§8.6).
-Beside them, record the run's **deadline as a full date and time**, worked out
-as §8.2 describes, e.g. `Deadline: 2026-09-18 08:00`.
-The budget thresholds are proportions of where the run started, so without the
-starting figure written down there is no denominator — and by the time it
-matters, the message that carried it may have been summarised away.
+- **Pre-existing uncommitted changes are not yours.** Carry them onto every
+  branch untouched, list them in `progress.md`, and never stash, restore or
+  commit them. Wherever this document says "clean", it means clean apart from
+  these.
+- Create `progress.md`, `decisions.md` and `questions.md` beside `plan.md`
+  (`docs/ai/README.md` says what each holds). There is one directory for the
+  whole run, named after the run branch. Never create, overwrite or template
+  `plan.md`.
+- Record in `progress.md`, before the first task: the wall clock, the session's
+  budget figure (§8.6), and the **deadline as a full date and time** (§8.2),
+  e.g. `Deadline: 2026-09-18 08:00`. The budget thresholds are proportions of
+  that starting figure, and compaction will lose it if it is not written down.
 
 ### 1.6 Baseline
 
+Run the three checks in parallel. `lint` and `adr_guards` never touch the
+database, so they cannot race `test`'s migrate:
+
 ```bash
-python scripts/adr_guards.py
-python scripts/dev.py lint
 python scripts/dev.py test
+python scripts/dev.py lint > docs/ai/night-<YYYY-MM-DD>/lint-baseline.txt 2>&1
+python scripts/adr_guards.py
 ```
 
-All three must pass before any new work begins. Without a green baseline, every
-"passed" reported afterwards is meaningless.
+All three must exit 0. Record the lint score line (`rated at N/10`). `lint`
+exits 0 on warnings, so the saved report is what later diffs are against.
+`lint:workflows` is not part of the baseline (§2 step 1).
 
-`python scripts/dev.py lint:workflows` is deliberately **not** part of the
-baseline. It is conditional, and §2 step 1 says when it runs.
-
-`lint` needs one extra step. It exits 0 while still printing warnings — errors
-are the only failing class — so its exit code alone tells you nothing about what
-it found. Save the report somewhere it can be diffed later:
-
-```bash
-python scripts/dev.py lint > docs/ai/<branch>/lint-baseline.txt 2>&1
-```
-
-Record the score line (`Your code has been rated at N/10`) in `progress.md`. A
-warning you introduced is invisible against a baseline you never read.
-
-**If the baseline is red, repairing it is task #1.** Reach green before starting
-the work you were actually asked to do — even if that consumes the whole run.
-Note in `progress.md` that the requested work did not start, and why. The
-three-attempt limit (§6) applies to the baseline repair too; if it holds after
-three cycles, stop the run.
-
-A repair is work, so it runs as a task through §2 like any other, on a branch
-`night-<YYYY-MM-DD>-t0-baseline`. Do not repair a red baseline on `dev` — the
-rule against working unattended on a shared branch has no exception for fixing
-something that was already broken.
-
-This step is last in preflight for two concrete reasons: `lint-baseline.txt` is
-written into the directory §1.5 creates, and a repair needs the branch §1.3
-creates. Running it earlier leaves its own output with nowhere to go.
+**A red baseline makes the repair task #1**, on
+`night-<YYYY-MM-DD>-t0-baseline`, through §2 like any task and never on `dev`.
+If it stays red after three cycles, stop the run. Record that the requested work
+did not start, and why.
 
 ---
 
 ## 2. The task loop
 
-Per task, `CLAUDE.md` §1 is unchanged — explore, plan, implement, verify,
-review — with these additions:
+`CLAUDE.md` §1 applies per task (explore, plan, implement, verify, review), with
+these additions.
 
-0. **Check the clock, then cut the task's branch**, from the run branch, with
-   nothing uncommitted:
+0. **Read clock and budget, then cut the branch** from the run branch:
 
    ```bash
-   date '+%F %H:%M'                        # NOT TZ='Europe/Stockholm' -- see §8.1
-   git checkout night-<YYYY-MM-DD>
-   git status --short                      # must be empty
+   date '+%F %H:%M'
+   git checkout night-<YYYY-MM-DD> && git status --short
+   git rev-parse HEAD                      # the task's base SHA -- record it (§7)
    git checkout -b night-<YYYY-MM-DD>-t<N>-<slug>
    ```
 
-   This is the only place the clock is read (§8.2). If it is past the cutoff for
-   the kind of task you were about to start, do not start it — go to §8.2's row
-   for that time instead. Record the reading with the task.
+   Past a cutoff for this kind of task (§8.2, §8.6), do not start it. Record
+   the clock, budget and **base SHA** with the task in `progress.md`. The base
+   SHA is what the morning report diffs the task's code against.
 
-   `<N>` is the task's position in `plan.md`; `<slug>` is two or three words of
-   what it does. Cut it **now**, not at the start of the run: it must be based
-   on the run branch as the previous task left it, or a task that depends on its
-   predecessor is built on a commit that predates it.
+1. **Verify before committing.** During the work, run the narrowest suite
+   (`test:unit`, `test:int`, `test:e2e`, or a single test via `-- -k`). Before
+   the commit, `dev.py test`, `dev.py lint` and `adr_guards.py` must all exit 0,
+   run in parallel as in §1.6. **Never commit on a failing or unrun check.** A
+   pylint error blocks the commit like a failing test.
 
-   A task that turns out to need a predecessor's work confirms the model rather
-   than breaking it — that work is already on the run branch, so it is already
-   in this branch's history.
+   - **Lint diff.** Diff the lint output against `lint-baseline.txt`. A new
+     warning is either fixed or recorded in `decisions.md` with its reason.
+     Warnings do not spend the three-cycle budget (§6).
+   - **`lint:workflows`** joins the gate only if the task changed a workflow
+     (any output from `git diff --name-only night-<date> -- .github/workflows/`
+     or `git ls-files --others --exclude-standard -- .github/workflows/`), or a
+     workflow is known to have failed, including by §2.6's poll. Otherwise do
+     not run it or list it. Exit 2 `not found` means the task cannot be
+     verified: abandon it (§3) and name the missing tool. Never call
+     `actionlint` directly, because alone it silently skips shellcheck and
+     pyflakes rules.
+   - **Negative controls** (breaking the code to prove a test fails): undo the
+     mutation by reversing your own edit. **Never `git checkout <file>` or
+     `git restore <file>` to undo a control.** That restores the last commit and
+     throws away the task's uncommitted work, which happened twice on
+     2026-09-17.
 
-1. **Verify before committing, always.** Run the narrowest relevant suite during
-   the work itself; before the commit, `python scripts/dev.py test`,
-   `python scripts/dev.py lint` and `python scripts/adr_guards.py` must all exit
-   0. **Never commit on a failing or unrun check** — a pylint error blocks a
-   commit exactly as a failing test does.
+2. **UI work needs a real browser**: a Playwright test in `tests/e2e/` using
+   `live_server`, per `.claude/rules/frontend.md`. `django.test.Client` does not
+   enforce CSRF, and that is how a 403 once shipped behind a green suite.
 
-   **`python scripts/dev.py lint:workflows` joins that list only when one of two
-   things is true**, and then it must exit 0 like the rest:
+3. **Independent review.** For a non-trivial task, dispatch the `reviewer`
+   subagent **in the background, at the same moment as step 1's final
+   checks**. Give it the task description, not your reasoning, and let it find
+   the diff itself. If the checks then force a non-trivial change, have it
+   re-review. Act on every finding, or record in `decisions.md` why not. "The
+   reviewer was wrong" is an acceptable entry; silence is not. Unattended, this
+   is the only review the change gets.
 
-   - **The task changed a workflow.** Decide from git, not from memory of what
-     you edited — before the commit, on the task branch:
+4. **Re-check migration drift** (§1.2) after touching `shop/models.py` or
+   `accounts/models.py`. An unintended migration is a finding.
 
-     ```bash
-     git diff --name-only night-<YYYY-MM-DD> -- .github/workflows/
-     git ls-files --others --exclude-standard -- .github/workflows/
-     ```
+5. **Record, then commit.** Update the state files on the task branch before
+   staging, so the evidence travels with the diff. The `progress.md` entry
+   holds:
 
-     The first lists committed and uncommitted changes against the run branch;
-     the second, new files git does not track yet. Any output at all means run
-     it.
-   - **A workflow has explicitly failed**: the task, `plan.md` or a human says a
-     CI run crashed or failed. Run it before diagnosing anything else, since a
-     broken workflow file is the cheapest cause to rule out. This session cannot
-     see CI results itself (`CLAUDE.md` §9), so do not go looking for a failure
-     to trigger this.
+   - branch and base SHA (step 0), clock and budget at start;
+   - **What the code does**: per file or group of files, the behaviour it adds
+     or changes, in plain words;
+   - **Why it was added**: the plan task or finding it answers, and any
+     non-obvious choice, with its `decisions.md` reference;
+   - the verification actually run, with real results (counts, coverage, lint
+     score), and the reviewer's verdict and what was done about it.
 
-   Otherwise do not run it, and do not list it as verification in `progress.md`
-   or the commit message.
+   Write the what and the why now, while the context is fresh. The morning
+   report copies them (§7). The entry cannot contain its own SHA, or whether the
+   push or CI succeeded. Those go into the next task's entry and the report.
 
-   When it does run, it is actionlint over `.github/workflows/`, with shellcheck
-   for the shell in `run:` steps and pyflakes for `shell: python` steps. CI does
-   not run it, so a mistake it would catch otherwise reaches GitHub first, on a
-   branch §2.6 is about to push. The three tools are standalone executables
-   under `%USERPROFILE%\Binaries\`. If the task exits 2 with `not found`, that
-   task cannot be verified and installing software is forbidden (§3), so abandon
-   the task as §3 directs and record which tool was missing. Do not work around
-   it by calling `actionlint` directly: without the other two tools it silently
-   skips their rules and still exits 0.
+   **Gate:** if the previous task's CI poll (step 6) has not resolved yet, wait
+   for its notification before this commit. Do something else useful meanwhile,
+   or end the turn and let the notification resume you. If it failed, handle
+   that first (step 6).
 
-   Lint then needs the comparison its exit code does not give you: diff its
-   output against `lint-baseline.txt` from §1.6. A warning your task introduced
-   is either fixed before the commit, or recorded in `decisions.md` with the
-   reason it stands. It does not pass unmentioned.
-
-   Warnings are not errors, so do not spend the three-attempt budget (§6) on
-   one. A warning you decide not to fix is a decision to write down, not a
-   failure to repair.
-2. **UI work needs a browser.** Not `django.test.Client`, which is what let a 403
-   through for two commits. Write or extend a Playwright test in `tests/e2e/`
-   using `live_server` — see `.claude/rules/frontend.md`.
-3. **Review independently.** Before committing a non-trivial task, dispatch the
-   `reviewer` subagent (`.claude/agents/reviewer.md`). Give it the task
-   description and let it establish the diff itself — do **not** give it your
-   implementation reasoning, which is the assumption set it exists to not share.
-   Unattended, this is the only review the change will get. Act on its findings
-   before committing, or record in `decisions.md` why a finding was not acted
-   on. "The reviewer was wrong" is an acceptable entry; omitting the finding is
-   not.
-4. **Re-check migration drift** after any task touching `shop/models.py`. A
-   migration you did not intend to create is a finding, not a side effect.
-5. **Record, then commit — in that order.** Update `progress.md`,
-   `decisions.md` and `questions.md` on the **task** branch *before* staging, so
-   the evidence is committed with the diff it describes rather than trailing it.
-
-   The entry carries what changed, the verification actually run and its real
-   output, and the branch name. It cannot carry the commit SHA — a commit cannot
-   contain its own hash — and it cannot yet carry whether the push succeeded.
-   Both belong to the morning report (§7), which is written last and knows them.
-
-   One commit per completed, verified task:
+   One commit per task, on the task branch:
 
    ```text
    <what changed, imperative, one line>
@@ -405,11 +290,10 @@ review — with these additions:
    Unattended run: docs/ai/night-<YYYY-MM-DD>/
    ```
 
-   Plus whatever attribution lines this session has been instructed to add.
-   The commit lands on the **task** branch.
-6. **Merge and push.** Only once the task is complete, verified green and
-   reviewed — the gate is the same one the commit passed, because a push is a
-   commit that other people can now see.
+   Add whatever attribution lines this session is instructed to add.
+
+6. **Merge, push, and poll in the background.** Only after a complete, green,
+   reviewed task:
 
    ```bash
    git checkout night-<YYYY-MM-DD>
@@ -418,300 +302,279 @@ review — with these additions:
    git push origin night-<YYYY-MM-DD>
    ```
 
-   `--ff-only` is the check, not a formality. The task branch was cut from the
-   run branch and only this run writes to either, so a fast-forward must be
-   possible; if git refuses one, something happened that this protocol does not
-   model. **Stop the run** rather than reaching for a merge commit or a rebase.
+   A refused `--ff-only` means something this protocol does not model is
+   writing to the run's branches: **stop the run**. Never fall back to a merge
+   commit or a rebase. A **rejected push**: record it, push nothing further for
+   the rest of the run, and keep working locally. No PRs, ever. Local-only runs
+   skip this step's pushes and polling.
 
-   The rules on the push itself:
+   Then start the poll with the Bash tool's `run_in_background: true`, record
+   `CI: pending` for the task, and **go straight on to the next task**. The
+   poll sleeps inside its own process and exits once every expected branch has
+   a completed run, after 30 minutes, or on repeated API errors:
 
-   - **Only branches in this run's own namespace** — `night-<YYYY-MM-DD>` and
-     its `-t<N>-` branches. Never `master`, never `dev`, whatever the reason.
-     Check the branch name against the namespace before every push; there is no
-     second line of defence.
-   - **Never `--force`, never `--force-with-lease`**, never `--delete`, never
-     `--tags`, never push another branch's ref.
-   - **A rejected push is a stop, not a problem to solve.** These branches are
-     the run's alone, so a non-fast-forward rejection means something you do not
-     understand is writing to them. Do not force, do not pull-and-retry. Record
-     it in `progress.md`, stop pushing for the rest of the run, and keep working
-     locally — the commits are safe either way.
-   - **No pull requests.** Pushing a branch publishes work for a human to look
-     at. Opening a PR asks for a merge, and that is their call.
-   - **Local-only runs push nothing** and are not lesser for it (§1.4).
+   ```bash
+   python - "$(git rev-parse HEAD)" night-<date>-t<N>-<slug> night-<date> <<'PY'
+   import json, sys, time, urllib.request
+   sha, want = sys.argv[1], set(sys.argv[2:])
+   url = ("https://api.github.com/repos/lazurq-png/Questionable-candy"
+          f"/actions/runs?head_sha={sha}")
+   hdr = {"Accept": "application/vnd.github+json", "User-Agent": "night-run"}
+   end, errors = time.time() + 1800, 0
+   time.sleep(300)
+   while True:
+       try:
+           with urllib.request.urlopen(urllib.request.Request(url, headers=hdr),
+                                       timeout=30) as r:
+               runs = json.load(r).get("workflow_runs", [])
+           errors = 0
+       except Exception as exc:  # network, rate limit, non-200
+           errors += 1
+           if errors >= 2:
+               print("UNOBSERVED api-error", exc)
+               sys.exit(0)
+           runs = []
+       done = [x for x in runs if x["status"] == "completed"]
+       if want <= {x["head_branch"] for x in done}:
+           for x in done:
+               print(x["head_branch"], x["conclusion"], x["html_url"])
+           sys.exit(0)
+       if time.time() > end:
+           print("UNOBSERVED timeout",
+                 [(x["head_branch"], x["status"]) for x in runs])
+           sys.exit(0)
+       time.sleep(120)
+   PY
+   ```
 
-   Pushing changes what a mistake costs. A commit that stays local can be
-   rewritten; a pushed one is on someone else's machine, and a secret in it is
-   disclosed, not merely written. The rules in §3 against credentials in files
-   and against touching `.env` stop being hygiene at this point and start being
-   the thing that prevents a disclosure.
+   A `PROVISIONAL:` branch (§4) is pushed alone, so pass only its own name.
+   When the notification arrives, record the outcome in `progress.md` (it is
+   committed with the next task):
 
-   **A push starts a check; it is not itself one.** `.github/workflows/ci.yml`
-   triggers on `night-**`, so pushing does hand the branch to CI — the ADR
-   guards, lint, and the suite including `tests/e2e/` against a real PostgreSQL
-   and a real browser.
+   - **All `success`** → "CI passed", with the run URLs. This is the only
+     outcome that may say so.
+   - **`UNOBSERVED`, or `cancelled`** → "pushed; CI not observed", and why.
+     Never infer a result.
+   - **`failure`** → a verification failure found late. It continues this
+     task's three-cycle count (`.claude/rules/debugging.md` §8):
+     1. Name the failing jobs: append `/jobs` to the run's API URL. Do not
+        fetch logs, which needs auth and is outside §3's exception.
+     2. Park the task in flight. Stash **only the paths it touched**
+        (`git stash push -- <paths>`), never the pre-existing changes.
+     3. Check out task N's branch (still the run-branch tip, since the gate in
+        step 5 kept the next task from merging). Reproduce the failure locally
+        with the matching check, fix it in a **new commit** (never `--amend`,
+        because the commit is pushed), then steps 1–6 again: fast-forward,
+        push both, poll the new SHA.
+     4. Return: `git checkout <in-flight branch> && git merge --ff-only
+        night-<date> && git stash pop`. The in-flight branch has no commits of
+        its own (one commit per task, at the end), so this fast-forward always
+        succeeds.
+     5. On the third failed cycle, leave task N's branches pushed as they are
+        (nothing pushed may be rewritten), record the three hypotheses and what
+        each CI run showed, and continue. A failure that does not reproduce
+        locally is evidence that the environments differ. Record that; do not
+        guess. A second task reaching three cycles stops the run (§6).
 
-   You cannot see the result. CI runs on GitHub; this session has no way to
-   observe it and must never report one (`CLAUDE.md` §9). So the honest line in
-   the morning report is *"pushed; CI will have run on it, result unseen from
-   here"* — never "CI passed". If the push itself was rejected or skipped
-   (§1.4), say that instead, because then not even CI has looked.
+7. **Never commit directly to the run branch.** It moves only by fast-forward,
+   which is what makes `--ff-only` a real check. Anything left to record goes
+   in the next task's commit, or the report's.
 
-7. **Leave the tree clean.** After the merge the run branch is checked out with
-   nothing modified, which is exactly what the next task's step 0 requires.
+**Provisional work** (built on a §4 assumption) is one commit prefixed
+`PROVISIONAL:`, on its own task branch, **pushed but never merged**, so no later
+task inherits the assumption. Name the branch in `questions.md`.
 
-   **Never commit directly to the run branch.** It moves only by fast-forward
-   from a task branch — that is the property that makes `--ff-only` a real
-   check rather than a ritual. If something still needs recording at this point
-   (a refused push, most likely), it is written into `progress.md` and committed
-   by the *next* task, or by the report task if there is no next one.
-
-Provisional work — anything built on a parked assumption (§4) — goes in its own
-commit, prefixed `PROVISIONAL:`, never mixed with settled work. Its task branch
-is **pushed but not merged** into the run branch: a parked assumption must not
-become the base the next task is cut from. Name the branch in `questions.md`
-beside the question it depends on.
-
-An **abandoned** task (§3, §6) leaves its branch local, unmerged and unpushed.
-Name it in `progress.md` so the work can be found, and move on. Do not delete
-it — and do not push it either; a pushed branch reads as an offer, and this one
-is a dead end.
+**Abandoned work** (§3, §6) stays on its local branch, unmerged and unpushed. A
+pushed branch reads as an offer. Name it in `progress.md` and do not delete it.
 
 ---
 
 ## 3. Forbidden operations
 
-Never, unattended, regardless of how reasonable it seems at the time:
+Never, unattended:
 
-- `git push --force` or `--force-with-lease`, in any form, for any reason
-- `git push` to `master` or `dev`, or to any branch outside this run's own
-  `night-<YYYY-MM-DD>` namespace — §2.6 permits exactly that namespace and
-  nothing else
-- `git push --delete`, pushing tags, or pushing a ref this run did not create
-- Opening a pull request. Pushing offers work; a PR asks for a merge
-- Rewriting history: `rebase`, `commit --amend`, `reset --hard` onto anything but
-  your own uncommitted work from this run — and once a branch is pushed, this is
-  no longer only a rule about tidiness, because the old commits are already
-  somewhere else
-- Discarding or stashing changes you did not make in this run
+- `git push --force` / `--force-with-lease`, `--delete`, `--tags`, or a push to
+  anything outside this run's `night-<YYYY-MM-DD>` namespace: never `master`,
+  never `dev`, never a ref this run did not create. Check the name before every
+  push.
+- Opening a pull request.
+- Rewriting history (`rebase`, `commit --amend`, `reset --hard`) except over
+  your own uncommitted work. Once pushed, never.
+- Stashing, restoring or discarding changes you did not make in this run.
 - Destructive schema operations: dropping or renaming a table or column,
-  `migrate <app> zero`, deleting or editing an existing migration file, `flush`,
-  `dropdb`
-- Touching `.env`, or writing any real credential to any file
-- Adding a dependency to `requirements.txt` — `scripts/adr_guards.py` enforces
-  ADR 0003 (no DRF) and ADR 0005 (test stack ≤ 5 packages), and changing either
-  means superseding an ADR, which is a human decision
-- Weakening a test, an assertion, or a security control to make something pass
-  (`AGENTS.md` §19)
+  `migrate <app> zero`, editing or deleting an existing migration, `flush`,
+  `dropdb`.
+- Touching `.env`, or writing any real credential anywhere. Pushed, that is a
+  disclosure, not a mess.
+- Adding a dependency (`requirements*.txt`). Whether one earns its place is a
+  human's decision, and ADR 0003 rules out DRF outright.
+- Weakening a test, an assertion or a security control to make something pass
+  (`AGENTS.md` §19).
 - Installing software, changing PATH, or modifying anything outside this
-  repository — except starting the PostgreSQL cluster per §1.1
-- Deleting a file you did not create in this run
-- Contacting any external service
+  repository, except starting PostgreSQL (§1.1).
+- Deleting a file you did not create in this run.
+- Contacting any external service, **except** `git push`/`fetch` to `origin`
+  for this run's branches and the §2.6 poll: read-only, no token, only on
+  commits this run pushed.
 
-**If a task requires one of these, abandon the task.** Write to `questions.md`
-what was needed, why the rule blocked it, and the exact command or diff you
-would have run, for a human to approve verbatim. Then move to the next
-independent task.
-
-Abandoning is cheap now that each task has its own branch, and needs no
-`reset --hard`:
+**If a task needs one of these, abandon it.** Write in `questions.md` what was
+needed, which rule blocked it, and the exact command or diff for a human to
+approve verbatim. Then:
 
 ```bash
-git restore .                    # discard this task's uncommitted work only
-git checkout night-<YYYY-MM-DD>  # the branch is simply never merged
+git restore -- <paths this task touched>    # never a bare `git restore .`: pre-existing changes are not yours
+git checkout night-<YYYY-MM-DD>
 ```
 
-Anything already committed stays on the abandoned branch, which is the record.
-Do not delete it, do not merge it, do not push it (§2.6). `git restore` here is
-safe *because* the branch is yours — the rule against restoring files you did
-not modify still holds for anything outside this task.
-
-Do not route around the rule, and do not implement the parts up to the boundary —
-a half-applied schema change is worse than none.
+Do not implement up to the boundary. A half-applied schema change is worse than
+none.
 
 ---
 
 ## 4. Ambiguity: park and continue
 
-When a requirement has two defensible readings, or an architectural fork appears
-that `AGENTS.md` §18 would normally have you stop and ask about:
+When a requirement has two defensible readings, or a fork appears that
+`AGENTS.md` §18 would have you ask about:
 
-1. Write to `questions.md`: the question, each option with its consequence, your
-   recommendation, and what you did in the meantime.
-2. Take the **smallest reversible** interpretation. Prefer the one that is
-   cheapest to undo, not the one you think is most likely right.
-3. Commit it separately, prefixed `PROVISIONAL:`, on its own task branch.
-4. Push that branch but **do not merge it** into the run branch (§2.6), and name
-   it in `questions.md` beside the question it waits on.
-5. Continue with the next independent task, cut fresh from the run branch.
-
-Do not stop the run, and do not build further work on top of a parked assumption
-— if the next task depends on the answer, park that one too and move on.
-
-Leaving provisional work unmerged is what makes that last rule hold by
-construction rather than by memory: the next task is cut from the run branch, so
-an assumption that never reached it cannot be inherited by accident.
+1. In `questions.md`: the question, each option with its consequence, your
+   recommendation, and what you did meanwhile.
+2. Take the **smallest reversible** interpretation: cheapest to undo, not most
+   likely right.
+3. Build it as a `PROVISIONAL:` commit on its own branch. Push it, do not merge
+   it (§2), and name the branch beside the question.
+4. Continue with the next independent task. If a task depends on the answer,
+   park it too.
 
 ---
 
 ## 5. Task selection
 
-Good unattended tasks are ones whose completion can be *proven* by a command:
-behaviour with testable acceptance criteria, bug fixes that start from a failing
-test, coverage for existing behaviour, documentation of things the repository can
-be read to confirm.
-
-Poor unattended tasks, to be logged for supervised work instead: primarily visual
-changes, anything whose acceptance criteria are a matter of taste, exploratory
-refactors with no behavioural definition of done, and anything requiring a
-decision the repository cannot settle.
-
-**Visual work is the one bounded exception**, and only once the requested list
-is finished — §9 sets out what may be built, the four properties that can
-actually be verified, and the much larger set that cannot. It does not overturn
-the paragraph above: styling is still a poor unattended task, which is why §9
-constrains it so tightly and why its output is reported as measured rather than
-reviewed.
+Good unattended tasks are provable by a command: testable behaviour, bug fixes
+that start from a failing test, coverage, documentation the repository can
+confirm. Poor ones, which should be logged for supervised work: primarily visual
+changes, matters of taste, refactors with no behavioural definition of done, and
+decisions the repository cannot settle. Visual work is the one bounded exception
+(§9), only after the requested list.
 
 ---
 
 ## 6. Stop conditions
 
-End the run, write the state, and leave the branches as they are — merge nothing
-further, push nothing further, delete nothing:
+End the run (merge, push and delete nothing further) when:
 
-- **Three consecutive failed verify → repair cycles on one failure.** Revert that
-  task, record all three hypotheses and what each eliminated, and move on —
-  `.claude/rules/debugging.md` §8. If a *second* task also hits three, stop the
-  run entirely: something environmental is wrong.
+- **A second task hits three failed verify → repair cycles.** The first one
+  just gets abandoned (§3), with all three hypotheses recorded
+  (`.claude/rules/debugging.md` §8), and the run moves on.
 - **The database cannot be brought up** (§1.1).
-- **The baseline cannot be made green** in three attempts (§1.6).
-- **The remote already holds a branch in this run's namespace** (§1.4).
-- **A fast-forward merge onto the run branch is refused** (§2.6). The run owns
-  both branches, so a refusal means the model is wrong about who is writing to
-  them.
-- **The wall clock reaches the deadline** (§8.2). Neither this nor the budget
-  discards the task in flight: §8.4 decides whether it runs to completion or is
-  abandoned, and the 08:30 ceiling keeps "finishing up" finite.
-- **The session budget reaches its roundup threshold** (§8.6). This ends the
-  *session*, and only ends the *run* when this is the session that owes the
-  morning report — otherwise it hands off (§10.3) and a later session resumes.
-- **The task list is complete _and_ the discretionary work in §9 is done or has
-  no time left.** Stopping early with a clean, documented result is a success.
-  Outside §9's explicit bounds, do not invent work to fill the night —
-  unrequested scope is what `AGENTS.md` §7 exists to prevent, and nobody is
-  awake to catch it.
+- **The baseline stays red** after three attempts (§1.6).
+- **The remote already holds this run's namespace** at the start of a new run
+  (§1.4).
+- **A `--ff-only` merge is refused** (§2.6).
+- **The clock reaches the deadline** (§8.2). §8.4 decides whether the task in
+  flight finishes; 08:30 is the ceiling.
+- **The budget reaches roundup** (§8.6). That ends the *session*. It ends the
+  *run* only if this session owes the report; otherwise hand off (§10.3).
+- **The list is done and §9 is done or out of time.** Stopping early with a
+  clean record is a success. Outside §9, do not invent work.
 
-A **rejected push** is deliberately not on this list. It stops further pushing
-for the rest of the run (§2.6) and the work continues locally; the commits exist
-on the branch whether or not anyone else can see them yet.
+A rejected push is **not** a stop. It ends pushing, not work.
 
-On stopping, always: working tree clean or its state explained, `progress.md`
-current, final commit verified, and the run branch left pointing at the last
-task that actually passed its checks. A half-merged task is worse than an
-unmerged one.
+On stopping: the tree clean or its state explained, `progress.md` current,
+outstanding CI polls resolved or recorded as pending, and the run branch at the
+last task that passed its checks.
 
 ---
 
 ## 7. Morning report
 
-The **run's** last act, not a session's. It begins when the last task ends — the
-list running out, a stop condition, or the clock deadline resolving the task in
-flight (§8.4) — and it is a summary at the top of `progress.md`, under exactly
-the heading `## Morning report`. §1 finds finished runs by that heading, so a
-run whose report is headed differently looks unfinished and gets resumed.
+The **run's** last act. It is a task like any other, on
+`night-<YYYY-MM-DD>-t<N>-report`, merged and pushed, and it goes at the top of
+`progress.md` under exactly `## Morning report`. §1 recognises a finished run by
+that heading. It is never cut short for the clock (§8.5). An earlier session
+writes §10.3's handoff instead, which carries the same content.
 
-It is the one thing never cut short for the clock (§8.5).
+**Before writing it, let every outstanding CI poll resolve** (or reach its own
+30-minute timeout). The report's own push is not waited on.
 
-A session that stops earlier, with 08:00 still ahead, writes the handoff of
-§10.3 instead — which must carry everything below, because it becomes this
-report if no further session runs.
+Build it from `progress.md`, `questions.md` and `git`, not from memory. It
+contains:
 
-It is written as a task like any other — its own branch,
-`night-<YYYY-MM-DD>-t<N>-report`, merged and pushed — because the run branch
-moves only by fast-forward (§2 step 7). This is also the moment the SHAs and
-push outcomes that the per-task entries could not contain get filled in.
+- **Headline**: two or three sentences on what a user of the site can now do,
+  and whether everything requested landed.
+- **Completed**: a table of task, branch, SHA, verification actually run, and CI
+  outcome. Use "CI passed" only with a `success` in hand and the run URL,
+  otherwise "CI failed, fixed in N cycles (job)", "abandoned after 3 CI cycles
+  (job)", or "pushed; CI not observed".
+- **Code by task** (below).
+- **Discretionary (§9)**: described as **built and measured, not reviewed**,
+  with the before/after screenshot paths and the §9.4 checks that passed.
+- **Provisional**: what was built, on which question, on which branch.
+- **Abandoned**: the task, why, what it needed, and its local branch.
+- **Questions**: the `questions.md` queue, most consequential first.
+- **Clock and budget**: the starting figures (§1.5), the reading at each task
+  start, and **which deadline ended the run**: clock, budget, list, or a stop
+  condition.
+- **State**: the run branch and tip, which branches reached the remote, green or
+  not, anything uncommitted, and the lint score against the baseline.
+- **What no test has done**: at minimum, that nobody looked at the pages.
 
-- **Completed** — task, branch, commit SHA, verification actually run, and
-  whether it was pushed
-- **Discretionary (§9)** — visual work, under its own heading, described as
-  **built and measured, not reviewed**, with the before/after screenshot paths
-  and the §9.4 checks that passed. Never phrased so a reader could think the
-  design was looked at
-- **Clock and budget** — the readings at each task boundary, the two starting
-  figures from §1.5, and **which deadline ended the run**: the clock, the
-  budget, the task list, or a stop condition. A reader who knows the run ended
-  on budget at 04:00 reads the rest of the report differently from one who
-  thinks it finished everything it meant to
-- **Provisional** — what was built on a parked assumption, which question, and
-  the branch it is on (pushed, deliberately unmerged — §2.6)
-- **Abandoned** — task, why, what was needed, and the local branch it is on
-- **Questions** — the `questions.md` queue, most consequential first
-- **State** — the run branch, every task branch and which of them reached the
-  remote, whether the run branch is green, whether anything is uncommitted, and
-  the lint score against the §1.6 baseline
+### Code by task
 
-On pushing, say what it did and did not buy. A pushed `night-**` branch *is*
-picked up by CI, but this session cannot see the outcome — so write "pushed; CI
-triggered, result not observable from here", never "CI passed". The difference
-matters to a reader deciding whether to look.
+For every completed, discretionary and provisional task, the report shows the
+code the task added, then says what it does and why it was added. Generate the
+diffs from git rather than retyping them. That keeps them exact, and they never
+need to pass through your context:
 
-Report only what was observed. `CLAUDE.md` §9 applies with full force here: there
-is nobody to catch an overstated result before it is believed and acted on.
-"Could not verify X" is a useful sentence; a claimed passing suite that never ran
-is a lie the morning will act on.
+```bash
+# tasks.txt, in your scratchpad directory: one line per task, <N> <base SHA> <task branch>
+while read -r n base br; do
+  stat=$(git diff --shortstat "$base" "$br" -- . ':(exclude)docs/ai/')
+  printf '#### T%s — `%s`\n\n<!-- T%s what/why -->\n\n' "$n" "$br" "$n"
+  printf '<details><summary>Code: %s</summary>\n\n~~~~diff\n' "$stat"
+  git diff "$base" "$br" -- . ':(exclude)docs/ai/'
+  printf '~~~~\n\n</details>\n\n'
+done < tasks.txt > code.md                  # both in the scratchpad, never the repo
+```
+
+The range runs from the task's base SHA to its branch tip, so CI-fix commits
+are included. The state files are excluded, and tests, templates and migrations
+are kept. Then replace each `<!-- T<N> what/why -->` marker with that task's
+entry from §2 step 5:
+
+- **What it does**: per file or group of files, in behavioural terms, e.g.
+  "`shop/views.py`: `checkout` now refuses an empty cart with a redirect to the
+  catalog".
+- **Why it was added**: the plan task or finding, plus any non-obvious choice
+  (`D<n>`).
+
+Put the section inside the morning report, after the Completed table. The
+tilde fence survives backtick fences in diffed Markdown. The collapsed
+`<details>` keeps the report readable. A task whose diff is only state files
+says so in one line instead of an empty block.
+
+Report only what was observed. "Could not verify X" is useful. A claimed
+passing suite that never ran is a lie the morning will act on. Under a tight
+budget, cut prose, never facts.
 
 ---
 
 ## 8. Deadlines: the clock and the budget
 
-The run has **two** deadlines and ends at whichever arrives first:
+The run ends at whichever comes first: **08:00 Europe/Stockholm** (§8.1–§8.5),
+or the session **budget** (§8.6). Both resolve through §8.4's
+finish-or-abandon, and both reserve room for the report instead of leaving it
+the remainder.
 
-- **the clock** — 08:00 Europe/Stockholm (§8.1–§8.3), because someone will read
-  the result over breakfast, and a run still mid-task at that moment hands them
-  a half-finished branch and no report;
-- **the session budget** (§8.6), because a run that spends its last tokens on a
-  commit leaves exactly the same thing: branches nobody can interpret.
+### 8.1 Reading the clock
 
-Both resolve the same way — §8.4 decides whether the task in flight finishes or
-is abandoned, and §8.5's ceiling keeps that finite. The morning report is not
-what you do with whatever is left over; it is reserved for, on both axes.
+**Never `TZ='Europe/Stockholm' date`.** Git Bash here has no zoneinfo and
+silently returns GMT (measured 2026-09-16: two hours early, identical to
+`TZ=UTC`). The machine clock is on Stockholm time, so use `date '+%F %H:%M'`.
+Its `WEST` label is wrong but cosmetic. Always read the date together with the
+time.
 
-### 8.1 Reading the clock — do not use `TZ`
-
-**`TZ='Europe/Stockholm' date` is wrong on this machine.** Git Bash here ships
-no zoneinfo database, so it silently falls back to GMT for any named zone.
-Measured on 2026-09-16:
-
-```text
-date                         ->  Wed Sep 16 09:18:58 WEST 2026   (correct)
-TZ='Europe/Stockholm' date   ->  2026-09-16 07:18 GMT            (2h early)
-TZ='UTC' date                ->  2026-09-16 07:18 GMT            (identical!)
-```
-
-The last two agreeing is the tell: the named zone was never resolved. Trusting
-it would end the run at 06:00 in summer and 07:00 in winter.
-
-**Use the machine's own clock**, which is set to Stockholm — the `WEST` label
-Git Bash prints is cosmetic and also wrong, but the time itself is right:
-
-```bash
-date '+%F %H:%M'
-```
-
-Always read the date along with the time. A bare `HH:MM` cannot tell 23:10
-before the deadline from 07:45 just before it (§8.2).
-
-Confirm that once during preflight, alongside §1.1. The system zone must be
-`W. Europe Standard Time`, the Windows id covering Stockholm:
-
-```bash
-powershell -NoProfile -Command "[System.TimeZoneInfo]::Local.Id"
-```
-
-If it reports anything else, the machine is not on Swedish time and `date` is
-not the deadline you were given. Convert explicitly instead, and record in
-`progress.md` that you had to:
+If preflight's time-zone id is not `W. Europe Standard Time`, record that, and
+read the time with:
 
 ```bash
 powershell -NoProfile -Command "[System.TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, [System.TimeZoneInfo]::FindSystemTimeZoneById('W. Europe Standard Time')).ToString('yyyy-MM-dd HH:mm')"
@@ -719,455 +582,201 @@ powershell -NoProfile -Command "[System.TimeZoneInfo]::ConvertTimeFromUtc([DateT
 
 ### 8.2 The checkpoints
 
-**The deadline is the first 08:00 after the run started, with its date.** A run
-started at 22:00 on 2026-09-17 has the deadline `2026-09-18 08:00`, and so does
-one started at 00:30 on the 18th. A run started at 14:38 on the 16th has
-`2026-09-17 08:00`. §1.5 writes it into `progress.md`.
+**The deadline is the first 08:00 after the run started, with its date**: a
+start at 22:00 on the 17th or at 00:30 on the 18th both give
+`2026-09-18 08:00`. It belongs to the run. A resumed session copies it from
+`progress.md` and never recomputes it. Every time below is on the deadline's
+date, so compare full dated readings: 23:10 on the 17th is not "after 07:30".
 
-**Every time in this section, and in §8.3–§8.6 and §9.1, is on the deadline's
-date.** "From 07:30" means `2026-09-18 07:30`, not any 07:30. Compare the dated
-reading from §8.1 against that. At 23:10 on the 17th the rules below have not
-started yet, even though `23:10` is later than `07:30` as a string.
-
-**The deadline belongs to the run, not the session.** A resumed session reads it
-from `progress.md` (§10.2). It never works it out again from its own start time:
-a session resumed at 09:46 would otherwise compute tomorrow's 08:00 and carry on
-past the real deadline.
-
-Check the clock **and the budget** (§8.6) at every task boundary — §2 step 0,
-before cutting a branch — and record both readings in `progress.md` with that
-task.
-
-**After 07:00, also check them at the seams inside a task**: when a verification
-run finishes, before starting a repair cycle, and before dispatching the
-`reviewer`. Those are already pauses, so a check there costs nothing — and a
-threshold you can only observe at a task boundary cannot fire during the task it
-is meant to govern. Do not check in the middle of a verify cycle; interrupting
-one tells you less and takes longer.
-
-The table below is the clock. §8.6 has the budget's, with the same three stages;
-whichever threshold is reached first governs.
+Read clock and budget at every task start (§2 step 0). After 07:00, also read
+them at the pauses inside a task: after a verification, before a repair cycle,
+before dispatching the `reviewer`, and at the §2 step 5 gate.
 
 | From  | Rule |
 | ----- | ---- |
-| 07:15 | Start no new **discretionary** task (§9). Requested work may still start. |
-| 07:30 | Start no new task of any kind. Carry on with the one in flight. |
-| 08:00 | **The deadline.** Start nothing further. The task in flight either runs to completion or is abandoned — §8.4 decides which, and it is a judgement about the task's *state*, not about how much you want to finish it. Then the report. |
-| 08:30 | **Ceiling** (§8.5). Abandon whatever is in flight, however close. Report now. |
+| 07:15 | No new discretionary (§9) task. |
+| 07:30 | No new task of any kind. |
+| 08:00 | **Deadline.** The task in flight finishes or is abandoned (§8.4). Then the report. |
+| 08:30 | **Ceiling** (§8.5). Abandon whatever is in flight. Report now. |
 
 ### 8.3 Estimating
 
-You will estimate badly, so anchor on measurement rather than feel. In the
-2026-09-15 run a task took **20–45 minutes** of wall clock end to end, including
-the `reviewer` pass (4–7 minutes on its own) and several full `dev.py test`
-runs.
-
-So: **do not start a task after 07:30**, and do not start one you believe is
-large after 07:00. The overrun in §8.4 is there to save a task that is nearly
-finished, not to make a late start survivable — a task abandoned at the ceiling
-spent the night's remaining time and produced nothing, whereas stopping early
-with a clean report is explicitly a success (§6).
-
-If the requested list runs out well before the cutoff, that is what §9 is for.
+From the 2026-09-17 run's task start times: the median task took **~20
+minutes**, the range was 3–50, and the `reviewer` took 4–7 minutes of that. CI
+now overlaps the next task (§2.6), so it adds wall-clock time only when it
+fails, and at the very end, where the report waits on the last poll. Do not
+start a task you think is large after 07:00. §8.4's overrun rescues a nearly
+finished task. It does not make a late start survivable.
 
 ### 8.4 At the deadline: finish or abandon
 
-08:00 stops you *starting* things. It does not throw away a task that is nearly
-done — an hour of finished work discarded at the last minute helps nobody, and
-on a per-task branch a completed task is worth having even when the run ends
-immediately afterwards.
+At 08:00, **run the task in flight to completion** only if all of these hold:
+the change is written, verification is green or running and expected to pass,
+the `reviewer` has run or there is room for it, and no failure is unresolved.
+Otherwise **abandon it** (§3). Finishing from an unknown state is starting new
+work against the clock.
 
-So at 08:00, put one question to the task in flight: **is what remains the
-ordinary steps of §2, or is it unknown?**
-
-**Run it to completion** when all of these hold:
-
-- the change is written — you are not still deciding what to do;
-- verification is green, or running and expected to be;
-- the `reviewer` pass has run, or there is room for it (4–7 minutes);
-- nothing is sitting in a verify → repair cycle with an unresolved failure.
-
-Then finish §2 steps 1–7 as normal: verify, review, act on the findings, record,
-commit, merge, push.
-
-**Abandon it** (§3) when any of those fails — still mid-implementation, an
-unresolved failure, or a reviewer finding that needs real work. Finishing from
-an unknown state is not finishing; it is starting something new against a clock,
-and that is how a rushed commit gets made at 08:20 with nobody awake to catch
-it.
-
-Two things are never traded for the clock:
-
-- **the reviewer pass.** Skipping it to make the deadline is weakening a control
-  to make something pass (§3), and unattended it is the only review the change
-  will ever get.
-- **a failing check.** The commit gate in §2.1 has no time-based exception.
-
-If either cannot be honoured in the time remaining, the answer is abandon, not
-hurry.
-
-**Discretionary work (§9) gets no overrun.** At 08:00 a visual task in flight is
-abandoned outright. The allowance exists for work someone actually asked for.
+Never traded for time: **the reviewer pass** and **a passing gate**. If either
+cannot be honoured, abandon. Discretionary work gets no overrun: at 08:00 it is
+abandoned outright.
 
 ### 8.5 The ceiling
 
-**08:30 is absolute.** Whatever is in flight is abandoned, however close it
-looks. "Nearly done" at 08:30 is the same sentence that was true at 08:00, and
-hearing it twice is evidence the estimate was wrong — not that another ten
-minutes will do it.
-
-Write the report and stop. A run that overruns its ceiling has stopped being an
-overnight run and become an unsupervised one that somebody is now waiting on.
-
-The report itself is never cut short for the clock. It is the deliverable, it
-takes minutes, and a run that ends without one has produced branches nobody can
-interpret.
+**08:30 is absolute.** "Nearly done" twice is evidence the estimate was wrong.
+Abandon, write the report, stop. The report itself is never cut for the clock.
 
 ### 8.6 The budget
 
-The clock is not the only thing that runs out. A session has a finite budget,
-and spending the last of it on a commit produces the failure the deadline exists
-to prevent: work that landed, and no report saying what it was or whether it
-passed.
-
-**The report is reserved for, not left over.**
-
-#### Reading it
-
-The harness surfaces a remaining figure in a system reminder, of the form
-`<total_tokens>N tokens left</total_tokens>`. It decrements across the run — an
-unattended run is effectively one long turn — so it is a real gauge rather than
-a per-message reading.
-
-Read it at the same points as the clock (§8.2): every task boundary, and after
-07:00 at the seams inside a task. **Read it; do not estimate it.** The whole
-problem with budget is that the feeling of having plenty is uncorrelated with
-having plenty.
-
-#### The thresholds
-
-Proportions of the figure **this session** started with, with absolute floors,
-because a percentage of a small budget is not enough to write anything:
+**Read** the harness's `<total_tokens>N tokens left</total_tokens>` at the same
+checkpoints as the clock. Do not estimate it. Thresholds are proportions of the
+figure **this session** started with, and whichever of the two numbers is larger
+applies:
 
 | Remaining | Rule |
 | --------- | ---- |
-| below 30%, or 150k — whichever is larger | **Roundup.** Start nothing new, and put the task in flight to §8.4's finish-or-abandon test, exactly as at 08:00. Then close out — with the morning report if this is the final session, otherwise the handoff of §10.3. |
-| below 4%, or 40k | **Ceiling.** Abandon whatever is in flight and close out now. Mirrors 08:30. |
-
-#### The 30% is only reserved when this session must write the report
-
-A run can span sessions (§10), so running low is not automatically the end of
-the run — usually it is the end of a *session*, and the next one resumes from
-the branch and the state files.
-
-**Apply the 30% reserve only when 08:00 falls inside this session's own window**
-— when this is the session that will still be alive at the clock deadline, and
-therefore the one that owes the morning report. Any earlier session reserves
-for a handoff instead, which is cheaper:
+| below the **reserve** (next table) | **Roundup.** Start nothing new, and apply §8.4 to the task in flight. Then close out: the report if this session owes it, otherwise the handoff (§10.3). |
+| below 4%, or 40k | **Ceiling.** Abandon, and close out now. |
 
 | This session | Reserve | Closes with |
 | ------------ | ------- | ----------- |
-| will be alive at 08:00 | **30%** | the morning report (§7) |
-| will not | **10%**, floor 60k | the handoff (§10.3) |
+| is final: past 07:30, or less than one task's length before 08:00 | **30%**, or 150k | the morning report (§7) |
+| otherwise; another session can follow | **10%**, or 60k | the handoff (§10.3) |
 
-**You cannot query when your window ends, so do not pretend to.** The practical
-test is the clock:
+Misjudging which session is final is safe, because a handoff is written to
+serve as the report (§10.3).
 
-- **past 07:30**, or less than one task's length (§8.3) before 08:00 → treat
-  this as the final session. Reserve 30%.
-- **earlier than that** → assume another session can follow. Reserve 10%, hand
-  off, and stop.
+For scale, the 2026-09-17 run used 4.7% of 15M tokens for preflight, 17 tasks
+and the report, about 40k per task. The budget has not yet bound any run. Keep
+reading it, because the run that does end on budget needs its report most. The
+`reviewer`'s own usage is billed to the subagent, not to this figure.
 
-Being wrong about this is survivable *by construction*, because §10.3 requires
-the handoff to read as a morning report would. If no further session ever runs,
-the last handoff is what the morning finds, and it is still a true and complete
-account — just written earlier than expected.
-
-Two stages here where the clock has three, and the first is deliberately far
-more generous than its 07:30 equivalent. The asymmetry is the point: a run that
-misjudges the clock writes its report late, which costs a reader nothing much,
-while a run that misjudges the budget cannot write one at all. Those are not
-comparable mistakes, so the budget buys its margin early and in one step rather
-than trimming it in two.
-
-The band between 30% and 4% is the room to *finish* in — begin rounding up at
-the first, be done by the second.
-
-Measured on the 2026-09-15 run, as the only data that exists so far: the whole
-run — preflight, three tasks each with a `reviewer` dispatch, and the report —
-cost roughly **195k tokens**. Preflight was around 80k of that, because it
-carries the fixed cost of the system prompt and `AGENTS.md`; each task ran
-40–55k; the report itself 10–15k. Subagent usage is billed separately and does
-not draw down this figure at the same rate — the reviewer reported 60–80k of its
-own while the parent moved far less.
-
-**In that run the budget was never close to binding.** It started at 15,000,000
-and used about 1.3%; the clock was the constraint throughout. So do not
-contort the night around this — but do check it, because the one run that ends
-early for budget is the one that most needs a report and will have least left to
-write it with.
-
-#### When no figure is visible
-
-If the harness surfaces nothing, there is no denominator and the percentages
-above cannot be applied at all. Fall back to proxies, which are deliberately
-stricter than the thresholds would be — being blind is a reason to stop earlier,
-not later — and say in the report that you were flying blind:
-
-- **Task count.** Five completed tasks is well past the measured shape of a
-  *session*. Round up **that session** there — which, before 07:30, means hand
-  off (§10.3) and let a fresh session continue, not end the run. Blind, this is
-  the only brake there is; it is not a limit on how much a run may do.
-- **Context compaction.** If the conversation has been summarised, older detail
-  is already gone. That is both a budget signal and an accuracy one: quote
-  `progress.md`, not your recollection.
-
-#### Why the state files are the defence
-
-`progress.md` is what makes the report cheap enough to write from a nearly-empty
-budget. Kept current — the entry written on the task branch before each commit
-(§2 step 5) — the report is assembled from files and `git log`, not from memory.
-
-That matters most precisely when memory is the thing running out. A run whose
-records are current can still produce an accurate report on its last tokens; a
-run that was holding it all in context cannot, and compaction will have quietly
-taken the verification output it needed to quote.
-
-Under a tight budget the report may be terse. **A short accurate report is a
-success; no report is not.** Cut the prose, never the facts: what landed, which
-branches, what was actually verified, what was left undone.
+**No figure visible:** say so in the report, and round the session up after five
+completed tasks, handing off first if it is before 07:30. After a context
+compaction, trust `progress.md` over memory.
 
 ---
 
 ## 9. Discretionary work: the visual layer
 
-This is the **one** exception to §6's rule against inventing work, and it is
-narrow. It exists because the repository has reached a state its own records
-keep describing as a gap: `.claude/rules/frontend.md` and every morning report
-so far end with some version of *"nothing has looked at how these pages
-appear"*.
-
-**Since 2026-09-16 the project does have CSS** —
-`shop/static/shop/site.css` styles every page, with light and dark themes
-([ADR 0001](../../../docs/adr/0001-frontend.md)'s hand-written-CSS half, now
-exercised; [ADR 0008](../../../docs/adr/0008-hand-written-css-themes.md)
-proposes its conventions) — and §9.4's three assertable
-checks run in `tests/e2e/test_theme.py`; the screenshots remain a run's own
-step, since no test takes them. So a run reaching this section is extending a
-stylesheet rather than starting one. What no test has done is look at how the
-pages appear; that is still the gap, and §9.5 is still true of anything built
-here.
+The one exception to §6's rule against inventing work. The project has had a
+hand-written stylesheet since 2026-09-16 (`shop/static/shop/site.css`, light and
+dark themes, conventions proposed in
+[ADR 0008](../../../docs/adr/0008-hand-written-css-themes.md)), and
+`tests/e2e/test_theme.py` asserts §9.4's measurable checks on every page. The
+gap that remains is that nobody has *looked* at the pages. Nothing here closes
+that gap (§9.5).
 
 ### 9.1 When it may start
 
-All four, or not at all:
-
-1. Every **requested** task is complete, parked (§4) or abandoned (§3).
-2. The baseline is green and the run branch is clean.
-3. The clock is before **07:15** (§8.2).
-4. The run has not already hit a stop condition (§6).
-
-Discretionary work never pre-empts requested work, and never runs to use up time
-a requested task could have had.
+All of these must hold: every requested task is complete, parked or abandoned;
+the baseline is green and the run branch clean; the time is before 07:15; and
+no stop condition has fired. It never takes time a requested task could have
+had.
 
 ### 9.2 Explore before building
 
-The first discretionary task is **exploration, not CSS**. It produces a written
-plan, not a stylesheet:
+The first discretionary task produces a plan, not CSS, on its own branch and in
+its own commit:
 
 - Screenshot every page at 375px and 1280px into
   `docs/ai/night-<YYYY-MM-DD>/screenshots/before/`.
-- Read `docs/requirements.md` §3 (mobile-first, usable on phone and desktop) and
-  ADR 0001. These are the only recorded design constraints, and taste beyond
-  them is not yours to invent unattended.
-- Run the §9.4 checks against the pages as they stand and record what they find.
-- Append the result to `plan.md` under a `## Discretionary (added by the run)`
-  heading, below everything the human wrote (§1.0). List the tasks smallest
-  first, each with an acceptance criterion drawn from §9.4. Number them on from
+- Read `docs/requirements.md` §3 and ADRs 0001 and 0008, the only recorded
+  design constraints. Taste beyond them is not yours to invent.
+- Run the §9.4 checks and record what they find.
+- Append a list to `plan.md` under `## Discretionary (added by the run)`,
+  smallest task first, each with a §9.4 acceptance criterion, numbered on from
   the human's last task.
-
-That exploration is itself a task: its own branch, its own commit. It is worth
-doing even if the night ends immediately afterwards, because the morning gets
-screenshots and a measured list instead of an opinion.
 
 ### 9.3 Hard bounds
 
-- **No new dependency.** Tailwind stays deferred (ADR 0001, reaffirmed by ADR
-  0006); adding one is forbidden by §3 and would fail `adr_guards.py` anyway.
-- **No build step.** Hand-written CSS only.
-- **One stylesheet**, at `shop/static/shop/<name>.css`, loaded from `base.html`
-  via `{% load static %}`. `django.contrib.staticfiles` is already installed and
-  app-directory static works, so **no settings change is needed** — and
-  `live_server` serves static automatically, so the e2e tests see it.
-- **Do not restructure markup the tests assert on.** Add classes; do not move,
-  rename or unwrap an element carrying a `data-testid`, an ARIA role or a
-  heading level. If a change genuinely needs restructuring, that is a task for a
-  human — park it (§4).
-- **No JavaScript.** Alpine is loaded, but interactivity is not styling, and new
-  behaviour is a new requirement.
-- **Never weaken an existing test** to accommodate a visual change (§3).
+- No new dependency (§3) and no build step. Hand-written CSS in the existing
+  stylesheet, following ADR 0008's conventions.
+- Do not restructure markup the tests assert on. Add classes, but never move,
+  rename or unwrap anything carrying a `data-testid`, an ARIA role or a heading
+  level. If the change needs that, park it (§4).
+- No JavaScript. New behaviour is a new requirement.
+- Never weaken an existing test (§3).
 
 ### 9.4 What is actually verifiable
 
-Styling is mostly taste, which is why §5 calls it a poor unattended task. These
-four are the parts that are *not* taste, and each is a real acceptance
-criterion. All four were probed in this repository on 2026-09-16 and work:
-
 | Check | How | Why it is not taste |
 | ----- | --- | ------------------- |
-| No horizontal overflow | `page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")` at 375px, must be `0` | `requirements.md` §3 requires the site to be usable on a phone |
-| Tap target size | `locator.bounding_box()`, width and height ≥ 44 | A control too small to hit is broken, not ugly |
-| Text contrast | read `getComputedStyle` colours via `page.evaluate` and compute the WCAG ratio in the test — no new dependency | Legibility is measurable |
-| Screenshots | `page.screenshot(path=...)` at 375px and 1280px into the run's `screenshots/after/` | Evidence for a human, not a verdict |
+| No horizontal overflow | `scrollWidth - clientWidth` at 375px is `0` | `requirements.md` §3: usable on a phone |
+| Tap targets | `bounding_box()` width and height ≥ 44 | A control too small to hit is broken |
+| Text contrast | WCAG ratio from `getComputedStyle`, computed in the test | Legibility is measurable |
+| Screenshots | 375px and 1280px into `screenshots/after/` | Evidence for a human, not a verdict |
 
-**The contrast check has a trap, found while probing.** On the current pages
-`getComputedStyle(document.body).backgroundColor` is `rgba(0, 0, 0, 0)` —
-transparent, because nothing sets it. A ratio computed against that is
-meaningless and will happily "pass". Either resolve the real painted background
-by walking ancestors until a non-transparent colour appears, or make the test
-assert that an explicit background is set and fail when it is not.
-
-**A measurement worth having before you start:** the Add-to-cart button
-currently renders at **80 × 21 px**, against the 44 × 44 guideline. There is
-already a finding here — the check earns its keep on the first run.
+The contrast check must resolve the real painted background by walking up the
+ancestors past transparent ones. A ratio against `rgba(0, 0, 0, 0)` "passes"
+meaninglessly. `tests/e2e/test_theme.py` already does this, so extend it rather
+than writing a second one.
 
 ### 9.5 What it still does not prove
 
-None of the above knows whether the page looks *good*. Hierarchy, rhythm,
-balance, whether the flaw disclosure reads as a warning or as decoration — a
-human sees those in a second and no assertion here will.
+Nothing here knows whether a page looks *good*. Report discretionary work as
+**built and measured, not reviewed**, with the screenshots linked. Keep each
+visual change in its own commit, so one can be dropped without unpicking the
+rest.
 
-So the morning report says exactly that, under its own heading (§7), and links
-the before/after screenshots. Report discretionary work as **built and measured,
-not reviewed**. A reader who believes the design was checked will not look at
-it, and then nobody ever does.
+### 9.6 Decision records
 
-Commit and merge it like any other task (§2.6) — it is real, tested work — but
-keep each visual change in its own commit, so one can be dropped without
-unpicking the rest.
-
-### 9.6 The ADR
-
-The first CSS in the project means ADR 0001's deferred half is finally being
-exercised, and a static-files convention is being set. That deserves a record —
-but **do not write an accepted ADR unattended.** ADR 0006 exists precisely
-because a decision was made in code and documented afterwards, and it names that
-ordering as "the defect this document closes, not a pattern to repeat".
-
-Write what was chosen and why into `decisions.md`, and raise the ADR itself as a
-question in `questions.md`, for a human to accept, amend or reject.
+Never write or accept an ADR unattended. Record a new convention in
+`decisions.md`, and raise the ADR, or an amendment to proposed ADR 0008, in
+`questions.md` for a human.
 
 ---
 
 ## 10. Running across sessions
 
-A night is longer than a session. A run may therefore be carried by several in
-succession, and nothing about the work changes when it is — the branch and
-`docs/ai/night-<YYYY-MM-DD>/` are the run, and a session is only who happens to
-be holding them.
+The run branch and `docs/ai/night-<YYYY-MM-DD>/` *are* the run. A session only
+holds them for a while, and nothing of its conversation survives it.
 
-That is why §1.5 insists the state files are current before each commit. They
-were always the handover mechanism; across sessions they are the *only* one,
-because nothing of the conversation survives.
+### 10.1 What a session owes the next
 
-### 10.1 What a session owes the next one
-
-Everything needed to continue without reconstructing anything:
-
-- the run branch, with every completed task merged and pushed;
-- `plan.md`, so the next session knows what was asked for and what is left;
-- `progress.md`, with the real verification output per task — not a summary of
-  it, because the next session cannot re-derive what it never saw;
-- `decisions.md` and `questions.md`, so settled choices are not re-litigated and
-  parked ones are not silently answered differently;
-- a **handoff** (§10.3) as the last entry.
-
-A session that ends without these has not paused the run; it has ended it, and
-left the next session to guess.
+The run branch with every completed task merged and pushed. State files current,
+with real verification output, each task's base SHA and its what/why (§2
+step 5), and every CI outcome observed. A handoff (§10.3) as the last entry.
 
 ### 10.2 Resuming
 
-Reached from §1 when a run branch has no morning report committed on it. Do
-**not** re-run §1.0, §1.3 or §1.5.
+Reached from §1. Do not re-run §1.0, §1.3 or §1.5.
 
 ```bash
-git branch --list 'night-*'              # the run's date comes from HERE, not from `date`
-git checkout night-<YYYY-MM-DD>          # existing branch; no -b
-git status --short                       # must be empty
-git log --oneline dev..HEAD              # what previous sessions landed
+git checkout night-<YYYY-MM-DD>     # the date comes from the branch, not `date`
+git status --short
+git log --oneline dev..HEAD
 ```
 
-Take `<YYYY-MM-DD>` from the existing branch, never from today's clock — see
-§1.3 on crossing midnight.
-
-Then:
-
-1. **Read the state files before anything else**, `progress.md` last entry
-   first. That is the handoff, and it is the context you do not have.
-2. **Re-run the §1.1 database check and §1.2 drift check.** Hours may have
-   passed; the cluster may have stopped.
-3. **Re-run the baseline** (§1.6) against the run branch. A previous session
-   left it green, but that is a claim you are inheriting, not one you made.
-   Reconcile the lint score against the existing `lint-baseline.txt` rather than
-   overwriting it — the baseline belongs to the run, not the session.
-4. **Record a new starting clock and budget reading** (§1.5) under a fresh
-   session heading in `progress.md`. The budget percentages are proportions of
-   *this* session's starting figure, so each session needs its own denominator.
-   Copy the run's deadline from `progress.md` into that entry, as it stands.
-   Do not work it out again (§8.2).
-5. **Check for work left in flight.** A previous session may have abandoned a
-   task and named its branch. Do not silently resume that branch: treat it as
-   the previous session left it, and pick it up only if `progress.md` says it
-   was abandoned for time or budget rather than for a failure. A task abandoned
-   after three failed repair cycles (§6) stays abandoned — the limit belongs to
-   the run, not the session, or it resets every time a session does.
-6. **Continue at §2 step 0** with the next task in `plan.md`.
-
-Commit the resume entry as part of the next task, as usual — the run branch
-moves only by fast-forward (§2 step 7).
+1. Read the state files, starting with `progress.md`'s last entry: that is the
+   handoff.
+2. Re-run §1.1, §1.2 and §1.6 (the baseline is a claim you inherit). Reconcile
+   the lint score against the existing `lint-baseline.txt` and never overwrite
+   it.
+3. Under a new session heading, record this session's starting clock and budget
+   (its own denominator) and copy the deadline as it stands.
+4. Any CI recorded as `pending` belongs to a poll that died with the old
+   session. Run the poll again once on that SHA.
+5. Pick up an abandoned task only if it was abandoned for time or budget. The
+   three-cycle limit belongs to the run and does not reset.
+6. Continue at §2 step 0. The resume entry is committed with the next task.
 
 ### 10.3 The handoff
 
-What a session writes instead of the morning report when it is stopping and
-08:00 is still ahead (§8.6). It is appended to `progress.md`, committed and
-pushed on a task branch of its own,
-`night-<YYYY-MM-DD>-t<N>-handoff`.
+What a session writes instead of the morning report when it stops before 08:00:
+appended to `progress.md` on `night-<YYYY-MM-DD>-t<N>-handoff`, merged and
+pushed. Head it `## Handoff`, **never** `## Morning report`, or §1 will treat
+the run as finished.
 
-Head it `## Handoff`, **never** `## Morning report`. §1 would read that heading
-as a finished run, and no later session would resume it.
-
-It carries:
-
-- **Why this session stopped** — budget roundup, task count while blind, or a
-  stop condition. Say which.
-- **Where the run is** — the run branch, its tip, which tasks are done, which
-  remain in `plan.md`.
-- **Anything in flight** — the branch of an abandoned task, whether it was
-  abandoned for time or for a failure, and which.
-- **What the next session should do first**, in one sentence.
-- **Everything the morning report would have said** (§7).
-
-That last point is the whole design. **A handoff must read as a morning report,
-because it may turn out to be one.** If no further session runs — the machine
-slept, nobody started one, the window never reopened — this is what a person
-finds over breakfast. Write it for them, and the next session gets a good
-handoff for free.
-
-Never write "continuing shortly" or leave a sentence that only makes sense if
-another session arrives. Nothing here can promise that one will.
+It states why the session stopped, where the run is (its tip, which tasks are
+done and which remain), anything in flight and why it was left, the next
+session's first step in one sentence, and **everything §7 requires, including
+Code by task**. If no session follows, this is the morning report, so write it
+for the person at breakfast. Never write anything that only makes sense if
+another session comes.
 
 ### 10.4 The run is still one run
 
-Some limits belong to the run and must not reset when a session does:
-
-- **the three-cycle repair limit** (§6, `.claude/rules/debugging.md` §8) —
-  per failure, across the whole run;
-- **the clock** (§8.2) — the dated deadline in `progress.md` holds regardless
-  of how many sessions have passed, or which day a session starts on;
-- **parked questions** (§4) — a later session does not get to answer one by
-  choosing differently; it inherits the decision and the `PROVISIONAL:` branch;
-- **discretionary work** (§9) — still only after every requested task is
-  finished, judged across the run, not this session's slice of it.
-
-The budget is the exception, and the only one: it is per session, because each
-session gets its own.
+These carry across sessions and never reset: the three-cycle limit, the dated
+deadline, parked questions (a later session inherits the decision and the
+`PROVISIONAL:` branch), and §9's precondition that every requested task is done
+across the run. Only the budget is per session.

@@ -44,6 +44,8 @@ Use repository evidence rather than assumptions about frameworks or conventions.
 
 If the repository contains more specific instructions in nested directories, follow those instructions for files in their scope.
 
+For recorded decisions and constraints, read `docs/README.md` first — one row per ADR — and open a full ADR only when the task touches its decision. `docs/overview.html` is the human version; do not read it for facts.
+
 If the task touches a specific domain, read the matching reference in `.claude/rules/` before implementing:
 
 * `.claude/rules/architecture.md` — boundaries, layering, refactors
@@ -253,9 +255,12 @@ test job with a PostgreSQL service and a Playwright browser, so `tests/e2e/`
 runs there too. It triggers on pull requests to `master` and `dev`, and on
 pushes to `master`, `dev` and `night-**` — the last for unattended runs, which
 push a branch per finished task. It runs on GitHub, not on your machine — you
-cannot observe its result from here, so never report a CI run as evidence. CI
-also checks migration drift with `makemigrations --check`, which `dev.py`
-deliberately does not.
+cannot observe its result from here, so never report a CI run as evidence.
+(The one exception is the night-run skill itself, which polls the public repo's
+read-only Actions API for a commit it just pushed — a narrow, documented case,
+not license to check CI any other way; see
+`.claude/skills/night-run/SKILL.md` §2.6 and §3.) CI also checks migration
+drift with `makemigrations --check`, which `dev.py` deliberately does not.
 
 Browser verification is not interchangeable with the test suite: `django.test.Client`
 does not enforce CSRF, so a green suite has already coexisted with a page that
