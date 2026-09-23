@@ -10,7 +10,7 @@ decision-makers: "Martin Larsson"
 > The choice of **Django Templates** stands unchanged. The hand-written-CSS
 > half was unexercised until 2026-09-16, when `shop/static/shop/site.css`
 > became the site's one stylesheet; [ADR 0008](0008-hand-written-css-themes.md)
-> proposes the conventions that came with it.
+> records the conventions that came with it.
 > The Decision Outcome below is left as written; it is the history, not the
 > current state.
 

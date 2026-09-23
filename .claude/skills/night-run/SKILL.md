@@ -660,7 +660,7 @@ compaction, trust `progress.md` over memory.
 
 The one exception to §6's rule against inventing work. The project has had a
 hand-written stylesheet since 2026-09-16 (`shop/static/shop/site.css`, light and
-dark themes, conventions proposed in
+dark themes, conventions recorded in
 [ADR 0008](../../../docs/adr/0008-hand-written-css-themes.md)), and
 `tests/e2e/test_theme.py` asserts §9.4's measurable checks on every page. The
 gap that remains is that nobody has *looked* at the pages. Nothing here closes
@@ -721,7 +721,7 @@ rest.
 ### 9.6 Decision records
 
 Never write or accept an ADR unattended. Record a new convention in
-`decisions.md`, and raise the ADR, or an amendment to proposed ADR 0008, in
+`decisions.md`, and raise the ADR, or an amendment to ADR 0008, in
 `questions.md` for a human.
 
 ---

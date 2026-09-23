@@ -159,7 +159,7 @@ plain-language summary, was last brought up to date. Everything else in
 - [ADR 0005 — Test frameworks](docs/adr/0005-testing.md)
 - [ADR 0006 — htmx and Alpine.js](docs/adr/0006-frontend-htmx-alpine.md)
 - [ADR 0007 — Custom user model](docs/adr/0007-custom-user-model.md)
-- [ADR 0008 — Hand-written CSS with light and dark themes](docs/adr/0008-hand-written-css-themes.md) — *proposed*
+- [ADR 0008 — Hand-written CSS with light and dark themes](docs/adr/0008-hand-written-css-themes.md)
 
 New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 

@@ -28,7 +28,7 @@ decision-makers: "Martin Larsson"
 
 Chosen option: "Adopt htmx + Alpine.js via CDN and supersede ADR 0001", because the cart already demonstrates the insufficiency ADR 0001 named as its own trigger: swapping a single button after a POST is the exact case that a full-page form submit handles badly, and it was reached on the first interactive feature rather than hypothetically.
 
-This ADR supersedes ADR 0001 on the interactivity layer only. ADR 0001's choice of **Django Templates** stands unchanged, and its hand-written-CSS decision was still unexercised when this ADR was written, so nothing about styling was settled here. CSS arrived on 2026-09-16; [ADR 0008](0008-hand-written-css-themes.md) proposes the conventions it set.
+This ADR supersedes ADR 0001 on the interactivity layer only. ADR 0001's choice of **Django Templates** stands unchanged, and its hand-written-CSS decision was still unexercised when this ADR was written, so nothing about styling was settled here. CSS arrived on 2026-09-16; [ADR 0008](0008-hand-written-css-themes.md) records the conventions it set.
 
 Tailwind remains deferred, and for the same reason ADR 0001 gave: it has not yet been shown to be needed.
 

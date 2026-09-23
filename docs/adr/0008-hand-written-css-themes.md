@@ -1,7 +1,7 @@
 ---
-status: "proposed"
-date: "2026-09-17"
-decision-makers: "Proposed by the unattended run night-2026-09-17; for the repository owner to accept, amend or reject"
+status: "accepted"
+date: "2026-09-23"
+decision-makers: "Martin Larsson"
 ---
 
 # 0008. Hand-written CSS with light and dark themes
@@ -147,6 +147,6 @@ Partly enforced, partly not — plainly:
 - **Revisit** when: a second stylesheet or an external font is wanted; a
   designer joins; the site outgrows one file; or someone looks at the pages and
   finds the hand-built look wanting.
-- **This ADR is `proposed`, not `accepted`.** An unattended run may not accept
-  an ADR (`.claude/skills/night-run/SKILL.md` §9.6). It records what the code
-  does today so the decision can be taken with the facts in front of it.
+- **Proposed 2026-09-17 by the unattended run night-2026-09-17**, which may not
+  accept an ADR itself, and **accepted as written on 2026-09-23**, after
+  checking it against the code.
