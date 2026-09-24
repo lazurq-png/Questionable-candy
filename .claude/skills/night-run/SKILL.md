@@ -98,7 +98,10 @@ missing plan and do not fetch it from that branch.
 ### 1.1 Database
 
 Every `dev.py` task except `lint`/`lint:workflows` runs `makemigrations` and
-`migrate` first, so a down cluster fails all verification. Branch on the **exit
+`migrate` first. `dev.py` now also starts a down cluster itself, printing
+`dev.py: PostgreSQL cluster ... is down -- starting it.` — if that line
+appears mid-run, record it in `progress.md`: the cluster went down while you
+worked. Preflight still checks explicitly. Branch on the **exit
 code** of the `pg_isready` above. The messages are localised, and the
 `%USERPROFILE%\…` form of the path does not expand in bash: it fails with exit
 1, which would be misread as "starting up".

@@ -55,8 +55,8 @@ Requires Python 3.13 and a PostgreSQL 17 server.
 pip install -r requirements.txt
 cp .env.example .env          # then fill in DJANGO_SECRET_KEY and DATABASE_URL
 
-# Start your PostgreSQL cluster first -- scripts/dev.py does not start it.
-# For a portable install, e.g.:
+# scripts/dev.py starts a cluster at %USERPROFILE%\Binaries\pgsql (or
+# PGSQL_HOME) if it is down. Start it once yourself to create the database:
 #   pg_ctl start -D "%USERPROFILE%\Binaries\pgsql\data" -l "%USERPROFILE%\Binaries\pgsql\server.log"
 createdb -U postgres questionable_candy
 python scripts/dev.py run             # http://127.0.0.1:8000/

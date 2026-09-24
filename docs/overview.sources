@@ -4,7 +4,7 @@
 b195a9986c25fdf6  adr/0001-frontend.md
 f467f14a16da3216  adr/0002-middleware.md
 4af59b3c4bdb1319  adr/0003-backend.md
-8b6dfd9e71e0c307  adr/0004-database.md
+46840324217a701d  adr/0004-database.md
 7778c3272736a777  adr/0005-testing.md
 b74288737492e3e2  adr/0006-frontend-htmx-alpine.md
 aff6216842f2e39c  adr/0007-custom-user-model.md

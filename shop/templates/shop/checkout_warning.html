@@ -60,7 +60,7 @@ allergy") as well as by its styling, so it does not depend on colour.
   <p data-testid="warning-no-allergens">No allergens are listed for the candy in this order.</p>
   {% endif %}
   <p class="warning-note">{% if warning.your_allergies %}Your allergies: {{ warning.your_allergies|join:", " }}.{% else %}You have not listed any allergies.{% endif %}</p>
-  <p class="page-actions warning-change"><a href="{% url 'accounts:my_allergies' %}">Change my allergies</a></p>
+  <p class="page-actions warning-change"><a href="{% url 'accounts:profile' %}#allergies">Change my allergies</a></p>
 </section>
 
 {% if acknowledged %}

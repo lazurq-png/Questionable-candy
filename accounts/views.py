@@ -1,4 +1,4 @@
-"""Signing up and the customer's own allergies.
+"""Signing up and edit the customer's information.
 
 Logging in and out are Django's own LoginView and LogoutView (accounts/urls.py);
 logout accepts POST only, so a link or a prefetch cannot sign anyone out.
@@ -6,16 +6,19 @@ logout accepts POST only, so a link or a prefetch cannot sign anyone out.
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import RedirectURLMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic.edit import FormView
 
-from .forms import AllergiesForm, SignUpForm
+from .forms import ProfileForm, SignUpForm
 
 
 @method_decorator([sensitive_post_parameters("password1", "password2"), csrf_protect, never_cache], name="dispatch")
@@ -45,15 +48,25 @@ class SignUpView(RedirectURLMixin, FormView):
 
 @never_cache
 @login_required
-def my_allergies(request):
-    """The signed-in customer changes their own allergies.
+def profile(request):
+    """The signed-in customer changes their details and allergies.
 
     The form is bound to request.user and the URL carries no id, so there is no
     way to name somebody else's record.
     """
-    form = AllergiesForm(request.POST if request.method == "POST" else None, instance=request.user)
+    form = ProfileForm(request.POST if request.method == "POST" else None, instance=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Your allergies are saved.")
-        return redirect("accounts:my_allergies")
-    return render(request, "accounts/my_allergies.html", {"form": form})
+        messages.success(request, "Your profile is saved.")
+        return redirect("accounts:profile")
+    orders = request.user.orders.order_by("-created_at")
+    return render(request, "accounts/profile.html", {"form": form, "orders": orders})
+
+
+class PasswordChangeView(SuccessMessageMixin, auth_views.PasswordChangeView):
+    """Django's own password change, returning to the profile with a message."""
+
+    template_name = "accounts/password_change.html"
+    success_url = reverse_lazy("accounts:profile")
+    success_message = "Your password is changed."
+    

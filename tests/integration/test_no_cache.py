@@ -54,9 +54,9 @@ def test_the_receipt_is_never_cached(shopper):
     assert "no-store" in response["Cache-Control"]
 
 
-def test_my_allergies_is_never_cached(shopper):
+def test_profile_is_never_cached(shopper):
     """Health information, on a page reached from the header."""
-    response = shopper.get(reverse("accounts:my_allergies"))
+    response = shopper.get(reverse("accounts:profile"))
 
     assert response.status_code == 200
     assert "no-store" in response["Cache-Control"]

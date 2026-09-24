@@ -33,8 +33,8 @@ python scripts/adr_guards.py      # ADR 0003 / 0005 guards, no deps, seconds
 
 `scripts/dev.py` is the task runner for everything else (`run`, `test:unit`,
 `test:int`, `test:e2e`). Every task runs `makemigrations` and `migrate` first,
-and none of them start PostgreSQL — the cluster must already be up. `lint` is
-the exception: source-only, so it needs no database.
+starting the local PostgreSQL cluster first if it is down (skipped under CI).
+`lint` is the exception: source-only, so it needs no database.
 
 There is no type checker, formatter or build step here. Lint is pylint with the
 Django plugin (`.pylintrc`, `requirements-dev.txt`), gated on the error class

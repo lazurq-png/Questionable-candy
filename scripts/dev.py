@@ -15,13 +15,17 @@ matches the models before the server starts or the tests run. The exceptions are
 the `lint` tasks, which only read source and so must not require a running
 database.
 
-The database is PostgreSQL (docs/adr/0004-database.md) and must already be
-accepting connections -- this runner no longer starts or stops the cluster.
+The database is PostgreSQL (docs/adr/0004-database.md). Before migrating, a
+task checks the local cluster and starts it if it is down; it never stops it.
+Set PGSQL_HOME for an install other than ~/Binaries/pgsql. Under CI, or where
+no local install exists, the check is skipped and the database must already be
+accepting connections.
 """
 import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -60,6 +64,15 @@ WORKFLOW_TOOLS = {
     "pyflakes": "pyflakes/Scripts",
 }
 
+# Local PostgreSQL cluster that ensure_cluster() may start.
+PGSQL_HOME = Path(os.getenv("PGSQL_HOME", Path.home() / "Binaries" / "pgsql"))
+
+# pg_isready exit codes. Branch on these, never on the message: this cluster's
+# output is localised, so the text differs by machine locale.
+PG_READY, PG_STARTING, PG_DOWN = 0, 1, 2
+
+CLUSTER_START_TIMEOUT = 30  # seconds, matching the night-run preflight
+
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
 # Gated since 2026-09-17: the target ADR 0005 left open is 95%, a little under
 # the 99% the suite reaches, so an untested helper fails the run while a line
@@ -86,6 +99,72 @@ def run(*args):
     """Run a Python command from the project root, echoing it first."""
     print(f"\n$ python {' '.join(args)}", flush=True)
     return subprocess.run([sys.executable, *args], cwd=BASE_DIR).returncode
+
+
+def _pg_exe(name):
+    exe = PGSQL_HOME / "bin" / (name + (".exe" if os.name == "nt" else ""))
+    return exe if exe.exists() else None
+
+
+def _pg_isready(exe):
+    # Same probe as the night-run preflight: localhost:5432, as .env.example's
+    # DATABASE_URL points at.
+    return subprocess.run(
+        [str(exe), "-h", "localhost", "-p", "5432"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    ).returncode
+
+
+def ensure_cluster():
+    """Start the local cluster if it is down, so a task does not fail on it.
+
+    Skipped under CI, whose database is a service container already healthy by
+    the time any step runs, and wherever PGSQL_HOME holds no install -- there
+    is nothing here to start, and migrate reports a missing database itself.
+
+    Anything other than "down" or "starting" (exit 3, a bad invocation) is also
+    left to migrate to report rather than guessed at here.
+    """
+    if os.environ.get("CI"):
+        return 0
+    isready, pg_ctl = _pg_exe("pg_isready"), _pg_exe("pg_ctl")
+    if isready is None or pg_ctl is None:
+        return 0
+
+    state = _pg_isready(isready)
+    if state not in (PG_STARTING, PG_DOWN):
+        return 0
+
+    if state == PG_DOWN:
+        # Said aloud, not done quietly: an unattended run must be able to see
+        # in its output that the cluster had gone down mid-run.
+        print(f"dev.py: PostgreSQL cluster at {PGSQL_HOME} is down -- starting it.", flush=True)
+        # Detached, or the server is a child of this shell and dies with it --
+        # after every short-lived shell an agent opens, for instance.
+        # Numeric, because the subprocess constants exist only on Windows and
+        # CI lints on Linux.
+        if os.name == "nt":
+            detached_process, create_new_process_group = 0x00000008, 0x00000200
+            detach = {"creationflags": detached_process | create_new_process_group}
+        else:
+            detach = {"start_new_session": True}
+        subprocess.Popen(  # pylint: disable=consider-using-with
+            [str(pg_ctl), "start", "-D", str(PGSQL_HOME / "data"),
+             "-l", str(PGSQL_HOME / "server.log")],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, **detach,
+        )
+
+    deadline = time.monotonic() + CLUSTER_START_TIMEOUT
+    while time.monotonic() < deadline:
+        if _pg_isready(isready) == PG_READY:
+            return 0
+        time.sleep(1)
+    print(
+        f"dev.py: cluster not accepting connections after {CLUSTER_START_TIMEOUT}s. "
+        f"See {PGSQL_HOME / 'server.log'}."
+    )
+    return 1
 
 
 def prepare():
@@ -183,7 +262,7 @@ def main(argv):
             return 2
 
     if not all(task in NO_DB_TASKS for task in tasks):
-        code = prepare()
+        code = ensure_cluster() or prepare()
         if code:
             return code
 

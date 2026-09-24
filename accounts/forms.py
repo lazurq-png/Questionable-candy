@@ -34,11 +34,11 @@ class SignUpForm(UserCreationForm):
         fields = ("username", "allergies")
 
 
-class AllergiesForm(forms.ModelForm):
-    """The signed-in customer's own allergies, and nothing else of theirs."""
+class ProfileForm(forms.ModelForm):
+    """The signed-in customer's name, e-mail and allergies."""
 
     allergies = allergies_field("Allergies")
 
     class Meta:
         model = User
-        fields = ("allergies",)
+        fields = ("first_name", "last_name", "email", "allergies")

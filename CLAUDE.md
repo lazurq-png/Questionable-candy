@@ -229,9 +229,11 @@ In this repository the checks that exist are:
 | Browser            | `python scripts/dev.py run`, then open the page |
 
 Every `dev.py` task runs `makemigrations` and `migrate` first, so the database
-always matches the models. The cluster must already be running — `dev.py` no
-longer starts it. The exceptions are the two `lint` tasks, which read source
-only and run with the cluster down.
+always matches the models. Before that, it starts the local cluster
+(`~/Binaries/pgsql`, or `PGSQL_HOME`) if `pg_isready` reports it down, and
+says so in its output; it never stops it. Under CI, or with no local install,
+that step is skipped. The exceptions are the two `lint` tasks, which read
+source only and run with the cluster down.
 
 `lint:workflows` is actionlint over `.github/workflows/`, with shellcheck for
 the shell in `run:` steps and pyflakes for `shell: python` steps. They are
@@ -471,8 +473,8 @@ commands in §9's table — `python scripts/dev.py test`, `lint` and
 `python scripts/adr_guards.py`, plus `lint:workflows` when §9's condition
 holds — run separately. `scripts/dev.py` is the task
 runner for everything else too: `run` and the four test suites, each preceded by
-`makemigrations` + `migrate`. It no longer starts or stops the PostgreSQL
-cluster; that must already be accepting connections.
+`makemigrations` + `migrate`, and by starting the local PostgreSQL cluster if
+it is down (never stopping it; skipped under CI).
 
 Use `.claude/skills/code-review/` for an adversarial review pass over a diff —
 see §13 for when to run it.

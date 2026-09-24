@@ -1,4 +1,4 @@
-"""Signing up, logging in and out, and "My allergies", in a real browser.
+"""Signing up, logging in and out, and "Profile", in a real browser.
 
 The integration tests (tests/integration/test_accounts.py) cover the rules;
 these cover what only a browser shows: the header's account control, the
@@ -48,8 +48,8 @@ def test_sign_up_returns_to_the_page_then_log_out(live_server, page, assert_page
     expect(page.get_by_test_id("account-menu")).to_have_count(0)
 
 
-def test_log_in_from_a_phone_and_change_my_allergies(live_server, page, assert_page_is_fully_rendered):
-    """The phone header's one account control, then the allergies page it leads to."""
+def test_log_in_from_a_phone_and_change_profile(live_server, page, assert_page_is_fully_rendered):
+    """The phone header's one account control, then the profile page it leads to."""
     get_user_model().objects.create_user(username="ada", password=PASSWORD, allergies=["eggs"])
     page.set_viewport_size(PHONE)
     page.goto(live_server.url)
@@ -62,14 +62,14 @@ def test_log_in_from_a_phone_and_change_my_allergies(live_server, page, assert_p
     page.wait_for_url(f"{live_server.url}/")
 
     page.get_by_test_id("account-menu-toggle").click()
-    page.get_by_test_id("my-allergies-link").click()
-    page.wait_for_url("**/accounts/allergies/")
+    page.get_by_test_id("profile-link").click()
+    page.wait_for_url("**/accounts/profile/")
     expect(page.get_by_label("Eggs")).to_be_checked()
     page.get_by_label("Eggs").uncheck()
     page.get_by_label("Peanuts").check()
-    page.get_by_role("button", name="Save allergies").click()
+    page.get_by_role("button", name="Save profile").click()
 
-    expect(page.get_by_test_id("account-messages")).to_have_text("Your allergies are saved.")
+    expect(page.get_by_test_id("account-messages")).to_have_text("Your profile is saved.")
     page.reload()
     expect(page.get_by_label("Peanuts")).to_be_checked()
     expect(page.get_by_label("Eggs")).not_to_be_checked()
@@ -111,6 +111,6 @@ def test_account_pages_and_the_signed_in_header_meet_the_measurable_checks(
     expect(page.get_by_test_id("logout-button")).to_be_visible()
     check_page(page, f"account menu open, {scheme}", assert_page_is_fully_rendered)
 
-    page.get_by_test_id("my-allergies-link").click()
-    page.wait_for_url("**/accounts/allergies/")
-    check_page(page, f"my allergies, {scheme}", assert_page_is_fully_rendered)
+    page.get_by_test_id("profile-link").click()
+    page.wait_for_url("**/accounts/profile/")
+    check_page(page, f"my profile, {scheme}", assert_page_is_fully_rendered)

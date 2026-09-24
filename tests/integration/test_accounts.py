@@ -184,30 +184,30 @@ def test_an_external_next_is_ignored_after_sign_up(visitor):
     assert response["Location"] == reverse("candy_list")
 
 
-# --- My allergies --------------------------------------------------------------
+# --- My profile --------------------------------------------------------------
 
-def test_my_allergies_requires_login(visitor):
+def test_profile_requires_login(visitor):
     """Anonymous visitors are sent to log in, and back here afterwards."""
-    response = visitor.get(reverse("accounts:my_allergies"))
+    response = visitor.get(reverse("accounts:profile"))
 
     assert response.status_code == 302
-    assert response["Location"] == f'{reverse("accounts:login")}?next={reverse("accounts:my_allergies")}'
+    assert response["Location"] == f'{reverse("accounts:login")}?next={reverse("accounts:profile")}'
 
 
-def test_my_allergies_changes_only_the_signed_in_customers_own_record(visitor):
+def test_profile_changes_only_the_signed_in_customers_own_record(visitor):
     """No id in the URL or the form: another customer's record is unreachable."""
     ada = make_user("ada", allergies=["eggs"])
     bob = make_user("bob", allergies=["fish"])
     log_in(visitor)
 
-    response = post(visitor, reverse("accounts:my_allergies"), {"allergies": ["milk", "soy"]})
+    response = post(visitor, reverse("accounts:profile"), {"allergies": ["milk", "soy"]})
 
     assert response.status_code == 302
     ada.refresh_from_db()
     bob.refresh_from_db()
     assert sorted(ada.allergies) == ["milk", "soy"]
     assert bob.allergies == ["fish"]
-    assert "Your allergies are saved." in visitor.get(response["Location"]).content.decode()
+    assert "Your profile is saved." in visitor.get(response["Location"]).content.decode()
 
 
 def test_unticking_every_allergy_saves_none(visitor):
@@ -215,17 +215,17 @@ def test_unticking_every_allergy_saves_none(visitor):
     make_user("ada", allergies=["eggs"])
     log_in(visitor)
 
-    post(visitor, reverse("accounts:my_allergies"))
+    post(visitor, reverse("accounts:profile"))
 
     assert get_user_model().objects.get(username="ada").allergies == []
 
 
-def test_my_allergies_refuses_a_key_outside_the_vocabulary(visitor):
+def test_profile_refuses_a_key_outside_the_vocabulary(visitor):
     """A crafted key is refused and the stored allergies are kept."""
     make_user("ada", allergies=["eggs"])
     log_in(visitor)
 
-    response = post(visitor, reverse("accounts:my_allergies"), {"allergies": ["lactose"]})
+    response = post(visitor, reverse("accounts:profile"), {"allergies": ["lactose"]})
 
     assert response.status_code == 200
     assert get_user_model().objects.get(username="ada").allergies == ["eggs"]

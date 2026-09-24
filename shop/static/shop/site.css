@@ -592,6 +592,7 @@ button[disabled] {
 }
 
 .account-form input[type="text"],
+.account-form input[type="email"],
 .account-form input[type="password"] {
   width: 100%;
   min-height: var(--tap);
