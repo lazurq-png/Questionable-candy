@@ -1,0 +1,27 @@
+{% load static %}{# A saved order line's "2 x <candy>" title; the name opens the candy's details (shop/admin.py, CandyDetailsWidget; shop/static/shop/admin/order_lines.js). #}
+<span class="candy-line-title">{{ line.quantity }} x <button type="button" data-candy-dialog="{{ widget.attrs.id }}-dialog" aria-haspopup="dialog">{{ candy.name }}</button></span>
+<dialog id="{{ widget.attrs.id }}-dialog" aria-labelledby="{{ widget.attrs.id }}-title" class="order-lines-dialog">
+  <div style="padding: 1rem 1.25rem;">
+    <h2 id="{{ widget.attrs.id }}-title">{{ candy.name }}</h2>
+    <img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="" width="96" height="96">
+    <dl>
+      <dt>Price</dt>
+      <dd>${{ candy.price }}</dd>
+      <dt>In stock</dt>
+      <dd>{{ candy.stock }}</dd>
+      <dt>Flavor</dt>
+      <dd>{{ candy.flavor|default:"—" }}</dd>
+      <dt>Sugar</dt>
+      <dd>{% if candy.sugar_content_g is None %}Unknown{% else %}{{ candy.sugar_content_g }} g per 100 g{% endif %}</dd>
+      <dt>Allergens</dt>
+      <dd>{{ candy.allergen_names|join:", "|default:"None listed" }}</dd>
+      <dt>Known flaw</dt>
+      <dd>{{ candy.flaw }}</dd>
+      <dt>Description</dt>
+      <dd>{{ candy.description|default:"—" }}</dd>
+      <dt>In the catalog</dt>
+      <dd>{{ candy.is_published|yesno:"Yes,No — hidden" }}</dd>
+    </dl>
+    <button type="button" data-close-dialog>Close</button>
+  </div>
+</dialog>

@@ -62,6 +62,14 @@ def test_profile_is_never_cached(shopper):
     assert "no-store" in response["Cache-Control"]
 
 
+def test_my_orders_is_never_cached(shopper):
+    """A list of what this customer bought."""
+    response = shopper.get(reverse("accounts:orders"))
+
+    assert response.status_code == 200
+    assert "no-store" in response["Cache-Control"]
+
+
 def test_the_catalog_stays_cacheable(client):
     """Deliberately: it is the page worth caching, and Vary separates sessions."""
     CandyFactory(name="Fudge")

@@ -2,8 +2,8 @@
 The header's account control (base.html). Logged out: "Log in", and "Sign up"
 where the header has room for it -- site.css hides it below 30rem, because the
 phone header holds one row, and the login page links to sign-up anyway.
-Logged in: a disclosure named by the username, holding "My profile" and
-"Log out". <details> gives the open/closed state, keyboard handling and its
+Logged in: a disclosure named by the username, holding "My profile",
+"Orders" and "Log out". <details> gives the open/closed state, keyboard handling and its
 announcement without any script of ours.
 
 Both links carry the page the customer is on as `next`, so logging in returns
@@ -19,6 +19,7 @@ Log out is a form, because LogoutView accepts only POST. The summary's hidden
   <summary class="site-account" data-testid="account-menu-toggle"><span class="site-account-name">{{ user.get_username }}</span><span class="visually-hidden">, account menu</span></summary>
   <div class="site-account-panel">
     <a href="{% url 'accounts:profile' %}" data-testid="profile-link">My profile</a>
+    <a href="{% url 'accounts:orders' %}" data-testid="orders-link">Orders</a>
     <form method="post" action="{% url 'accounts:logout' %}">
       {% csrf_token %}
       <button type="submit" class="button-secondary" data-testid="logout-button">Log out</button>

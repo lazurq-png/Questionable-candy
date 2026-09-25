@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}My orders — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<h1>My orders</h1>
+{% if orders %}
+<ul class="order-list" data-testid="order-list">
+  {# Column titles for the eye only: each order reads fine aloud without them. #}
+  <li class="order-head" aria-hidden="true">
+    <span>Date</span><span>Status</span><span class="order-head-total">Total</span><span></span>
+  </li>
+  {% for order in orders %}
+  <li class="order-line">
+    <span class="order-line-date">{{ order.created_at|date:"j M Y" }}</span>
+    <span class="order-status order-status-{{ order.status }}">{{ order.get_status_display }}</span>
+    <span class="order-line-total">${{ order.total_amount }}</span>
+    {# Every row's button reads "View order"; the hidden rest says which. #}
+    <a href="{% url 'order_received' order.pk %}" class="button button-secondary order-line-view">View order<span class="visually-hidden"> from {{ order.created_at|date:"j M Y" }}, ${{ order.total_amount }}</span></a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty-state" data-testid="no-orders">You haven't placed any orders yet.</p>
+{% endif %}
+{% endblock %}

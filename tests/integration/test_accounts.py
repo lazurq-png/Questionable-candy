@@ -4,10 +4,15 @@ Every client enforces CSRF and posts the token a real page handed out, as a
 browser would; the default test client would pass even if every browser were
 refused.
 """
+import uuid
+from decimal import Decimal
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
+
+from shop.models import Order
 
 pytestmark = pytest.mark.django_db
 
@@ -207,7 +212,32 @@ def test_profile_changes_only_the_signed_in_customers_own_record(visitor):
     bob.refresh_from_db()
     assert sorted(ada.allergies) == ["milk", "soy"]
     assert bob.allergies == ["fish"]
-    assert "Your profile is saved." in visitor.get(response["Location"]).content.decode()
+    assert "Your profile was saved." in visitor.get(response["Location"]).content.decode()
+
+
+def test_name_and_email_boxes_start_empty_with_hints(visitor):
+    """What is saved is a hint; with nothing saved, first name hints the username."""
+    make_user("ada", last_name="Lovelace", email="ada@example.com")
+    log_in(visitor)
+
+    page = visitor.get(reverse("accounts:profile")).content.decode()
+
+    assert 'placeholder="ada"' in page
+    assert 'placeholder="Lovelace"' in page
+    assert 'placeholder="ada@example.com"' in page
+    assert 'value="Lovelace"' not in page
+    assert 'value="ada@example.com"' not in page
+
+
+def test_saving_with_empty_boxes_keeps_what_is_saved(visitor):
+    """An empty box means keep it; only a typed value replaces the saved one."""
+    make_user("ada", first_name="Ada", last_name="Lovelace", email="ada@example.com")
+    log_in(visitor)
+
+    post(visitor, reverse("accounts:profile"), {"first_name": "", "last_name": "King", "email": ""})
+
+    ada = get_user_model().objects.get(username="ada")
+    assert (ada.first_name, ada.last_name, ada.email) == ("Ada", "King", "ada@example.com")
 
 
 def test_unticking_every_allergy_saves_none(visitor):
@@ -239,6 +269,86 @@ def test_account_posts_are_refused_without_a_csrf_token(visitor):
 
     assert response.status_code == 403
     assert not signed_in_user(visitor).is_authenticated
+
+
+# --- Change password ---------------------------------------------------------
+
+def test_changing_the_password_returns_to_the_profile_with_a_message(visitor):
+    """The new password works, the old one no longer does, and the customer stays in."""
+    make_user()
+    log_in(visitor)
+    new_password = "fudge-Tray-2027!"
+
+    response = post(visitor, reverse("accounts:password_change"), {
+        "old_password": PASSWORD, "new_password1": new_password, "new_password2": new_password,
+    })
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse("accounts:profile")
+    assert "Your password was changed." in visitor.get(response["Location"]).content.decode()
+    assert signed_in_user(visitor).is_authenticated
+    ada = get_user_model().objects.get(username="ada")
+    assert ada.check_password(new_password) and not ada.check_password(PASSWORD)
+
+
+# --- My orders ---------------------------------------------------------------
+
+def make_order(user, status=Order.Status.PENDING):
+    """An order row as place() leaves it; the lines do not matter to this page."""
+    return Order.objects.create(
+        user=user, status=status, total_amount=Decimal("1.00"), confirmation_token=uuid.uuid4(),
+    )
+
+
+def test_orders_requires_login(visitor):
+    """Anonymous visitors are sent to log in, and back here afterwards."""
+    response = visitor.get(reverse("accounts:orders"))
+
+    assert response.status_code == 302
+    assert response["Location"] == f'{reverse("accounts:login")}?next={reverse("accounts:orders")}'
+
+
+def test_orders_lists_only_the_signed_in_customers_own_newest_first(visitor):
+    """Each order's "View order" button opens its receipt; its status and total show; nobody else's appear."""
+    ada = make_user("ada")
+    older = make_order(ada)
+    newer = make_order(ada, Order.Status.CANCELLED)
+    bobs = make_order(make_user("bob"))
+    log_in(visitor)
+
+    page = visitor.get(reverse("accounts:orders")).content.decode()
+
+    def receipt_link(order):
+        return f'href="{reverse("order_received", args=[order.pk])}"'
+
+    assert page.index(receipt_link(newer)) < page.index(receipt_link(older))
+    assert page.count('class="button button-secondary order-line-view">View order<') == 2
+    assert "order-status-cancelled" in page and "Cancelled" in page
+    assert "$1.00" in page
+    assert receipt_link(bobs) not in page
+    assert "Order #" not in page  # the button, not the order's number, names each row
+
+
+def test_orders_says_so_when_there_are_none(visitor):
+    """An empty state, not an empty list."""
+    make_user()
+    log_in(visitor)
+
+    response = visitor.get(reverse("accounts:orders"))
+
+    assert 'data-testid="no-orders"' in response.content.decode()
+    assert 'data-testid="order-list"' not in response.content.decode()
+
+
+def test_profile_no_longer_lists_orders(visitor):
+    """They moved to their own page, reached from the account menu."""
+    make_order(make_user())
+    log_in(visitor)
+
+    page = visitor.get(reverse("accounts:profile")).content.decode()
+
+    assert 'data-testid="order-list"' not in page
+    assert f'href="{reverse("accounts:orders")}"' in page  # the header's menu link
 
 
 # --- The header ----------------------------------------------------------------

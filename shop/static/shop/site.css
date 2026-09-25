@@ -31,6 +31,11 @@
   --flaw-text: #7d1233;
   --notice-bg: #fff8e6;
   --notice-border: #d9a520;
+  /* Order status text; each at least 6:1 on --surface. */
+  --status-pending: #8a4b00;
+  --status-paid: #1f5fae;
+  --status-cancelled: #b3261e;
+  --status-fulfilled: #1d6b33;
   --focus: #b0165d;
   --shadow: 0 1px 2px rgb(43 37 48 / 6%), 0 4px 16px rgb(43 37 48 / 6%);
   /* The stepper's number field: white on the primary-coloured bar in both
@@ -72,6 +77,10 @@
     --flaw-text: #ffc6d8;
     --notice-bg: #2b2413;
     --notice-border: #c9982a;
+    --status-pending: #f2b24c;
+    --status-paid: #8cb8ff;
+    --status-cancelled: #ff8f87;
+    --status-fulfilled: #72d98e;
     --focus: #ff7ab4;
     --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
   }
@@ -93,6 +102,10 @@
   --flaw-text: #ffc6d8;
   --notice-bg: #2b2413;
   --notice-border: #c9982a;
+  --status-pending: #f2b24c;
+  --status-paid: #8cb8ff;
+  --status-cancelled: #ff8f87;
+  --status-fulfilled: #72d98e;
   --focus: #ff7ab4;
   --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
 }
@@ -604,6 +617,12 @@ button[disabled] {
   font: inherit;
 }
 
+/* Browsers' default placeholder grey can fall under 4.5:1; --muted does not. */
+.account-form input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
 .account-form fieldset {
   margin: 0;
   padding: 0;
@@ -641,19 +660,40 @@ button[disabled] {
   justify-self: start;
 }
 
-/* The allergy checkboxes: the whole label is the tap target. */
-.account-form [id$="allergies"] {
+/* Two short fields side by side (first and last name); stacked on a phone. */
+.field-row {
+  display: grid;
+  gap: var(--space);
+}
+
+@media (min-width: 30rem) {
+  .field-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The allergies on the profile page, boxed off from the fields above. */
+.allergies-box {
+  padding: var(--space) 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* The allergy checkboxes (Django's id_allergies -- the underscore keeps the
+   profile's #allergies box out of it): the whole label is the tap target. */
+.account-form [id$="_allergies"] {
   display: grid;
   gap: 0 var(--space);
 }
 
 @media (min-width: 30rem) {
-  .account-form [id$="allergies"] {
+  .account-form [id$="_allergies"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.account-form [id$="allergies"] label {
+.account-form [id$="_allergies"] label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -662,9 +702,12 @@ button[disabled] {
   font-weight: 400;
 }
 
+/* flex: none -- in a label whose text wraps, the box would otherwise shrink. */
 .account-form input[type="checkbox"] {
+  flex: none;
   width: 1.25rem;
   height: 1.25rem;
+  margin: 0;
   accent-color: var(--primary);
 }
 
@@ -811,6 +854,95 @@ input[type="number"] {
   min-height: var(--tap);
   min-width: var(--tap); /* a short link, like "Log in", is narrower than a tap */
 }
+
+/* ---- Orders (My orders page) --------------------------------------------- */
+
+/* As wide as the widest card, not the page. The list owns the columns and each
+   card borrows them (subgrid), so dates, statuses and totals line up from card
+   to card. A phone gets two rows per card -- date and status, then total and
+   the "View order" button; from 36rem everything fits on one line. */
+.order-list {
+  list-style: none;
+  margin: 0 0 var(--space);
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 2rem;
+  row-gap: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.order-line {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  row-gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.order-line-date {
+  color: var(--muted);
+}
+
+/* On a phone the status and the button take the right-hand column. */
+.order-status {
+  font-weight: 600;
+  text-align: right;
+}
+
+.order-line-view {
+  justify-self: end;
+}
+
+/* The column titles: the cards' columns and padding, without the card. The
+   transparent border keeps them aligned with the cards' 1px one. Only shown
+   once the cards are one line; over two-row cards they would not line up. */
+.order-head {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  padding: 0 1.25rem;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.order-head-total {
+  text-align: right;
+}
+
+.order-line-total {
+  font-weight: 700;
+}
+
+@media (min-width: 36rem) {
+  .order-list {
+    grid-template-columns: repeat(4, auto);
+  }
+
+  .order-status {
+    text-align: left;
+  }
+
+  .order-line-total {
+    text-align: right;
+  }
+
+  .order-head {
+    display: grid;
+  }
+}
+
+.order-status-pending { color: var(--status-pending); }
+.order-status-paid { color: var(--status-paid); }
+.order-status-cancelled { color: var(--status-cancelled); }
+.order-status-fulfilled { color: var(--status-fulfilled); }
 
 /* ---- Cart ------------------------------------------------------------------ */
 

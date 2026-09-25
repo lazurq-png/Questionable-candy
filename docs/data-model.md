@@ -38,7 +38,7 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | Candy           | partial     | `shop.Candy` — see the note in §3\.3                                        |
 | ShoppingCart    | not started | Cart state currently lives in `request.session["shoppingcart"]`, not in a table    |
 | ShoppingCartItem| not started | —                                                                                  |
-| Order           | implemented | `shop.Order`, placed by `Order.objects.place` (2026\-09\-17). `user` is `PROTECT`; only `pending` is ever set, as payment is not connected. Adds `confirmation_token` (unique UUID), so a confirmation submitted twice places one order |
+| Order           | implemented | `shop.Order`, placed by `Order.objects.place` (2026\-09\-17), or added, edited and deleted by an administrator in the admin (2026\-09\-25). `user` is `PROTECT`; checkout sets only `pending`, as payment is not connected; an administrator can set any status. Stock follows the lines of any order not `fulfilled`: deleting such an order returns its items to stock. Adds `confirmation_token` (unique UUID), so a confirmation submitted twice places one order |
 | OrderItem       | implemented | `shop.OrderItem`; `candy` is `PROTECT`. Check constraints: `quantity >= 1`, `subtotal = quantity × unit_price` |
 
 `ArrayField` on `User.allergies` and `Candy.allergens` is viable: [ADR 0004](adr/0004-database.md) is implemented, the application runs on PostgreSQL, and `django.contrib.postgres` is installed.
@@ -147,7 +147,7 @@ Join table resolving the many\-to\-many relationship between ShoppingCart and Ca
 | id                      | BigAutoField        | PK          |                                                         |
 | user_id                 | ForeignKey → User   | not null    |                                                         |
 | status                  | CharField (choices) | not null    | `pending`, `paid`, `cancelled`, `fulfilled`.            |
-| total_amount            | DecimalField        | not null    | Snapshot total at order creation.                       |
+| total_amount            | DecimalField        | not null    | Sum of the lines' subtotals; recomputed when an administrator edits the lines. |
 | warning_acknowledged_at | DateTimeField       | nullable    | Timestamp of the UC\-07 health\-warning acknowledgment. |
 | purchase_confirmed_at   | DateTimeField       | nullable    | Timestamp of the final UC\-08 confirmation.             |
 | created_at              | DateTimeField       | auto        |                                                         |
@@ -163,7 +163,7 @@ Join table resolving the many\-to\-many relationship between Order and Candy, wi
 | order_id   | ForeignKey → Order   | not null    |                                                                     |
 | candy_id   | ForeignKey → Candy   | not null    |                                                                     |
 | quantity   | PositiveIntegerField | not null    |                                                                     |
-| unit_price | DecimalField         | not null    | Price at the time of purchase — Candy's own price may change later. |
+| unit_price | DecimalField         | not null    | Price at the time of purchase — Candy's own price may change later. A line an administrator adds without one takes the candy's current price. |
 | subtotal   | DecimalField         | not null    | `quantity × unit_price`, stored rather than recomputed.             |
 
 ## 4\. Relationship Summary

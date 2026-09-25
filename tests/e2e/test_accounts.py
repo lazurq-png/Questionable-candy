@@ -5,9 +5,14 @@ these cover what only a browser shows: the header's account control, the
 forms actually submitting with the tokens the pages hand out, and the new
 pages meeting the measurable checks at phone width in both themes.
 """
+import uuid
+from decimal import Decimal
+
 import pytest
 from django.contrib.auth import get_user_model
 from playwright.sync_api import expect
+
+from shop.models import Order
 
 from tests.e2e.test_theme import PHONE, check_page
 
@@ -69,11 +74,39 @@ def test_log_in_from_a_phone_and_change_profile(live_server, page, assert_page_i
     page.get_by_label("Peanuts").check()
     page.get_by_role("button", name="Save profile").click()
 
-    expect(page.get_by_test_id("account-messages")).to_have_text("Your profile is saved.")
+    expect(page.get_by_test_id("account-messages")).to_have_text("Your profile was saved.")
+    # It stays long enough to read, then goes by itself after 5 seconds.
+    page.wait_for_timeout(4000)
+    expect(page.get_by_test_id("account-messages")).to_be_visible()
+    expect(page.get_by_test_id("account-messages")).to_be_hidden(timeout=3000)
     page.reload()
     expect(page.get_by_label("Peanuts")).to_be_checked()
     expect(page.get_by_label("Eggs")).not_to_be_checked()
     assert get_user_model().objects.get(username="ada").allergies == ["peanuts"]
+    assert_page_is_fully_rendered(page)
+
+
+def test_change_password_from_the_profile(live_server, page, assert_page_is_fully_rendered):
+    """The profile's button, the real form and its token, and back with a message."""
+    get_user_model().objects.create_user(username="ada", password=PASSWORD)
+    page.set_viewport_size(WIDE)
+    page.goto(f"{live_server.url}/accounts/login/")
+    page.get_by_label("Username").fill("ada")
+    page.get_by_label("Password").fill(PASSWORD)
+    page.get_by_role("button", name="Log in").click()
+    page.wait_for_url(f"{live_server.url}/")
+
+    page.goto(f"{live_server.url}/accounts/profile/")
+    page.get_by_test_id("change-password-link").click()
+    page.wait_for_url("**/accounts/password/")
+    page.get_by_label("Old password").fill(PASSWORD)
+    page.get_by_label("New password:", exact=True).fill("fudge-Tray-2027!")
+    page.get_by_label("New password confirmation").fill("fudge-Tray-2027!")
+    page.get_by_role("button", name="Change password").click()
+
+    page.wait_for_url("**/accounts/profile/")
+    expect(page.get_by_test_id("account-messages")).to_have_text("Your password was changed.")
+    assert get_user_model().objects.get(username="ada").check_password("fudge-Tray-2027!")
     assert_page_is_fully_rendered(page)
 
 
@@ -114,3 +147,19 @@ def test_account_pages_and_the_signed_in_header_meet_the_measurable_checks(
     page.get_by_test_id("profile-link").click()
     page.wait_for_url("**/accounts/profile/")
     check_page(page, f"my profile, {scheme}", assert_page_is_fully_rendered)
+
+    page.get_by_test_id("account-menu-toggle").click()
+    page.get_by_test_id("orders-link").click()
+    page.wait_for_url("**/accounts/orders/")
+    expect(page.get_by_test_id("no-orders")).to_be_visible()
+    check_page(page, f"my orders, {scheme}", assert_page_is_fully_rendered)
+
+    # And with an order, so the list and its "View order" button are measured too.
+    Order.objects.create(
+        user=get_user_model().objects.get(username="a-customer-with-a-very-long-username"),
+        total_amount=Decimal("123.45"), confirmation_token=uuid.uuid4(),
+    )
+    page.reload()
+    # Read aloud with the order it opens; on screen only "View order".
+    expect(page.get_by_role("link", name="View order from")).to_contain_text("View order")
+    check_page(page, f"my orders with an order, {scheme}", assert_page_is_fully_rendered)

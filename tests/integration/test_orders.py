@@ -303,18 +303,283 @@ def test_a_receipt_is_only_for_the_customer_who_placed_the_order(ada, candies):
 
 # --- Admin -----------------------------------------------------------------------
 
-def test_orders_are_visible_but_read_only_in_the_admin(admin_client, ada, candies):
-    """A placed order is a record: listed and viewable, never added, edited or deleted."""
+def order_form(user, lines=(), status="pending", initial=0):
+    """The admin's order add/change form; each of `lines` is one inline row's fields."""
+    data = {
+        "user": user.pk,
+        "status": status,
+        "items-TOTAL_FORMS": len(lines),
+        "items-INITIAL_FORMS": initial,
+        "items-MIN_NUM_FORMS": 0,
+        "items-MAX_NUM_FORMS": 1000,
+        "_save": "Save",
+    }
+    for i, line in enumerate(lines):
+        for field, value in line.items():
+            data[f"items-{i}-{field}"] = value
+    return data
+
+
+def stock(candy):
+    """The candy's stock as the database has it now."""
+    return Candy.objects.get(pk=candy.pk).stock
+
+
+def test_the_order_pages_start_with_no_empty_line_and_no_shortcuts_to_edit_a_candy(admin_client, ada, candies):
+    """Lines are added through the add dialog, so no empty row is offered; the new-line
+    template it copies its candies from has no add/change/view/delete icons."""
     order = place(ada, snapshot_of((candies[0], 2)))
 
-    assert admin_client.get(reverse("admin:shop_order_changelist")).status_code == 200
-    detail = admin_client.get(reverse("admin:shop_order_change", args=[order.pk]))
-    assert detail.status_code == 200
-    assert "Toffee" in detail.content.decode()
-    assert 'name="total_amount"' not in detail.content.decode()
-    assert admin_client.get(reverse("admin:shop_order_add")).status_code == 403
-    assert admin_client.post(reverse("admin:shop_order_change", args=[order.pk]),
-                             {"status": "paid"}).status_code == 403
-    assert admin_client.post(reverse("admin:shop_order_delete", args=[order.pk]),
-                             {"post": "yes"}).status_code == 403
-    assert Order.objects.get().status == Order.Status.PENDING
+    for url in (reverse("admin:shop_order_add"), reverse("admin:shop_order_change", args=[order.pk])):
+        page = admin_client.get(url).content.decode()
+        assert '<select name="items-__prefix__-candy"' in page
+        assert '<select name="items-0-candy"' not in page
+        assert '<select name="items-1-candy"' not in page
+        for icon in ("add", "change", "view", "delete"):
+            assert f'id="{icon}_id_items-__prefix__-candy"' not in page
+        assert 'id="add_id_user"' in page  # the check can see such an icon: the user field keeps its own
+
+
+def test_an_existing_lines_candy_is_its_name_opening_its_details(admin_client, ada, candies):
+    """A placed line shows "2 x <candy>" in its candy cell, the name opening a dialog of its details."""
+    toffee, _ = candies
+    order = place(ada, snapshot_of((toffee, 2)))
+
+    page = admin_client.get(reverse("admin:shop_order_change", args=[order.pk])).content.decode()
+
+    assert 'name="items-0-candy"' not in page
+    assert ('<span class="candy-line-title">2 x <button type="button" '
+            'data-candy-dialog="id_items-0-candy-dialog"') in page
+    assert '<dialog id="id_items-0-candy-dialog"' in page
+    assert toffee.flaw in page
+
+
+def test_the_order_page_loads_its_own_script_in_place_of_djangos_inline_script(admin_client, ada, candies):
+    """order_lines.js and its dialogs; not admin/js/inlines.js, whose "Add another" row it replaces."""
+    order = place(ada, snapshot_of((candies[0], 2)))
+
+    page = admin_client.get(reverse("admin:shop_order_change", args=[order.pk])).content.decode()
+
+    assert "shop/admin/order_lines.js" in page
+    assert "admin/js/inlines.js" not in page
+    assert '<dialog id="items-add-dialog"' in page
+    assert '<dialog id="items-remove-dialog"' in page
+
+
+def test_an_existing_lines_candy_cannot_be_swapped(admin_client, ada, candies):
+    """A posted candy for a placed line is ignored: the line and its stock stay as they were."""
+    toffee, drops = candies
+    order = place(ada, snapshot_of((toffee, 2)))
+    line = order.items.get()
+
+    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), order_form(ada, [
+        {"id": line.pk, "order": order.pk, "candy": drops.pk, "quantity": 2, "unit_price": "3.00"},
+    ], initial=1))
+
+    assert response.status_code == 302
+    assert order.items.get().candy == toffee
+    assert (stock(toffee), stock(drops)) == (3, 2)
+
+
+def test_an_administrator_can_add_an_order_at_the_candys_current_price(admin_client, ada, candies):
+    """A blank unit price is the candy's price; the order gets a token and its total, and takes stock."""
+    toffee, _ = candies
+
+    response = admin_client.post(reverse("admin:shop_order_add"), order_form(
+        ada, [{"candy": toffee.pk, "quantity": 2, "unit_price": ""}]))
+
+    assert response.status_code == 302
+    order = Order.objects.get()
+    assert order.confirmation_token is not None
+    assert order.total_amount == Decimal("6.00")
+    item = order.items.get()
+    assert (item.unit_price, item.subtotal) == (Decimal("3.00"), Decimal("6.00"))
+    assert stock(toffee) == 3
+
+
+def test_a_unit_price_typed_by_the_administrator_is_kept(admin_client, ada, candies):
+    """The current price is only the default."""
+    response = admin_client.post(reverse("admin:shop_order_add"), order_form(
+        ada, [{"candy": candies[0].pk, "quantity": 1, "unit_price": "2.50"}]))
+
+    assert response.status_code == 302
+    assert Order.objects.get().total_amount == Decimal("2.50")
+
+
+def test_a_line_sent_as_the_add_dialog_sends_it_is_added_at_the_current_price(admin_client, ada, candies):
+    """The dialog posts only the next form's candy and quantity, with the page's own fields."""
+    toffee, drops = candies
+    order = place(ada, snapshot_of((toffee, 2)))
+    line = order.items.get()
+    data = order_form(ada, [
+        {"id": line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 2, "unit_price": "3.00"},
+    ], initial=1)
+    data.update({"items-TOTAL_FORMS": 2, "items-1-candy": drops.pk, "items-1-quantity": 2, "_continue": "Save"})
+    del data["_save"]
+
+    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), data)
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse("admin:shop_order_change", args=[order.pk])
+    added = order.items.get(candy=drops)
+    assert (added.quantity, added.unit_price, added.subtotal) == (2, Decimal("5.00"), Decimal("10.00"))
+    order.refresh_from_db()
+    assert order.total_amount == Decimal("16.00")
+    assert stock(drops) == 0
+
+
+def test_adding_a_candy_the_order_already_has_adds_to_its_line(admin_client, ada, candies):
+    """One line per candy: the quantity joins the existing line, at that line's price."""
+    toffee, _ = candies
+    order = place(ada, snapshot_of((toffee, 2)))  # stock: toffee 3
+    line = order.items.get()
+
+    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), order_form(ada, [
+        {"id": line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 2, "unit_price": "3.00"},
+        {"candy": toffee.pk, "quantity": 1, "unit_price": "9.99"},
+    ], initial=1))
+
+    assert response.status_code == 302
+    merged = order.items.get()
+    assert (merged.pk, merged.quantity, merged.unit_price, merged.subtotal) == (
+        line.pk, 3, Decimal("3.00"), Decimal("9.00"))
+    order.refresh_from_db()
+    assert order.total_amount == Decimal("9.00")
+    assert stock(toffee) == 2
+
+
+def test_two_new_lines_for_one_candy_become_one(admin_client, ada, candies):
+    """The same rule on a new order, with nothing saved yet to join."""
+    toffee, _ = candies
+
+    response = admin_client.post(reverse("admin:shop_order_add"), order_form(ada, [
+        {"candy": toffee.pk, "quantity": 1, "unit_price": ""},
+        {"candy": toffee.pk, "quantity": 2, "unit_price": ""},
+    ]))
+
+    assert response.status_code == 302
+    item = Order.objects.get().items.get()
+    assert (item.quantity, item.subtotal) == (3, Decimal("9.00"))
+    assert stock(toffee) == 2
+
+
+def test_editing_an_orders_lines_moves_stock_by_the_difference(admin_client, ada, candies):
+    """A raised quantity takes the extra; a removed line returns its stock; totals follow."""
+    toffee, drops = candies
+    order = place(ada, snapshot_of((toffee, 2), (drops, 1)))  # stock: toffee 3, drops 1
+    toffee_line, drops_line = order.items.order_by("pk")
+
+    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), order_form(ada, [
+        {"id": toffee_line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 3, "unit_price": "3.00"},
+        {"id": drops_line.pk, "order": order.pk, "candy": drops.pk, "quantity": 1, "unit_price": "5.00",
+         "DELETE": "on"},
+    ], initial=2))
+
+    assert response.status_code == 302
+    order.refresh_from_db()
+    assert order.total_amount == Decimal("9.00")
+    assert order.items.get().subtotal == Decimal("9.00")
+    assert (stock(toffee), stock(drops)) == (2, 2)
+
+
+def test_an_order_line_beyond_the_stock_is_refused(admin_client, ada, candies):
+    """The form says which candy is short, and nothing is saved."""
+    toffee, _ = candies
+
+    response = admin_client.post(reverse("admin:shop_order_add"), order_form(
+        ada, [{"candy": toffee.pk, "quantity": 6, "unit_price": ""}]))
+
+    assert response.status_code == 200
+    assert "Not enough stock: Toffee." in response.content.decode()
+    assert not Order.objects.exists()
+    assert stock(toffee) == 5
+
+
+@pytest.mark.parametrize("status", [Order.Status.PENDING, Order.Status.PAID, Order.Status.CANCELLED])
+def test_deleting_an_order_not_yet_sent_returns_its_items_to_stock(admin_client, ada, candies, status):
+    """Every status but fulfilled means the candy never left the shop."""
+    toffee, drops = candies
+    order = place(ada, snapshot_of((toffee, 2), (drops, 2)))
+    Order.objects.filter(pk=order.pk).update(status=status)
+
+    response = admin_client.post(reverse("admin:shop_order_delete", args=[order.pk]), {"post": "yes"})
+
+    assert response.status_code == 302
+    assert not Order.objects.exists()
+    assert not OrderItem.objects.exists()
+    assert (stock(toffee), stock(drops)) == (5, 2)
+
+
+def test_deleting_a_fulfilled_order_leaves_stock_alone(admin_client, ada, candies):
+    """A sent order's candy has left the shop."""
+    toffee, _ = candies
+    order = place(ada, snapshot_of((toffee, 2)))
+    Order.objects.filter(pk=order.pk).update(status=Order.Status.FULFILLED)
+
+    admin_client.post(reverse("admin:shop_order_delete", args=[order.pk]), {"post": "yes"})
+
+    assert not Order.objects.exists()
+    assert stock(toffee) == 3
+
+
+def test_deleting_selected_orders_from_the_list_returns_their_stock(admin_client, ada, candies):
+    """The changelist's bulk action, which bypasses delete_model."""
+    toffee, drops = candies
+    first = place(ada, snapshot_of((toffee, 2)))
+    second = place(ada, snapshot_of((toffee, 1), (drops, 2)))
+
+    response = admin_client.post(reverse("admin:shop_order_changelist"), {
+        "action": "delete_selected", "_selected_action": [first.pk, second.pk], "post": "yes"})
+
+    assert response.status_code == 302
+    assert not Order.objects.exists()
+    assert (stock(toffee), stock(drops)) == (5, 2)
+
+
+def test_deleting_the_same_order_twice_returns_its_stock_once(ada, candies):
+    """The second delete, with a stale copy of the order, finds it gone and returns nothing."""
+    toffee, _ = candies
+    order = place(ada, snapshot_of((toffee, 2)))
+
+    Order.objects.delete_and_restock([order])
+    Order.objects.delete_and_restock([order])
+
+    assert stock(toffee) == 5
+
+
+def test_staff_without_order_permissions_cannot_see_or_change_orders(client, ada, candies):
+    """Opening the admin up is Django's permissions, not a door for every staff account."""
+    order = place(ada, snapshot_of((candies[0], 2)))
+    client.force_login(get_user_model().objects.create_user(username="clerk", password="x", is_staff=True))
+
+    assert client.get(reverse("admin:shop_order_changelist")).status_code == 403
+    assert client.get(reverse("admin:shop_order_add")).status_code == 403
+    assert client.post(reverse("admin:shop_order_delete", args=[order.pk]), {"post": "yes"}).status_code == 403
+    assert Order.objects.exists()
+    assert stock(candies[0]) == 3
+
+
+def test_an_order_is_named_by_its_customer_and_the_day_it_was_placed(admin_client, ada, candies):
+    """"<username> <yyyy-mm-dd>", in the site's time zone, wherever the admin names it."""
+    order = place(ada, snapshot_of((candies[0], 1)))
+    Order.objects.filter(pk=order.pk).update(created_at=datetime(2026, 9, 3, 23, 30, tzinfo=dt_timezone.utc))
+    order.refresh_from_db()
+
+    assert str(order) == "ada 2026-09-03"
+    assert "ada 2026-09-03" in admin_client.get(reverse("admin:shop_order_changelist")).content.decode()
+
+
+def test_the_order_list_names_its_orders_without_a_query_each(admin_client, candies):
+    """Each name needs its customer, fetched with the orders rather than one query per row."""
+    def list_queries():
+        with CaptureQueriesContext(connection) as queries:
+            assert admin_client.get(reverse("admin:shop_order_changelist")).status_code == 200
+        return len(queries)
+
+    users = [get_user_model().objects.create_user(username=name, password="x") for name in ("ada", "bob", "cy")]
+    place(users[0], snapshot_of((candies[0], 1)))
+    one = list_queries()
+    for user in users[1:]:
+        place(user, snapshot_of((candies[0], 1)))
+
+    assert list_queries() == one

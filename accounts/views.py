@@ -57,10 +57,20 @@ def profile(request):
     form = ProfileForm(request.POST if request.method == "POST" else None, instance=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Your profile is saved.")
+        messages.success(request, "Your profile was saved.")
         return redirect("accounts:profile")
-    orders = request.user.orders.order_by("-created_at")
-    return render(request, "accounts/profile.html", {"form": form, "orders": orders})
+    return render(request, "accounts/profile.html", {"form": form})
+
+
+@never_cache
+@login_required
+def orders(request):
+    """The signed-in customer's own orders, newest first.
+
+    Read from request.user, like profile(): the URL carries no id to swap.
+    """
+    customer_orders = request.user.orders.order_by("-created_at")
+    return render(request, "accounts/orders.html", {"orders": customer_orders})
 
 
 class PasswordChangeView(SuccessMessageMixin, auth_views.PasswordChangeView):
@@ -68,5 +78,5 @@ class PasswordChangeView(SuccessMessageMixin, auth_views.PasswordChangeView):
 
     template_name = "accounts/password_change.html"
     success_url = reverse_lazy("accounts:profile")
-    success_message = "Your password is changed."
+    success_message = "Your password was changed."
     

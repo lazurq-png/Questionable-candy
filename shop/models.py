@@ -1,3 +1,4 @@
+from collections import Counter
 from decimal import Decimal
 
 from django.conf import settings
@@ -5,6 +6,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 
 from . import allergens
@@ -178,8 +180,22 @@ class OrderChanged(Exception):
         self.candies = candies
 
 
+def move_stock(changes):
+    """Take stock (positive quantity) or return it (negative), per candy pk.
+
+    Call inside a transaction: the candies are locked, in primary-key order as
+    place() locks them, so this cannot deadlock against a checkout. Stock is a
+    PositiveIntegerField, so the database refuses any change that would take it
+    below zero.
+    """
+    changes = {pk: quantity for pk, quantity in changes.items() if quantity}
+    for candy in Candy.objects.select_for_update().filter(pk__in=changes).order_by("pk"):
+        candy.stock -= changes[candy.pk]
+        candy.save(update_fields=["stock", "updated_at"])
+
+
 class OrderManager(models.Manager):
-    """Orders are created only through place(), never by hand."""
+    """Customers' orders are created through place(); administrators' in the admin."""
 
     def place(self, user, snapshot, warning_acknowledged_at, purchase_confirmed_at, confirmation_token):
         """UC-05 steps 4 and 7: re-validate the confirmed order, then record it.
@@ -243,6 +259,21 @@ class OrderManager(models.Manager):
                 candy.save(update_fields=["stock", "updated_at"])
         return order
 
+    def delete_and_restock(self, orders):
+        """Delete orders; any not fulfilled (not yet sent) return their items to stock.
+
+        The orders are locked first, so two admins deleting the same order at
+        once cannot return its stock twice: the second finds it already gone.
+        """
+        with transaction.atomic():
+            locked = list(self.select_for_update().filter(pk__in=[o.pk for o in orders]).order_by("pk"))
+            returned = Counter()
+            for order in locked:
+                if order.status != Order.Status.FULFILLED:
+                    returned.update(order.line_counts())
+            move_stock({pk: -quantity for pk, quantity in returned.items()})
+            self.filter(pk__in=[o.pk for o in locked]).delete()
+
 
 class Order(models.Model):
     """A customer's order (docs/data-model.md section 3.6).
@@ -280,8 +311,20 @@ class Order(models.Model):
             models.CheckConstraint(condition=models.Q(total_amount__gte=0), name="order_total_not_negative"),
         ]
 
+    def line_counts(self):
+        """{candy pk: total quantity} across this order's lines."""
+        counts = Counter()
+        for candy_pk, quantity in self.items.values_list("candy", "quantity"):
+            counts[candy_pk] += quantity
+        return counts
+
     def __str__(self):
-        return f"Order #{self.pk}"
+        """"<username> <yyyy-mm-dd>": who placed it, and the day, in the site's
+        time zone (settings.TIME_ZONE). Not unique -- one customer's two orders
+        on one day share it. An order not yet saved is dated today.
+        """
+        placed = timezone.localdate(self.created_at or timezone.now())
+        return f"{self.user.username} {placed:%Y-%m-%d}"
 
 
 class OrderItem(models.Model):

@@ -36,7 +36,7 @@ Use cases UC-01…UC-09 are specified there, with priorities, in Cockburn format
 | 02 | Google login | **deferred** (Should have; needs django-allauth, ADR 0002) |
 | 03 | Candy detail | built (`/candy/<slug>/`; `/candy/<pk>/` redirects) |
 | 04 | Cart | built (session-based, no `ShoppingCart` table) |
-| 05 | Order and pay | orders placed as `pending`; **payment not connected**, no processor chosen |
+| 05 | Order and pay | orders placed as `pending`; **payment not connected**, no processor chosen. Administrators add, edit and delete orders in the admin; deleting one not yet fulfilled returns its stock |
 | 06 | Flaw disclosure | built; DB check constraint on non-blank `flaw` |
 | 07 | Health warning | built; derived from sugar and allergens in the cart |
 | 08 | Triple confirmation | built as three distinct controls on one page |

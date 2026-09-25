@@ -3,39 +3,28 @@
 {% block main_class %}narrow{% endblock %}
 {% block content %}
 <h1>My profile</h1>
-<div class="notices" data-testid="account-messages">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
+{% comment %}
+"Your profile was saved." and the like fade out after 5 seconds. Without Alpine
+(its CDN unreachable) they simply stay, as they did before.
+{% endcomment %}
+<div class="notices" data-testid="account-messages"
+     x-data="{ shown: true }" x-init="setTimeout(() => shown = false, 5000)"
+     x-show="shown" x-transition:leave.opacity.duration.300ms>{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
 <form method="post" action="{% url 'accounts:profile' %}" class="account-form" id="profile-form" data-testid="profile-form">
   {% csrf_token %}
-  {{ form.first_name.as_field_group }}
-  {{ form.last_name.as_field_group }}
-  {{ form.email.as_field_group }}
-  <p>Checkout warns you about candy that contains any allergen you tick here.</p>
-  <div id="allergies">
-    
+  <div class="field-row">
+    <div>{{ form.first_name.as_field_group }}</div>
+    <div>{{ form.last_name.as_field_group }}</div>
+  </div>
+  <div>{{ form.email.as_field_group }}</div>
+  <div>
+    <a href="{% url 'accounts:password_change' %}" class="button button-secondary" data-testid="change-password-link">Change password</a>
+  </div>
+  {# The id is the target of checkout's "Change my allergies" link. #}
+  <div id="allergies" class="allergies-box">
     {{ form.allergies.as_field_group }}
   </div>
 </form>
-
-<h2>My orders</h2>
-{% if orders %}
-<ul class="cart-lines" data-testid="order-list">
-  {% for order in orders %}
-  <li class="cart-line">
-    <a href="{% url 'order_received' order.pk %}">Order #{{ order.pk }}</a>
-    <span>{{ order.created_at|date:"j M Y" }}</span>
-    <span>{{ order.get_status_display }}</span>
-    <span class="cart-line-total">${{ order.total_amount }}</span>
-  </li>
-  {% endfor %}
-</ul>
-{% else %}
-<p class="empty-state" data-testid="no-orders">You haven't placed any orders yet.</p>
-{% endif %}
-
-<h2>Password</h2>
-<p class="page-actions">
-  <a href="{% url 'accounts:password_change' %}" class="button-secondary" data-testid="change-password-link">Change password</a>
-</p>
 
 <button type="submit" form="profile-form">Save profile</button>
 
