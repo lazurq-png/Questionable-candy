@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Peanut Brittle Shards</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FFE3A0"/><stop offset=".6" stop-color="#E0A33B"/><stop offset="1" stop-color="#9A5E14"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="135" ry="21" fill="#FFB13B" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="224" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<polygon points="115,185 170,95 290,120 255,200" fill="url(#b)" opacity=".9" stroke="#D99A3D" stroke-width="10" stroke-linejoin="round"/><polygon points="140,178 178,116 266,134 242,184" fill="#FFD983" opacity=".4"/><g fill="#9A5B1E" opacity=".85"><ellipse cx="190" cy="150" rx="12" ry="8" transform="rotate(-20 190 150)"/><ellipse cx="238" cy="160" rx="11" ry="7" transform="rotate(15 238 160)"/><ellipse cx="166" cy="176" rx="9" ry="6" transform="rotate(30 166 176)"/></g><path d="M118 184 L172 98 L286 122" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+</svg>

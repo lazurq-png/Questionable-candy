@@ -229,3 +229,29 @@ def test_a_link_shared_before_slugs_lands_on_the_candys_page(live_server, page, 
     assert page.url == f"{live_server.url}/candy/{candy.slug}/"
     expect(page.get_by_test_id("candy-description")).to_have_text("Looks solid. Is not.")
     assert_page_is_fully_rendered(page)
+
+
+def test_the_whole_card_opens_the_details_except_the_amount_bar(live_server, page):
+    """A click on the picture, the price or the card's empty space opens the popup; the bar does not."""
+    CandyFactory(name="Hollow Humbug", description="Looks solid. Is not.", price="9.95", stock=5)
+    page.goto(live_server.url)
+    card = page.locator(".candy-card")
+    popup = page.get_by_test_id("candy-popup")
+
+    for target in (card.locator("img"), card.locator(".candy-card-price")):
+        target.click(force=True)  # the card's link is laid over it, which is the point
+        expect(popup.get_by_role("heading", name="Hollow Humbug")).to_be_visible()
+        page.keyboard.press("Escape")
+        expect(popup).to_be_hidden()
+
+    # Just above the bar, in the control's own padding, is still the card.
+    bar_box = card.get_by_test_id("cart-stepper").bounding_box()
+    page.mouse.click(bar_box["x"] + bar_box["width"] / 2, bar_box["y"] - 4)
+    expect(popup.get_by_role("heading", name="Hollow Humbug")).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(popup).to_be_hidden()
+
+    card.get_by_test_id("cart-stepper-quantity").click()
+    card.get_by_role("button", name="Add to cart: Hollow Humbug").click()
+    expect(card.get_by_test_id("cart-stepper-quantity")).to_have_value("1")
+    expect(popup).to_be_hidden()

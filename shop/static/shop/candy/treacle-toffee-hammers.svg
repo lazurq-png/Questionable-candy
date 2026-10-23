@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Treacle Toffee Hammers</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#9A6A3C"/><stop offset=".6" stop-color="#3E2412"/><stop offset="1" stop-color="#170B04"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="240" rx="135" ry="21" fill="#D9873A" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="226" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<rect x="188" y="130" width="24" height="96" rx="9" fill="#6B4A2A" stroke="#8A6238" stroke-width="3" opacity=".95"/><rect x="196" y="136" width="5" height="82" rx="2.5" fill="#fff" opacity=".25"/><rect x="116" y="82" width="168" height="62" rx="12" fill="url(#b)" opacity=".96"/><rect x="117" y="83" width="166" height="60" rx="11" fill="none" stroke="#fff" stroke-width="2.5" opacity=".5"/><rect x="124" y="124" width="152" height="14" rx="7" fill="#000" opacity=".25"/><ellipse cx="158" cy="98" rx="26" ry="7" fill="#fff" opacity=".7" transform="rotate(-3 158 98)"/>
+</svg>

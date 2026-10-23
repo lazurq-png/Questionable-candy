@@ -63,6 +63,7 @@ The customer-facing ordering flow — browsing, viewing, cart, checkout, payment
 **Extensions**
 
 - 2a. Nothing published: System shows a "nothing available right now" state rather than an empty page.
+- 3a. Customer chooses an order: name A–Z (the default), price low to high, price high to low, or least damaging flaw first. System re-renders the grid in that order and keeps the choice in the page address. Candy whose flaw is not rated yet comes after every rated one.
 
 ### UC-02: Log In with Google
 

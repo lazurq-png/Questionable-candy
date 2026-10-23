@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Rock Hard Toffee Slabs</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="240" rx="140" ry="21" fill="#FFA21A" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="228" rx="105" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g stroke-linejoin="round" stroke-width="10"><polygon points="118,131.26 200,96 282,131.26 200,166.51999999999998" fill="#FFD68A" stroke="#FFD68A" opacity=".9"/><polygon points="118,131.26 200,166.51999999999998 200,256.71999999999997 118,221.45999999999998" fill="#C9801C" stroke="#C9801C" opacity=".85"/><polygon points="200,166.51999999999998 282,131.26 282,221.45999999999998 200,256.71999999999997" fill="#9A5E10" stroke="#9A5E10" opacity=".85"/></g><path d="M120 133.26 L200 98 L280 133.26" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><g fill="none" stroke="#5A3408" stroke-width="2.5" stroke-linecap="round" opacity=".6"><path d="M156 168 L172 182 L166 202"/><path d="M236 176 L250 196"/></g><g fill="#fff" opacity=".6"><circle cx="190" cy="124" r="3"/><circle cx="214" cy="140" r="2"/></g>
+</svg>

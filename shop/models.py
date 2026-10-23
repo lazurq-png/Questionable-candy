@@ -1,3 +1,4 @@
+"""The shop's models: candy and orders."""
 from collections import Counter
 from decimal import Decimal
 
@@ -20,6 +21,19 @@ class CandyQuerySet(models.QuerySet):
         return self.filter(is_published=True)
 
 
+class FlawSeverity(models.IntegerChoices):
+    """How bad a candy's flaw is, mildest first.
+
+    The numbers are the order and nothing more: sorting by them ascending is
+    the catalog's "least damaging first". The labels are what the catalog's
+    badge and the detail page show.
+    """
+
+    MILD = 1, "Mildly annoying"
+    AWKWARD = 2, "Socially awkward"
+    DENTAL = 3, "Call your dentist"
+
+
 def unique_candy_slug(name, taken):
     """A slug for `name` that `taken(slug)` says is free.
 
@@ -39,6 +53,7 @@ def unique_candy_slug(name, taken):
 
 
 class Candy(models.Model):
+    """A candy for sale, with the flaw it is sold with."""
     # Unique (docs/data-model.md section 3.3): two candies of one name could not
     # be told apart in the catalog, and their slugs would need suffixes.
     name = models.CharField(max_length=200, unique=True)
@@ -62,6 +77,15 @@ class Candy(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     flaw = models.CharField(max_length=200)
+    # How bad the flaw is (docs/data-model.md section 3.3). Null means not rated
+    # yet, which is not the same as mild: an unrated candy shows no badge, and
+    # "least damaging first" puts it after every rated one rather than passing
+    # it off as harmless. The database holds it to the three values as well
+    # (Meta.constraints).
+    flaw_severity = models.PositiveSmallIntegerField(
+        choices=FlawSeverity.choices, null=True, blank=True,
+        help_text="How bad the flaw is. Leave empty if it has not been rated yet.",
+    )
     # docs/data-model.md section 3.3. Default True so rows that existed before
     # the field keep appearing in the catalog; hiding them is a per-row decision.
     is_published = models.BooleanField(default=True)
@@ -132,6 +156,14 @@ class Candy(models.Model):
                 | models.Q(sugar_content_g__gte=0, sugar_content_g__lte=100),
                 name="candy_sugar_per_100g_in_range",
                 violation_error_message="Sugar per 100 g must be between 0 and 100.",
+            ),
+            # The choices are checked by full_clean() and forms only, and
+            # objects.create() or update() skip both -- as with flaw and slug.
+            models.CheckConstraint(
+                condition=models.Q(flaw_severity__isnull=True)
+                | models.Q(flaw_severity__in=FlawSeverity.values),
+                name="candy_flaw_severity_is_known",
+                violation_error_message="A flaw severity must be one of the listed ratings.",
             ),
         ]
 

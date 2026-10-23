@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Orange Slice Gummies</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FFD28A"/><stop offset=".6" stop-color="#FF9A1F"/><stop offset="1" stop-color="#C75F00"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="232" rx="135" ry="21" fill="#FF9A1F" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="218" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<path d="M104 196 A96 96 0 0 1 296 196 Z" fill="url(#b)" opacity=".92" stroke="#FF9A1F" stroke-width="10" stroke-linejoin="round"/><path d="M122 190 A78 78 0 0 1 278 190 Z" fill="#FFC96B" opacity=".55"/><g stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"><path d="M200 190 L200 120"/><path d="M200 190 L148 138"/><path d="M200 190 L252 138"/><path d="M200 190 L128 168"/><path d="M200 190 L272 168"/></g><path d="M110 192 A90 90 0 0 1 180 108" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><g fill="#fff" opacity=".8"><circle cx="170" cy="160" r="2.5"/><circle cx="230" cy="158" r="2.5"/><circle cx="200" cy="140" r="2"/><circle cx="252" cy="182" r="2"/></g>
+</svg>

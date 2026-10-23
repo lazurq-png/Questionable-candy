@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Garlic Gummies</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FFFBEA"/><stop offset=".6" stop-color="#E9E0C9"/><stop offset="1" stop-color="#B3AA88"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="115" ry="21" fill="#CFE39A" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="226" rx="85" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g fill="url(#b)" opacity=".95"><path d="M200 78 C206 98 232 108 252 138 C272 170 250 214 200 216 C150 214 128 170 148 138 C168 108 194 98 200 78 Z"/></g><path d="M200 78 C206 98 232 108 252 138 C272 170 250 214 200 216 C150 214 128 170 148 138 C168 108 194 98 200 78 Z" fill="none" stroke="#fff" stroke-width="2.5" opacity=".6"/><g fill="none" stroke="#9C9372" stroke-width="3" stroke-linecap="round" opacity=".7"><path d="M200 92 C176 130 176 180 200 214"/><path d="M200 92 C224 130 224 180 200 214"/></g><path d="M198 82 L202 82 L204 70 L196 70 Z" fill="#B7AE88"/><ellipse cx="172" cy="128" rx="14" ry="8" fill="#fff" opacity=".85" transform="rotate(-30 172 128)"/>
+</svg>

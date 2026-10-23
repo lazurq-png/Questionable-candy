@@ -1,5 +1,7 @@
+"""Views for the catalog, the cart, checkout and orders."""
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import F
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.cache import patch_vary_headers
@@ -16,21 +18,48 @@ from .models import Candy, Order, OrderChanged
 # (templates/base.html, shop/templates/shop/shoppingcart.html).
 CART_CHANGED = "shoppingcart-changed"
 
+# The catalog's sort orders (UC-01 extension 3a), by their ?sort= value: the
+# label the menu shows, then the ORDER BY. Each ends in name and pk, so candy
+# that tie -- the same price, the same severity -- keep one stable order
+# instead of whatever PostgreSQL finds cheapest. Unrated severity sorts last:
+# not rated is not the same as harmless (shop.models.Candy.flaw_severity).
+CATALOG_SORTS = {
+    "name": ("Name A\u2013Z", ("name", "pk")),
+    "price": ("Price, low to high", ("price", "name", "pk")),
+    "price-desc": ("Price, high to low", ("-price", "name", "pk")),
+    "severity": ("Least damaging first", (F("flaw_severity").asc(nulls_last=True), "name", "pk")),
+}
+DEFAULT_SORT = "name"
+
 # The id of the element in base.html that a candy's detail popup is loaded into.
 DETAIL_POPUP = "candy-popup-contents"
 
 
 def candy_list(request):
-    """UC-01: the published candy, alphabetically.
+    """UC-01: the published candy, alphabetically unless ?sort= says otherwise.
 
     Without an ORDER BY, PostgreSQL returns rows in whatever order is cheapest,
     which can change between requests. Names are unique (since 2026-09-17), so
     the name alone is already a total order; the primary key stays as a
     tie-break in case that constraint is ever relaxed.
+
+    Extension 3a: ?sort= picks one of CATALOG_SORTS. An unknown value gets the
+    default rather than an error -- it is a bookmark or a hand-edited link, and
+    the catalog is still the right answer to it. The sort menu (candy_list.html)
+    swaps in the re-sorted grid with htmx and puts the choice in the address,
+    so a reload or a shared link keeps it; without JavaScript it is a plain
+    form that reloads the page.
     """
-    candies = list(Candy.objects.published().order_by("name", "pk"))
+    sort = request.GET.get("sort", DEFAULT_SORT)
+    if sort not in CATALOG_SORTS:
+        sort = DEFAULT_SORT
+    candies = list(Candy.objects.published().order_by(*CATALOG_SORTS[sort][1]))
     _mark_in_cart(request, candies)
-    return render(request, "shop/candy_list.html", {"candies": candies})
+    return render(request, "shop/candy_list.html", {
+        "candies": candies,
+        "sort": sort,
+        "sorts": [(key, label) for key, (label, _) in CATALOG_SORTS.items()],
+    })
 
 
 def candy_detail(request, slug):

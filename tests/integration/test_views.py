@@ -1,3 +1,4 @@
+"""Integration tests for the shop's views."""
 import pytest
 from django.test import Client
 from django.urls import reverse

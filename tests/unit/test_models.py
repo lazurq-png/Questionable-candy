@@ -1,3 +1,4 @@
+"""Unit tests for the shop's models."""
 from decimal import Decimal
 
 import pytest

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Candy Floss Clouds</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FFF0F8"/><stop offset=".6" stop-color="#FFC1E3"/><stop offset="1" stop-color="#E98BC2"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="130" ry="21" fill="#FF7AC8" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="226" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g fill="url(#b)" opacity=".92"><circle cx="160" cy="165" r="40"/><circle cx="205" cy="140" r="50"/><circle cx="248" cy="170" r="36"/><circle cx="200" cy="180" r="36"/></g><g fill="none" stroke="#fff" stroke-width="2.5" opacity=".6"><path d="M122 160 A40 40 0 0 1 150 126"/><path d="M160 130 A50 50 0 0 1 240 112"/></g><g fill="#fff" opacity=".6"><circle cx="150" cy="170" r="3"/><circle cx="230" cy="160" r="2.5"/><circle cx="200" cy="190" r="3"/><circle cx="180" cy="148" r="2"/></g><ellipse cx="175" cy="115" rx="22" ry="10" fill="#fff" opacity=".85" transform="rotate(-30 175 115)"/>
+</svg>

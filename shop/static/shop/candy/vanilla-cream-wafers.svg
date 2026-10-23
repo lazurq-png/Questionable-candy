@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Vanilla Cream Wafers</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="240" rx="130" ry="21" fill="#FFE9A0" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="228" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g stroke-linejoin="round" stroke-width="8"><rect x="134" y="176" width="132" height="22" rx="6" fill="#E8CD8E" stroke="#E8CD8E"/><rect x="134" y="152" width="132" height="22" rx="6" fill="#FFF8E0" stroke="#FFF8E0"/><rect x="134" y="128" width="132" height="22" rx="6" fill="#E8CD8E" stroke="#E8CD8E"/><rect x="134" y="104" width="132" height="22" rx="6" fill="#FFF8E0" stroke="#FFF8E0"/><rect x="134" y="80" width="132" height="22" rx="6" fill="#F2DDA2" stroke="#F2DDA2"/></g><g fill="none" stroke="#C9A55A" stroke-width="2" opacity=".6"><path d="M150 91 H250"/><path d="M150 139 H250"/><path d="M150 187 H250"/></g><path d="M138 82 H262" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+</svg>

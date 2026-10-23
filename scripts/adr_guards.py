@@ -144,6 +144,7 @@ def check_docs_sync(docs_dir=DOCS_DIR, sources=SOURCES):
 
 
 def check(manifest=MANIFEST, docs_dir=DOCS_DIR, sources=SOURCES):
+    """Return the guard failures found for the docs, as a list of messages."""
     print(f"$ adr-guards {manifest.name}", flush=True)
     if not manifest.exists():
         print(f"{manifest.name} is missing -- ADR 0003 cannot be checked.")

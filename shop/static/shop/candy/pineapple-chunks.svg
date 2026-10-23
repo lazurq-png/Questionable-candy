@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Pineapple Chunks</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="240" rx="130" ry="21" fill="#FFD21F" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="228" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g stroke-linejoin="round" stroke-width="10"><polygon points="120,130.36 172,108 224,130.36 172,152.72" fill="#FFF1A0" stroke="#FFF1A0" opacity=".9"/><polygon points="120,130.36 172,152.72 172,209.92000000000002 120,187.56" fill="#FFD84A" stroke="#FFD84A" opacity=".85"/><polygon points="172,152.72 224,130.36 224,187.56 172,209.92000000000002" fill="#E3B520" stroke="#E3B520" opacity=".85"/></g><path d="M122 132.36 L172 110 L222 132.36" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><g stroke-linejoin="round" stroke-width="10"><polygon points="205,138.64 253,118 301,138.64 253,159.28" fill="#FFF1A0" stroke="#FFF1A0" opacity=".9"/><polygon points="205,138.64 253,159.28 253,212.08 205,191.44" fill="#FFD84A" stroke="#FFD84A" opacity=".85"/><polygon points="253,159.28 301,138.64 301,191.44 253,212.08" fill="#E3B520" stroke="#E3B520" opacity=".85"/></g><path d="M207 140.64 L253 120 L299 140.64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><g fill="#fff" opacity=".7"><circle cx="150" cy="180" r="3"/><circle cx="168" cy="162" r="2.5"/><circle cx="232" cy="190" r="3"/></g>
+</svg>

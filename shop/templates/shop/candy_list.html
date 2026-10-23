@@ -3,10 +3,32 @@
 {% block content %}
 <h1>Candy shop</h1>
 {% if candies %}
-  <ul class="candy-grid">
+  {% comment %}
+  UC-01 extension 3a. A plain GET form, so without JavaScript choosing an order
+  and pressing Sort reloads the page sorted. With htmx, changing the menu is
+  enough: the same URL is fetched, only the grid is taken from the response
+  and swapped in, and the address bar gets ?sort= so a reload or a shared link
+  keeps the order. The menu itself is outside the swap and keeps focus.
+  {% endcomment %}
+  <form class="catalog-sort" method="get" action="{% url 'candy_list' %}" data-testid="catalog-sort"
+        hx-get="{% url 'candy_list' %}" hx-trigger="change" hx-select="#catalog-results"
+        hx-target="#catalog-results" hx-swap="outerHTML" hx-push-url="true">
+    <label for="catalog-sort-order">Sort</label>
+    <select id="catalog-sort-order" name="sort">
+      {% for key, label in sorts %}<option value="{{ key }}"{% if key == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <noscript><button type="submit" class="button-secondary">Sort</button></noscript>
+  </form>
+  <ul class="candy-grid" id="catalog-results" data-testid="catalog-results">
     {% for candy in candies %}
       <li class="candy-card">
         <img src="{% static candy.image|default:'shop/candy/placeholder.svg' %}" alt="{{ candy.name }}" width="120" height="120" data-testid="candy-image">
+        {% comment %}
+        Over the picture's top-left corner (site.css). Absolutely positioned,
+        so it takes no row of the card's grid and the cards still line up. An
+        unrated candy has no badge rather than a guessed one.
+        {% endcomment %}
+        {% if candy.flaw_severity %}<p class="severity-badge" data-severity="{{ candy.flaw_severity }}" data-testid="candy-severity"><span class="visually-hidden">Flaw severity: </span>{{ candy.get_flaw_severity_display }}</p>{% endif %}
         {% include "shop/partials/candy_link.html" with link_class="candy-card-name" %}
         <span class="candy-card-price">${{ candy.price }}</span>
         {% include "shop/partials/cart_stepper.html" %}

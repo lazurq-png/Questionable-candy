@@ -32,3 +32,9 @@ ignore-paths=(^|.*[\\/])migrations[\\/].*
 # Django's own coding style allows 119; pylint defaults to 100, which flags
 # shop/urls.py's route table for no useful reason.
 max-line-length=120
+
+[BASIC]
+
+# Test functions are named for what they check and say the rest in the failure;
+# a docstring on each would only repeat the name. Fixtures and helpers still need one.
+no-docstring-rgx=^(_|test_)

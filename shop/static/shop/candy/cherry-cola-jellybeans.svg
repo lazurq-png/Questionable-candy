@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Cherry Cola Jellybeans</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FF8AA0"/><stop offset=".6" stop-color="#B3122E"/><stop offset="1" stop-color="#5E0716"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="232" rx="125" ry="21" fill="#FF2D55" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="220" rx="85" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g transform="rotate(-20 200 150)"><ellipse cx="200" cy="150" rx="80" ry="48" fill="url(#b)" opacity=".92"/><ellipse cx="200" cy="150" rx="79" ry="47" fill="none" stroke="#fff" stroke-width="2.5" opacity=".6"/><ellipse cx="200" cy="158" rx="52" ry="22" fill="#FF8AA0" opacity=".3"/></g><ellipse cx="166" cy="124" rx="24" ry="9" fill="#fff" opacity=".85" transform="rotate(-35 166 124)"/><circle cx="236" cy="176" r="3" fill="#fff" opacity=".6"/>
+</svg>

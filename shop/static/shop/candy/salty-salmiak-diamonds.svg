@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Salty Salmiak Diamonds</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="125" ry="21" fill="#6C7BFF" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="226" rx="90" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<polygon points="200,80 270,150 200,220 130,150" fill="#2B2B33" stroke="#2B2B33" stroke-width="10" stroke-linejoin="round" opacity=".95"/><polygon points="200,80 270,150 200,150" fill="#4A4A58" opacity=".9"/><polygon points="130,150 200,150 200,220" fill="#1C1C22" opacity=".9"/><polygon points="200,80 130,150 200,150" fill="#3A3A46" opacity=".9"/><path d="M132 148 L200 82 L268 148" fill="none" stroke="#C9CCFF" stroke-width="3" stroke-linecap="round" opacity=".85"/><g fill="#fff" opacity=".9"><rect x="214" y="132" width="5" height="5" transform="rotate(20 216 134)"/><rect x="168" y="160" width="4" height="4"/><rect x="226" y="178" width="4" height="4" transform="rotate(35 228 180)"/><rect x="190" y="118" width="3.5" height="3.5"/></g>
+</svg>

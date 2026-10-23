@@ -79,4 +79,3 @@ class PasswordChangeView(SuccessMessageMixin, auth_views.PasswordChangeView):
     template_name = "accounts/password_change.html"
     success_url = reverse_lazy("accounts:profile")
     success_message = "Your password was changed."
-    

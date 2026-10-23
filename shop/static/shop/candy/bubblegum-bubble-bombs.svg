@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Bubblegum Bubble Bombs</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FFD3EA"/><stop offset=".6" stop-color="#FF6FB5"/><stop offset="1" stop-color="#C93A86"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="236" rx="130" ry="21" fill="#FF4FA8" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="224" rx="90" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<circle cx="185" cy="150" r="58" fill="url(#b)" opacity=".95"/><circle cx="185" cy="150" r="57" fill="none" stroke="#fff" stroke-width="2.5" opacity=".6"/><ellipse cx="166" cy="126" rx="15" ry="8" fill="#fff" opacity=".85" transform="rotate(-30 166 126)"/><circle cx="268" cy="190" r="34" fill="url(#b)" opacity=".95"/><circle cx="268" cy="190" r="33" fill="none" stroke="#fff" stroke-width="2.5" opacity=".6"/><ellipse cx="257" cy="176" rx="9" ry="4" fill="#fff" opacity=".85" transform="rotate(-30 257 176)"/><g fill="#fff" opacity=".7"><circle cx="212" cy="176" r="3"/><circle cx="296" cy="200" r="2"/></g>
+</svg>

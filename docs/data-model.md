@@ -84,6 +84,7 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 | slug            | SlugField             | unique, not null    | Used in catalog/detail URLs. Never digits alone \(`candy_slug_is_not_all_digits`, migration `0015`\), so it cannot be read as the old `/candy/<pk>/` address. |
 | description     | TextField             | not null            | Shown on the detail view (UC\-03). Implemented 2026\-09\-15 as `TextField(blank=True, default="")` — not null, but not mandatory; only `flaw` is. |
 | flaw            | TextField             | **not null**        | Mandatory design/feature downside (UC\-06) — enforced at the model level, not just the UI. |
+| flaw_severity   | PositiveSmallIntegerField | nullable        | How bad the flaw is: 1 mildly annoying, 2 socially awkward, 3 call your dentist \(a check constraint\). Null means not rated yet, not mild: no catalog badge, and sorted last by "least damaging first" \(UC\-01 ext. 3a\). Added by migration `0016`. |
 | price           | DecimalField          | not null            |                                                                                            |
 | stock_quantity  | PositiveIntegerField  | not null, default 0 | Checked on every ShoppingCart mutation and at checkout.                                    |
 | sugar_content_g | DecimalField          | nullable            | Grams per 100 g, 0\-100 (a check constraint). Null means unknown, not zero. Feeds the checkout health warning (UC\-07). |
@@ -96,12 +97,12 @@ Boxes are entities (tables); each line's end labels give cardinality (`1`, `0..1
 
 | Aspect          | Target `Candy`                                                            | Current `shop.Candy`                |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| Present         | `name`, `flaw`, `price`, `description`, `is_published`, timestamps, `sugar_content_g`, `allergens` | same; rows older than migration `0007` carry its run time in both fields |
+| Present         | `name`, `flaw`, `flaw_severity`, `price`, `description`, `is_published`, timestamps, `sugar_content_g`, `allergens` | same; rows older than migration `0007` carry its run time in both fields |
 | `stock_quantity`| named `stock_quantity`                                                    | named `stock`                       |
 | `flaw` type     | `TextField`, unbounded                                                    | `CharField(max_length=200)`         |
 | Missing         | —                                                                         | —                                   |
 | Extra           | —                                                                         | `flavor` — in no specification; `image` — interim static path, see below |
-| Constraints     | `name`/`slug` unique, `flaw` not null                                     | same, since 2026\-09\-17; `flaw` also non\-blank; slug never digits alone; sugar 0\-100 |
+| Constraints     | `name`/`slug` unique, `flaw` not null                                     | same, since 2026\-09\-17; `flaw` also non\-blank; slug never digits alone; sugar 0\-100; severity one of three or null |
 
 **`image` is interim, not part of the target.** It is a `CharField` naming a static file (e.g. `shop/candy/sour-bricks.svg`), blank meaning a placeholder, filled by `manage.py seed_candy`. It exists because candy needed pictures before the media\-storage decision [ADR 0004](adr/0004-database.md) leaves open was made; that decision should replace or keep it.
 

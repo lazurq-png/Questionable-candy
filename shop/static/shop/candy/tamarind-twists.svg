@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Tamarind Twists</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="236" rx="135" ry="21" fill="#E08A3C" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="226" rx="105" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<path d="M106 168 Q150 98 200 156 T294 146" fill="none" stroke="#5A2E12" stroke-width="34" stroke-linecap="round" opacity=".5" transform="translate(0 6)"/><path d="M106 160 Q150 90 200 148 T294 138" fill="none" stroke="#9A5B2E" stroke-width="30" stroke-linecap="round" opacity=".95"/><path d="M106 160 Q150 90 200 148 T294 138" fill="none" stroke="#D9A05E" stroke-width="30" stroke-dasharray="8 20" opacity=".55"/><path d="M110 154 Q150 86 200 142 T290 130" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8" transform="translate(-2 -5)"/><g fill="#fff" opacity=".6"><circle cx="150" cy="140" r="2.5"/><circle cx="238" cy="150" r="2.5"/></g>
+</svg>

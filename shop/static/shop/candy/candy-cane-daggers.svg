@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Candy Cane Daggers</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="120" ry="21" fill="#FF3B3B" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="234" rx="80" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g fill="none" stroke-linecap="round"><path d="M150 230 V112 A45 45 0 0 1 240 112" stroke="#B8161C" stroke-width="30" opacity=".85"/><path d="M150 230 V112 A45 45 0 0 1 240 112" stroke="#F0383A" stroke-width="26" opacity=".9"/><path d="M150 230 V112 A45 45 0 0 1 240 112" stroke="#fff" stroke-width="26" stroke-dasharray="12 22" stroke-linecap="butt" opacity=".92" transform="translate(0 4)"/><path d="M141 224 V112 A54 54 0 0 1 195 58" stroke="#fff" stroke-width="3" opacity=".8"/></g>
+</svg>

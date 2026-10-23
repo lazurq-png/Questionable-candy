@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Wasabi Peanut Brittle</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="240" rx="130" ry="21" fill="#8CE02B" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="228" rx="100" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<g stroke-linejoin="round" stroke-width="10"><polygon points="130,126.1 200,96 270,126.1 200,156.2" fill="#D6F27A" stroke="#D6F27A" opacity=".9"/><polygon points="130,126.1 200,156.2 200,233.2 130,203.1" fill="#9BC53D" stroke="#9BC53D" opacity=".85"/><polygon points="200,156.2 270,126.1 270,203.1 200,233.2" fill="#74932D" stroke="#74932D" opacity=".85"/></g><path d="M132 128.1 L200 98 L268 128.1" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/><g fill="#C69A5A" opacity=".95" stroke="#8A6030" stroke-width="1.5"><ellipse cx="186" cy="124" rx="12" ry="7" transform="rotate(-15 186 124)"/><ellipse cx="170" cy="170" rx="8" ry="6" transform="rotate(25 170 170)"/><ellipse cx="238" cy="172" rx="9" ry="6" transform="rotate(-20 238 172)"/></g>
+</svg>

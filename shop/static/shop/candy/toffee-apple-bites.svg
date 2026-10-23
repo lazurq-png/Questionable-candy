@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Toffee Apple Bites</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FF9A7E"/><stop offset=".6" stop-color="#C2371F"/><stop offset="1" stop-color="#6E1408"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="125" ry="21" fill="#FF4A2B" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="224" rx="90" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<circle cx="200" cy="152" r="62" fill="url(#b)" opacity=".95"/><circle cx="200" cy="152" r="61" fill="none" stroke="#fff" stroke-width="2.5" opacity=".6"/><ellipse cx="180" cy="126" rx="16" ry="8" fill="#fff" opacity=".85" transform="rotate(-30 180 126)"/><path d="M150 118 C168 108 190 112 200 124 C212 110 236 108 252 120" fill="none" stroke="#FFB347" stroke-width="5" stroke-linecap="round" opacity=".75"/><path d="M196 92 C196 84 200 80 204 76" fill="none" stroke="#6B4A22" stroke-width="5" stroke-linecap="round"/><path d="M204 90 C216 78 232 82 236 90 C226 98 212 98 204 90 Z" fill="#6FBF3A" opacity=".9"/>
+</svg>

@@ -17,7 +17,10 @@ from shop.management.commands.seed_candy import CANDIES
 
 CANDY_DIR = Path(__file__).resolve().parents[2] / "shop" / "static" / "shop" / "candy"
 SVGS = sorted(CANDY_DIR.glob("*.svg"))
-MAX_BYTES = 4096
+# The drawings are 1-2 KB each. The cap is 12 KB because each file can also
+# carry an embedded C2PA content-credentials block (~7.6 KB) recording that
+# the picture was AI-generated; that provenance is kept rather than stripped.
+MAX_BYTES = 12288
 
 
 def local_name(name):

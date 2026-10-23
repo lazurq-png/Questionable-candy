@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Pink Foam Bananas</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ccc"/><stop offset="1" stop-color="#888"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="236" rx="130" ry="21" fill="#FF8FB0" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="220" rx="95" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<path d="M100 158 C110 215 220 224 292 120" fill="none" stroke="#C9648A" stroke-width="40" stroke-linecap="round" opacity=".5"/><path d="M100 150 C110 207 220 216 292 112" fill="none" stroke="#FFB6C9" stroke-width="40" stroke-linecap="round" opacity=".92"/><path d="M104 160 C128 190 190 196 260 144" fill="none" stroke="#FF8FB0" stroke-width="12" stroke-linecap="round" opacity=".5"/><path d="M112 138 C130 160 160 170 190 168" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/><circle cx="292" cy="112" r="6" fill="#8A5A3A" opacity=".8"/>
+</svg>

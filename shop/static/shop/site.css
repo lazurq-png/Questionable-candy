@@ -1,8 +1,14 @@
 /*
  * The site's one stylesheet: hand-written, no framework, no build step
- * (ADR 0001, ADR 0006). Visual reference: Pico CSS's restrained card-and-
- * system-font look, re-implemented here -- no Pico code is included
- * (docs/ai/night-2026-09-16/decisions.md).
+ * (ADR 0001, ADR 0006, ADR 0008).
+ *
+ * Look: "Mint Noir" -- near-black green and mint in the dark theme, pale mint
+ * and deep green in the light one; pill-shaped controls, large rounded cards,
+ * tight heavy headings. Candy pictures sit on a soft "tile" gradient taken from
+ * --tile-top/--tile-bottom (graphite in dark, cloud grey in light), so one
+ * transparent image per candy suits both themes. Designed on the Questionable
+ * Candy design canvas, 2026-10-23. (The look was first re-implemented from
+ * Pico CSS's card-and-system-font style; nothing of Pico is included.)
  *
  * Themes. With no stored choice the page follows the visitor's system setting
  * through prefers-color-scheme, with no JavaScript involved. The theme toggle
@@ -17,40 +23,53 @@
 
 :root {
   color-scheme: light;
-  --bg: #faf8fb;
+  --bg: #f5faf7;
   --surface: #ffffff;
-  --surface-2: #f3eef5;
-  --text: #2b2530;
-  --muted: #5f5766;
-  --border: #e2dae6;
-  --primary: #b0165d;
-  --primary-hover: #8c0f49;
+  --surface-2: #e7f2ec;
+  --text: #0e1a15;
+  --muted: #4d6158;
+  --border: #d6e6dd;
+  --primary: #0b7a4b;
+  --primary-hover: #075e39;
   --on-primary: #ffffff;
-  --flaw-bg: #fff1f4;
-  --flaw-border: #d6456f;
-  --flaw-text: #7d1233;
-  --notice-bg: #fff8e6;
-  --notice-border: #d9a520;
+  --flaw-bg: #fceeeb;
+  --flaw-border: #b23a2a;
+  --flaw-text: #7a2216;
+  --on-flaw-border: #ffffff; /* text on a --flaw-border fill */
+  --badge-mild: #ffffff; /* the mildest severity badge, over a candy picture */
+  --notice-bg: #fff6e0;
+  --notice-border: #c99a1e;
   /* Order status text; each at least 6:1 on --surface. */
   --status-pending: #8a4b00;
   --status-paid: #1f5fae;
   --status-cancelled: #b3261e;
   --status-fulfilled: #1d6b33;
-  --focus: #b0165d;
-  --shadow: 0 1px 2px rgb(43 37 48 / 6%), 0 4px 16px rgb(43 37 48 / 6%);
+  --focus: #0b7a4b;
+  --shadow: 0 1px 2px rgb(14 26 21 / 5%), 0 8px 24px rgb(14 26 21 / 6%);
+  /* The sticky header: --bg, see-through enough for the blur behind it. */
+  --header-bg: rgb(245 250 247 / 85%);
+  /* The backdrop behind every candy picture: cloud grey. */
+  --tile-top: #f4f5f8;
+  --tile-bottom: #d6d9e0;
+  --backdrop: rgb(14 26 21 / 55%);
   /* The stepper's number field: white on the primary-coloured bar in both
      themes, so it is not redefined below. */
   --stepper-field: #ffffff;
-  --stepper-field-text: #2b2530;
+  --stepper-field-text: #0e1a15;
   /* A greyed-out minus or plus: a grey chip on that bar, in both themes.
      Dimming the glyph instead would drop it to 3.2:1 against the bar in light
      and 1.4:1 in dark -- and these stay pressable, so they have to stay
      readable (tests/e2e/test_theme.py). */
-  --stepper-spent: #e4dce6;
-  --stepper-spent-text: #5f5766;
+  --stepper-spent: #dce8e1;
+  --stepper-spent-text: #3e4f47;
 
-  --radius: 0.75rem;
-  --radius-sm: 0.5rem;
+  --radius: 1.25rem;
+  --radius-lg: 1.75rem; /* candy cards and the popup */
+  --radius-sm: 0.75rem;
+  --pill: 999px; /* buttons, the stepper, header controls */
+  /* How far a candy card's text sits in from its edges. Tight on a phone: the
+     stepper's three 44px targets need 8.25rem inside a two-across card. */
+  --card-pad: 0.75rem;
   --space: 1rem;
   --tap: 2.75rem; /* 44px: the minimum tap target */
   /* The sticky header: a tap-high row, its 0.5rem padding twice, and a border. */
@@ -63,51 +82,65 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #141118;
-    --surface: #1c1822;
-    --surface-2: #262030;
-    --text: #ece6f0;
-    --muted: #b3a9bb;
-    --border: #372f41;
-    --primary: #ff7ab4;
-    --primary-hover: #ffa0c9;
-    --on-primary: #1a0a12;
-    --flaw-bg: #2c1520;
-    --flaw-border: #e2638e;
-    --flaw-text: #ffc6d8;
-    --notice-bg: #2b2413;
+    --bg: #0a100e;
+    --surface: #111a17;
+    --surface-2: #18241f;
+    --text: #ecf5f0;
+    --muted: #a5b8af;
+    --border: #22312b;
+    --primary: #5ef2b0;
+    --primary-hover: #8df7c8;
+    --on-primary: #052015;
+    --flaw-bg: #2a1512;
+    --flaw-border: #ff8a7a;
+    --flaw-text: #ffc9c0;
+    --on-flaw-border: #2a0a05;
+    --badge-mild: #33433c;
+    --notice-bg: #2a2413;
     --notice-border: #c9982a;
     --status-pending: #f2b24c;
     --status-paid: #8cb8ff;
     --status-cancelled: #ff8f87;
     --status-fulfilled: #72d98e;
-    --focus: #ff7ab4;
-    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
+    --focus: #5ef2b0;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);
+    --header-bg: rgb(10 16 14 / 82%);
+    /* Graphite. */
+    --tile-top: #262930;
+    --tile-bottom: #0f1013;
+    --backdrop: rgb(0 0 0 / 70%);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #141118;
-  --surface: #1c1822;
-  --surface-2: #262030;
-  --text: #ece6f0;
-  --muted: #b3a9bb;
-  --border: #372f41;
-  --primary: #ff7ab4;
-  --primary-hover: #ffa0c9;
-  --on-primary: #1a0a12;
-  --flaw-bg: #2c1520;
-  --flaw-border: #e2638e;
-  --flaw-text: #ffc6d8;
-  --notice-bg: #2b2413;
+  --bg: #0a100e;
+  --surface: #111a17;
+  --surface-2: #18241f;
+  --text: #ecf5f0;
+  --muted: #a5b8af;
+  --border: #22312b;
+  --primary: #5ef2b0;
+  --primary-hover: #8df7c8;
+  --on-primary: #052015;
+  --flaw-bg: #2a1512;
+  --flaw-border: #ff8a7a;
+  --flaw-text: #ffc9c0;
+  --on-flaw-border: #2a0a05;
+  --badge-mild: #33433c;
+  --notice-bg: #2a2413;
   --notice-border: #c9982a;
   --status-pending: #f2b24c;
   --status-paid: #8cb8ff;
   --status-cancelled: #ff8f87;
   --status-fulfilled: #72d98e;
-  --focus: #ff7ab4;
-  --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
+  --focus: #5ef2b0;
+  --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);
+  --header-bg: rgb(10 16 14 / 82%);
+  /* Graphite. */
+  --tile-top: #262930;
+  --tile-bottom: #0f1013;
+  --backdrop: rgb(0 0 0 / 70%);
 }
 
 /* ---- Base ------------------------------------------------------------------ */
@@ -144,13 +177,22 @@ h2 {
   margin: 0 0 var(--space);
 }
 
+/* Big, heavy and tight: the one loud thing on a page. A candy name is the
+   longest h1 there is, so a long word may break rather than push the page
+   sideways. */
 h1 {
-  font-size: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
-  letter-spacing: -0.01em;
+  font-size: clamp(2.25rem, 1.5rem + 3.2vw, 4rem);
+  font-weight: 750;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+  margin-bottom: 1.5rem;
 }
 
 h2 {
   font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 p {
@@ -167,8 +209,8 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
 }
 
 /* Author display rules (e.g. .theme-toggle's inline-flex) would otherwise beat
@@ -191,11 +233,15 @@ a:hover {
 
 /* ---- Header ------------------------------------------------------------ */
 
+/* See-through, with what scrolls under it blurred. Without backdrop-filter
+   support it is simply the near-opaque --header-bg. */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--surface);
+  background: var(--header-bg);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
 
@@ -213,8 +259,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
-  padding: 0 0.75rem;
-  border-radius: var(--radius-sm);
+  padding: 0 0.875rem;
+  border-radius: var(--pill);
   text-decoration: none;
   font-weight: 600;
   white-space: nowrap;
@@ -255,16 +301,24 @@ button,
   gap: 0.5rem;
   min-height: var(--tap);
   min-width: var(--tap);
-  padding: 0 1.1rem;
+  padding: 0 1.25rem;
   border: 1px solid var(--primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--pill);
   background: var(--primary);
   color: var(--on-primary);
   font: inherit;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.2;
   cursor: pointer;
   text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .button {
+    transition: none;
+  }
 }
 
 button:hover:not([disabled]),
@@ -274,11 +328,13 @@ button:hover:not([disabled]),
   color: var(--on-primary);
 }
 
+/* "Out of stock" and the like: a dashed outline, so it reads as not a button
+   to press rather than as a pale one. */
 button[disabled] {
   background: var(--surface-2);
-  border-color: var(--border);
+  border: 1px dashed var(--muted);
   color: var(--muted);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .button-secondary,
@@ -334,6 +390,7 @@ button[disabled] {
 .site-brand {
   color: var(--text);
   font-size: 1.125rem;
+  letter-spacing: -0.02em;
   margin-right: auto;
   padding-left: 0 !important;
   /* The phone header's width budget (docs/ai/night-2026-09-17/decisions.md D5)
@@ -351,25 +408,37 @@ button[disabled] {
   text-overflow: ellipsis;
 }
 
+.site-nav a.site-brand {
+  font-weight: 750;
+}
+
 .site-nav a.site-brand:hover {
   color: var(--primary);
 }
 
+/* The cart is the header's one solid control: the text colour as its fill. */
 .site-cart {
-  color: var(--text);
-  border: 1px solid var(--border);
+  color: var(--bg);
+  background: var(--text);
+  border: 1px solid var(--text);
+}
+
+.site-nav a.site-cart,
+.site-nav a.site-cart:hover {
+  color: var(--bg);
 }
 
 .site-nav a.site-cart:hover {
-  color: var(--text);
-  background: var(--surface-2);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
 }
 
 /* ---- Checkout: the health warning (shop/checkout_warning.html) ---------- */
 
 .warning-section {
   margin: 1.5rem 0;
-  padding: var(--space) 1.25rem;
+  padding: 1.25rem 1.5rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -509,9 +578,9 @@ button[disabled] {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);
-  padding: 0 0.75rem;
+  padding: 0 0.875rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--pill);
   color: var(--text);
   font-weight: 600;
   white-space: nowrap;
@@ -736,34 +805,91 @@ input[type="number"] {
 
 @media (min-width: 48rem) {
   .candy-grid {
-    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    --card-pad: 1.125rem;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   }
 }
 
+/* Picture, name, price, stepper. Each card spans four of the grid's rows and
+   takes them as its own (subgrid), so a name that wraps to two lines moves
+   every card's price and stepper on that row down together: the bars always
+   line up. Browsers without subgrid get a plain column, stepper at the foot. */
 .candy-card {
+  position: relative; /* the severity badge's anchor */
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  padding: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+@supports (grid-template-rows: subgrid) {
+  .candy-card {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
+}
+
+.candy-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
   box-shadow: var(--shadow);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .candy-card {
+    transition: none;
+  }
+}
+
+/* The candy on its tile, edge to edge across the top of the card. contain,
+   not cover: an older square picture sits whole on the tile instead of being
+   cropped. Not overflow: hidden on the card -- that would clip the stepper's
+   refusal bubble -- so the picture rounds its own top corners. */
 .candy-card img {
   width: 100%;
-  border-radius: var(--radius-sm);
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: linear-gradient(var(--tile-top), var(--tile-bottom));
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
 }
 
 .candy-card-name {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-height: var(--tap);
+  margin: 0 var(--card-pad);
+  padding-top: 0.875rem;
   color: var(--text);
-  font-weight: 600;
-  font-size: 1.05rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   text-decoration: none;
+}
+
+.candy-card-name::after {
+  /* The whole card opens the details: the name's link is stretched over it.
+     The stepper (a layer above, below) stays clickable; the severity badge
+     and the picture sit under this and so open the details as well. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.candy-card:has(.candy-card-name:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.candy-card-name:focus-visible {
+  outline: none;
 }
 
 .candy-card-name:hover {
@@ -772,41 +898,121 @@ input[type="number"] {
 }
 
 .candy-card-price {
-  color: var(--muted);
-  margin-top: auto;
+  margin: 0.25rem var(--card-pad) 0;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .candy-card .cart-control {
+  /* Only the stepper and its refusal bubble take clicks; the control's own
+     padding and margin let them through to the card's link underneath. */
+  pointer-events: none;
   max-width: none;
+  align-self: end;
+  margin: auto var(--card-pad) var(--card-pad);
+  padding-top: 0.875rem;
+}
+
+.candy-card .cart-control > * {
+  pointer-events: auto;
+}
+
+/* How bad the flaw is, over the picture's top-left corner. Out of the flow,
+   so it takes none of the card's grid rows. Each rating is a fill and a text
+   colour from the palette, and the words say it too -- never colour alone. */
+.severity-badge {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  max-width: calc(100% - 1.25rem);
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--pill);
+  background: var(--badge-mild);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 20%);
+}
+
+.severity-badge[data-severity="2"] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.severity-badge[data-severity="3"] {
+  background: var(--flaw-border);
+  color: var(--on-flaw-border);
+}
+
+@media (min-width: 48rem) {
+  .severity-badge {
+    top: 0.875rem;
+    left: 0.875rem;
+  }
+}
+
+/* The sort menu above the grid. The select is tap-high, like every control. */
+.catalog-sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 0.75rem;
+  margin: -0.5rem 0 1rem;
+}
+
+.catalog-sort label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.catalog-sort select {
+  min-height: var(--tap);
+  max-width: 100%;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
 }
 
 /* ---- Detail ---------------------------------------------------------------- */
 
 .candy-detail-image {
-  width: min(100%, 20rem);
-  border-radius: var(--radius);
-  margin-bottom: var(--space);
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: linear-gradient(var(--tile-top), var(--tile-bottom));
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.5rem;
 }
 
 .candy-price {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .flaw {
   margin: 1.5rem 0;
-  padding: var(--space) 1.25rem;
+  padding: 1.125rem 1.5rem;
   background: var(--flaw-bg);
   border: 1px solid var(--flaw-border);
   border-left-width: 6px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   color: var(--flaw-text);
 }
 
 .flaw h2 {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   margin-bottom: 0.25rem;
 }
 
@@ -815,15 +1021,21 @@ input[type="number"] {
   font-weight: 600;
 }
 
+.flaw .flaw-severity {
+  margin-top: 0.5rem;
+  font-weight: 400;
+}
+
 /* Sugar and allergens: two label/value rows, headed like the flaw box. */
 .candy-health {
   margin: 1.5rem 0;
 }
 
 .candy-health h2 {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
+  color: var(--muted);
   margin-bottom: 0.25rem;
 }
 
@@ -1161,7 +1373,7 @@ input[type="number"] {
   gap: 0.25rem;
   margin: 0;
   padding: 0.25rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--pill);
   background: var(--primary);
   color: var(--on-primary);
 }
@@ -1185,6 +1397,7 @@ input[type="number"] {
   min-height: var(--stepper-size);
   padding: 0;
   border-color: transparent;
+  border-radius: var(--pill);
   background: transparent;
   color: var(--on-primary);
   font-size: 1.5rem;
@@ -1222,11 +1435,13 @@ input[type="number"] {
   height: calc(var(--stepper-size) - 0.5rem);
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-radius: 0.5rem;
   background: var(--stepper-field);
   color: var(--stepper-field-text);
   font: inherit;
   font-size: 1.125rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
@@ -1342,7 +1557,8 @@ input[type="number"] {
   width: 3rem;
   height: 3rem;
   object-fit: cover;
-  border-radius: var(--radius-sm);
+  background: linear-gradient(var(--tile-top), var(--tile-bottom));
+  border-radius: 50%;
 }
 
 .cart-panel-line-name {
@@ -1406,18 +1622,20 @@ input[type="number"] {
   padding: 0;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
 }
 
 .candy-popup::backdrop {
-  background: rgb(20 17 24 / 60%);
+  background: var(--backdrop);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .candy-popup-contents {
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
 
 .candy-popup-header {
@@ -1438,7 +1656,7 @@ input[type="number"] {
 }
 
 .candy-popup .candy-detail-image {
-  width: min(100%, 12rem);
+  margin-bottom: 1.25rem;
 }
 
 /* ---- Messages and empty states ------------------------------------------- */

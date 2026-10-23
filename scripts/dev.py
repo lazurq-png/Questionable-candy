@@ -98,7 +98,7 @@ COV_ARGS = [
 def run(*args):
     """Run a Python command from the project root, echoing it first."""
     print(f"\n$ python {' '.join(args)}", flush=True)
-    return subprocess.run([sys.executable, *args], cwd=BASE_DIR).returncode
+    return subprocess.run([sys.executable, *args], cwd=BASE_DIR, check=False).returncode
 
 
 def _pg_exe(name):
@@ -111,7 +111,7 @@ def _pg_isready(exe):
     # DATABASE_URL points at.
     return subprocess.run(
         [str(exe), "-h", "localhost", "-p", "5432"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
     ).returncode
 
 
@@ -226,10 +226,11 @@ def lint_workflows(extra):
         *extra,
     ]
     print(f"\n$ {' '.join(args)}", flush=True)
-    return subprocess.run(args, cwd=BASE_DIR).returncode
+    return subprocess.run(args, cwd=BASE_DIR, check=False).returncode
 
 
 def pytest_suite(task, extra):
+    """Run one of the pytest suites, with coverage for the full one."""
     # Full suite only. A per-suite run measures the whole application against a
     # fraction of the tests, so its number looks like a coverage regression.
     cov = COV_ARGS if task == "test" else []
@@ -247,6 +248,7 @@ def pytest_suite(task, extra):
 
 
 def main(argv):
+    """Run the named task and return its exit code."""
     extra = argv[argv.index("--") + 1:] if "--" in argv else []
     tasks = argv[:argv.index("--")] if "--" in argv else argv
 

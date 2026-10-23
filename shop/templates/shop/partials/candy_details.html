@@ -25,6 +25,7 @@ listed", which is what the record holds, not a promise that there are none.
 <section data-testid="candy-flaw" class="flaw">
   <h2>Known flaw</h2>
   <p>{{ candy.flaw }}</p>
+  {% if candy.flaw_severity %}<p class="flaw-severity" data-testid="candy-flaw-severity">Severity: {{ candy.get_flaw_severity_display }}</p>{% endif %}
 </section>
 
 <section data-testid="candy-health" class="candy-health">

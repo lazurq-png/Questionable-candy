@@ -33,6 +33,7 @@ def fixture_docs(tmp_path):
 
 
 def stamp(docs):
+    """Stamp the docs' overview sources, as `adr_guards.py --stamp` does."""
     sources = docs / "overview.sources"
     adr_guards.stamp_docs(docs, sources, docs / "overview.html")
     return sources

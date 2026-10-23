@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Spearmint Starlight Mints</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#E6FFF2"/><stop offset=".6" stop-color="#7ED6A5"/><stop offset="1" stop-color="#2FA070"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="135" ry="21" fill="#2FE0A0" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="224" rx="95" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<polygon points="200,80 220,130 275,133 232,167 247,220 200,190 153,220 168,167 125,133 180,130" fill="url(#b)" opacity=".92" stroke="#7ED6A5" stroke-width="8" stroke-linejoin="round"/><polygon points="200,112 210,142 240,144 216,162 224,190 200,174 176,190 184,162 160,144 190,142" fill="#fff" opacity=".35"/><path d="M180 130 L200 82 L220 130" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><g fill="#fff" opacity=".8"><circle cx="200" cy="156" r="3"/><circle cx="262" cy="108" r="2"/><circle cx="136" cy="190" r="2.5"/></g>
+</svg>

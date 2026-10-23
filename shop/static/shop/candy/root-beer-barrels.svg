@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Root Beer Barrels</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#D9985F"/><stop offset=".6" stop-color="#8B4A1F"/><stop offset="1" stop-color="#431F08"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="240" rx="125" ry="21" fill="#D97A2B" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="228" rx="90" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<path d="M136 112 C132 140 132 178 138 204 C170 222 230 222 262 204 C268 178 268 140 264 112 C230 100 170 100 136 112 Z" fill="url(#b)" opacity=".95"/><ellipse cx="200" cy="108" rx="64" ry="18" fill="#C98050" stroke="#fff" stroke-width="2.5" stroke-opacity=".6"/><ellipse cx="200" cy="108" rx="50" ry="12" fill="#7A3E15" opacity=".5"/><g fill="none" stroke="#3E1D08" stroke-width="7" opacity=".7"><path d="M133 134 Q200 156 267 134"/><path d="M133 184 Q200 206 267 184"/></g><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"><path d="M150 126 C146 150 146 176 150 196"/></g>
+</svg>

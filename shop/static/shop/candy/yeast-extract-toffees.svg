@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<title>Yeast Extract Toffees</title>
+<defs>
+<radialGradient id="b" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#D2A36B"/><stop offset=".6" stop-color="#8A5A2B"/><stop offset="1" stop-color="#3E230D"/></radialGradient>
+<filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="215" cy="238" rx="125" ry="21" fill="#D08A3A" opacity=".5" filter="url(#g)"/>
+<ellipse cx="205" cy="224" rx="95" ry="4" fill="#000" opacity=".3" filter="url(#c)"/>
+<path d="M104 126 L146 146 L146 180 L104 200 C116 184 116 142 104 126 Z" fill="#C9A15A" opacity=".9" stroke="#C9A15A" stroke-width="4" stroke-linejoin="round"/><path d="M296 126 L254 146 L254 180 L296 200 C284 184 284 142 296 126 Z" fill="#C9A15A" opacity=".9" stroke="#C9A15A" stroke-width="4" stroke-linejoin="round"/><rect x="140" y="118" width="120" height="90" rx="26" fill="url(#b)" opacity=".96"/><rect x="141" y="119" width="118" height="88" rx="25" fill="none" stroke="#fff" stroke-width="2.5" opacity=".5"/><g stroke="#F0CF8A" stroke-width="3" stroke-linecap="round" opacity=".7"><path d="M112 140 L138 150"/><path d="M112 162 L138 162"/><path d="M288 140 L262 150"/><path d="M288 162 L262 162"/></g><ellipse cx="172" cy="138" rx="22" ry="8" fill="#fff" opacity=".75" transform="rotate(-12 172 138)"/>
+</svg>

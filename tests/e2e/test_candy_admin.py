@@ -22,7 +22,7 @@ def test_an_administrator_is_prompted_for_a_flaw_before_saving(
     page.wait_for_url("**/admin/shop/candy/add/")
 
     page.get_by_label("Name").fill("Sour Bricks")
-    page.get_by_label("Flaw").fill("   ")
+    page.locator("#id_flaw").fill("   ")
     page.get_by_label("Price").fill("12.50")
     page.get_by_role("button", name="Save", exact=True).click()
 
@@ -30,7 +30,7 @@ def test_an_administrator_is_prompted_for_a_flaw_before_saving(
     assert_page_is_fully_rendered(page)
     assert not Candy.objects.exists()
 
-    page.get_by_label("Flaw").fill("Chips a tooth on contact.")
+    page.locator("#id_flaw").fill("Chips a tooth on contact.")
     page.get_by_role("button", name="Save", exact=True).click()
     page.wait_for_url("**/admin/shop/candy/")
 

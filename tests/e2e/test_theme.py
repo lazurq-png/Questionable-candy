@@ -14,10 +14,11 @@ from decimal import Decimal
 import pytest
 from playwright.sync_api import expect
 
+from shop.models import FlawSeverity
 from tests.factories.candy_factory import CandyFactory
 
-LIGHT_BG = "rgb(250, 248, 251)"  # site.css --bg, light
-DARK_BG = "rgb(20, 17, 24)"  # site.css --bg, dark
+LIGHT_BG = "rgb(245, 250, 247)"  # site.css --bg, light
+DARK_BG = "rgb(10, 16, 14)"  # site.css --bg, dark
 PHONE = {"width": 375, "height": 812}
 
 # Every element that holds text directly, and the colour it is painted on.
@@ -160,10 +161,13 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     check_page(page, "empty catalog", assert_page_is_fully_rendered)
 
     # A one-word name, because a long one wraps and makes its link tall enough
-    # to pass the tap-target check by accident.
-    CandyFactory(name="Taffy", price=Decimal("1.50"), stock=5)
-    marshmallows = CandyFactory(name="Strawberry Cloud Marshmallows", price=Decimal("5.00"), stock=3)
-    CandyFactory(name="Chili Mango Chews", price=Decimal("5.25"), stock=0)
+    # to pass the tap-target check by accident. One of each rating, so every
+    # severity badge's colours are measured in both themes.
+    CandyFactory(name="Taffy", price=Decimal("1.50"), stock=5, flaw_severity=FlawSeverity.DENTAL)
+    marshmallows = CandyFactory(name="Strawberry Cloud Marshmallows", price=Decimal("5.00"), stock=3,
+                                flaw_severity=FlawSeverity.MILD)
+    CandyFactory(name="Chili Mango Chews", price=Decimal("5.25"), stock=0,
+                 flaw_severity=FlawSeverity.AWKWARD)
 
     page.goto(f"{live_server.url}/shoppingcart/")
     expect(page.get_by_test_id("shoppingcart-empty")).to_be_visible()

@@ -1,3 +1,4 @@
+"""Admin for the shop's candy and orders."""
 import uuid
 from collections import Counter
 
@@ -41,11 +42,12 @@ class CandyAdmin(admin.ModelAdmin):
     """The Site Administrator's side of UC-06: record a flaw when creating or editing."""
 
     form = CandyAdminForm
-    list_display = ("name", "price", "stock", "is_published")
-    list_filter = ("is_published",)
+    list_display = ("name", "price", "stock", "flaw_severity", "is_published")
+    list_filter = ("is_published", "flaw_severity")
     search_fields = ("name", "flaw")
     fields = (
-        "name", "slug", "flaw", "description", "flavor", "price", "stock", "sugar_content_g", "allergens",
+        "name", "slug", "flaw", "flaw_severity", "description", "flavor", "price", "stock",
+        "sugar_content_g", "allergens",
         "is_published", "image",
         "created_at", "updated_at",
     )
