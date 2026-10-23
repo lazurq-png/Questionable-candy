@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}That form went stale — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+Django's csrf_failure view renders this, with the request, whenever a POST
+fails the CSRF check -- most often a page left open until its token no longer
+matches. The view also passes a `reason`; it is deliberately not shown, since
+it describes the check rather than anything the customer can act on.
+{% endcomment %}
+<h1>That form went stale</h1>
+<p data-testid="error-message" class="empty-state">Like a bag of candy left open overnight, the page you sent that from had gone stale. Reload the page and try again.</p>
+<p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+{% endblock %}

@@ -1,11 +1,14 @@
 from django.contrib import messages
-from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.cache import patch_vary_headers
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from . import cart
-from .forms import QuantityForm, StepperQuantityForm
-from .models import Candy
+from . import cart, checkout as checkout_state
+from .forms import ConfirmOrderForm, HealthWarningForm, QuantityForm, StepperQuantityForm
+from .models import Candy, Order, OrderChanged
 
 # Sent as HX-Trigger on every response that changed the cart. The header's cart
 # dropdown listens for it and reloads while it is open, and the cart and
@@ -21,15 +24,16 @@ def candy_list(request):
     """UC-01: the published candy, alphabetically.
 
     Without an ORDER BY, PostgreSQL returns rows in whatever order is cheapest,
-    which can change between requests. The primary key breaks ties between
-    candies that share a name, since names are not unique.
+    which can change between requests. Names are unique (since 2026-09-17), so
+    the name alone is already a total order; the primary key stays as a
+    tie-break in case that constraint is ever relaxed.
     """
     candies = list(Candy.objects.published().order_by("name", "pk"))
     _mark_in_cart(request, candies)
     return render(request, "shop/candy_list.html", {"candies": candies})
 
 
-def candy_detail(request, pk):
+def candy_detail(request, slug):
     """UC-03: one candy's full detail -- as a page, or inside the detail popup.
 
     A candy's name link opens the popup (templates/base.html) by fetching this
@@ -43,7 +47,25 @@ def candy_detail(request, pk):
     item exists. The popup says the same with 200, because htmx does not swap
     4xx responses and the popup would never open.
     """
+    return _detail_response(request, Candy.objects.published().filter(slug=slug).first())
+
+
+def candy_detail_by_pk(request, pk):
+    """The detail page's old address, /candy/<pk>/, kept so shared links work.
+
+    A published candy redirects permanently to its slug. An unpublished or
+    deleted one gets the same "no longer available" answer as its slug would,
+    without a redirect: sending a visitor on to the slug of a withdrawn candy
+    would reveal the slug, and so that it exists.
+    """
     candy = Candy.objects.published().filter(pk=pk).first()
+    if candy is not None:
+        return redirect(candy, permanent=True)
+    return _detail_response(request, None)
+
+
+def _detail_response(request, candy):
+    """The detail page or popup for `candy`, or "no longer available" for None."""
     if candy is not None:
         _mark_in_cart(request, [candy])
     if request.headers.get("HX-Target") == DETAIL_POPUP:
@@ -141,11 +163,27 @@ def _mark_in_cart(request, candies):
         candy.in_cart = in_cart.get(candy.pk, 0)
 
 
+@never_cache
 def shoppingcart(request):
-    """UC-04 step 5: review every item, its quantity and the total."""
+    """UC-04 step 5: review every item, its quantity and the total.
+
+    never_cache, here and on every page below that shows one customer's cart,
+    order or account: without it a browser may serve the page from its own
+    history cache after the customer has gone -- the next person on a shared
+    computer pressing Back. `Vary: Cookie` keeps a shared proxy from mixing two
+    customers up, but says nothing about that (findings.md F1).
+
+    The catalog and the detail page are deliberately left cacheable, because
+    they are the pages worth caching. That is a boundary, not a claim of
+    safety: their header still names the signed-in customer, and their steppers
+    still show that customer's quantities, so the same Back navigation can show
+    the next person those. Accepted, and recorded as findings.md F6 rather than
+    left in a docstring.
+    """
     return render(request, "shop/shoppingcart.html", _cart_context(request))
 
 
+@never_cache
 def shoppingcart_panel(request):
     """The header's cart dropdown: every item, the total, and the way to checkout.
 
@@ -157,6 +195,7 @@ def shoppingcart_panel(request):
     return render(request, "shop/partials/shoppingcart_panel.html", _cart_context(request))
 
 
+@never_cache
 def checkout(request):
     """UC-05 step 1: the order to be placed, and where its amounts are changed.
 
@@ -164,12 +203,155 @@ def checkout(request):
     to show in it -- read after cart.lines() has reconciled the cart with the
     shop, so a capped line's stepper shows what the cart now holds.
 
-    Only the review. The health warning, the confirmations and payment (UC-05,
-    UC-07, UC-08) are not built yet, so this page offers no way to pay.
+    Open to everyone. Its Continue leads to the health warning, which is where
+    logging in is required (checkout_warning).
     """
     context = _cart_context(request)
     _mark_in_cart(request, [line.candy for line in context["lines"]])
     return render(request, "shop/checkout.html", context)
+
+
+@never_cache
+@login_required
+def checkout_warning(request):
+    """UC-07: the health warning for this order, acknowledged before going on.
+
+    Login is required from here on: the warning marks the customer's own
+    allergies, and an order needs a customer (UC-05 precondition).
+
+    The acknowledgment is refused unless the box is ticked, and unless the
+    warning the customer read is still the warning for the order -- the cart
+    can change in another tab or from the header's dropdown while this page is
+    open. Either way the page is shown again rather than moving on.
+
+    An empty cart has nothing to warn about, so it goes back to the cart page,
+    taking with it anything cart.lines() had to say about removed items.
+    """
+    lines, _total, notices = cart.lines(request)
+    if not lines:
+        for notice in notices:
+            messages.info(request, notice)
+        return redirect("shoppingcart")
+
+    warning = checkout_state.health_warning(lines, request.user)
+    form = HealthWarningForm(initial={"fingerprint": warning.fingerprint})
+    if request.method == "POST":
+        # The fingerprint first, ticked or not: a customer who read an older
+        # warning is told it changed, and gets a form for the one now shown.
+        if request.POST.get("fingerprint") != warning.fingerprint:
+            notices.append("Your order changed while the warning was open. Read the updated warning below.")
+        else:
+            form = HealthWarningForm(request.POST)
+            if form.is_valid():
+                checkout_state.acknowledge(request, warning)
+                return redirect("checkout_confirm")
+
+    return render(request, "shop/checkout_warning.html", {
+        "warning": warning,
+        "form": form,
+        "notices": notices,
+        "acknowledged": checkout_state.is_acknowledged(request, warning),
+    })
+
+
+@never_cache
+@login_required
+def checkout_confirm(request):
+    """UC-08: the order confirmed three times, by three different actions.
+
+    Reached only with the health warning acknowledged for the order as it now
+    stands (UC-08 precondition); otherwise back to the warning. An empty cart
+    goes back to the cart page, as at the warning.
+
+    The page shows exactly what is being confirmed, remembers it
+    (checkout.show_for_confirmation) and posts back a fingerprint of it. A POST
+    is judged against both: if the order it confirms is not the order as it
+    now stands -- a price changed, or another tab showed a different order --
+    the confirmation is refused and the current order shown instead. Otherwise
+    all three controls must pass (ConfirmOrderForm), and the order is placed.
+
+    If cart.lines() had to correct the cart (a quantity capped to stock, a
+    candy withdrawn), that correction is a cart write, which clears checkout
+    progress: the customer goes back to the warning, and what changed goes
+    with them as messages, which the warning page shows.
+
+    Placing (UC-05 steps 4 and 7, Order.objects.place) checks the shop once
+    more, under lock. If something changed in the moment since, nothing is
+    written, the cart is kept, and the customer goes to the cart page told
+    which candies changed (ext. 4a). Otherwise the cart is emptied and the
+    receipt shown. Payment is not connected, so the order stays pending.
+
+    Each showing of the page carries a token (checkout.show_for_confirmation),
+    and the order is placed under it: the same page submitted twice at once
+    gets the one order back, not a second one.
+    """
+    lines, total, notices = cart.lines(request)
+    if not lines:
+        for notice in notices:
+            messages.info(request, notice)
+        return redirect("shoppingcart")
+    warning = checkout_state.health_warning(lines, request.user)
+    if not checkout_state.is_acknowledged(request, warning):
+        for notice in notices:
+            messages.info(request, notice)
+        return redirect("checkout_warning")
+
+    snapshot = checkout_state.order_snapshot(lines, total)
+    shown = checkout_state.snapshot_fingerprint(snapshot)
+    form = ConfirmOrderForm(total=total)
+    if request.method == "POST":
+        token = checkout_state.confirmation_token(request)
+        if (checkout_state.shown_for_confirmation(request) != snapshot or request.POST.get("shown") != shown
+                or token is None or request.POST.get("token") != token):
+            notices.append("Your order changed while you were confirming it. Check it again below.")
+        else:
+            form = ConfirmOrderForm(request.POST, total=total)
+            if form.is_valid():
+                return _place_order(request, snapshot, token)
+    token = checkout_state.show_for_confirmation(request, snapshot)
+
+    return render(request, "shop/checkout_confirm.html", {
+        "lines": lines,
+        "total": total,
+        "items": sum(line.quantity for line in lines),
+        "form": form,
+        "notices": notices,
+        "shown": shown,
+        "token": token,
+    })
+
+
+def _place_order(request, snapshot, token):
+    """Place the confirmed order, or send the customer back to the cart saying why."""
+    try:
+        order = Order.objects.place(
+            request.user,
+            snapshot,
+            warning_acknowledged_at=checkout_state.acknowledged_at(request),
+            purchase_confirmed_at=timezone.now(),
+            confirmation_token=token,
+        )
+    except OrderChanged as changed:
+        messages.info(
+            request,
+            f"Your order was not placed, because {', '.join(changed.candies)} changed just now. "
+            "Check your cart and go through checkout again.",
+        )
+        return redirect("shoppingcart")
+    cart.clear(request)
+    return redirect("order_received", pk=order.pk)
+
+
+@never_cache
+@login_required
+def order_received(request, pk):
+    """UC-05 step 7: the order just placed, for the customer who placed it.
+
+    Anyone else's order number is a 404, not a 403: an order that is not yours
+    is not there for you, and saying otherwise would confirm it exists.
+    """
+    order = get_object_or_404(Order.objects.prefetch_related("items__candy"), pk=pk, user=request.user)
+    return render(request, "shop/order_received.html", {"order": order})
 
 
 @require_POST

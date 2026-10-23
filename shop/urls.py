@@ -3,7 +3,10 @@ from . import views
 
 urlpatterns = [
     path("", views.candy_list, name="candy_list"),
-    path("candy/<int:pk>/", views.candy_detail, name="candy_detail"),
+    # The number route first: a slug is never all digits (Candy.slug), so the
+    # two cannot both match one address.
+    path("candy/<int:pk>/", views.candy_detail_by_pk, name="candy_detail_by_pk"),
+    path("candy/<slug:slug>/", views.candy_detail, name="candy_detail"),
     path("candy/<int:pk>/add-to-shoppingcart/", views.add_to_shoppingcart, name="add_to_shoppingcart"),
     path("candy/<int:pk>/set-in-shoppingcart/", views.set_in_shoppingcart, name="set_in_shoppingcart"),
     path(
@@ -16,4 +19,7 @@ urlpatterns = [
     path("shoppingcart/<int:pk>/update/", views.update_shoppingcart, name="update_shoppingcart"),
     path("shoppingcart/<int:pk>/remove/", views.remove_from_shoppingcart, name="remove_from_shoppingcart"),
     path("checkout/", views.checkout, name="checkout"),
+    path("checkout/warning/", views.checkout_warning, name="checkout_warning"),
+    path("checkout/confirm/", views.checkout_confirm, name="checkout_confirm"),
+    path("orders/<int:pk>/", views.order_received, name="order_received"),
 ]

@@ -253,3 +253,20 @@ def test_candy_pictures_load_in_the_catalog_and_in_the_detail_popup(
     expect(detail_image).to_have_js_property("complete", True)
     assert detail_image.evaluate("img => img.naturalWidth") > 0
     assert_page_is_fully_rendered(page)
+
+
+def test_the_cdn_scripts_pass_their_integrity_check_and_run(
+    live_server, page, assert_page_is_fully_rendered
+):
+    """A wrong hash makes the browser refuse the script silently (T10a).
+
+    Every other browser test would then fail in confusing ways -- this one says
+    plainly that htmx and Alpine loaded.
+    """
+    page.goto(live_server.url)
+
+    assert page.evaluate("typeof window.htmx") == "object"
+    page.wait_for_function("window.Alpine !== undefined")
+    # This change added a comment block to base.html's head, and a mis-written
+    # one would be printed to the page rather than swallowed.
+    assert_page_is_fully_rendered(page)

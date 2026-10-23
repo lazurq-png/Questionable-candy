@@ -1,0 +1,43 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Something went wrong — Candy shop</title>
+    <script>
+        (function () {
+            try {
+                var theme = window.localStorage.getItem("theme");
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                }
+            } catch (error) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'shop/site.css' %}">
+</head>
+{% comment %}
+Deliberately does not extend base.html. Django's server_error renders this
+with no context and no request, because whatever broke the page may have
+broken those too -- the database, a context processor, the session. base.html
+needs all three (the cart count, the CSRF token), so this page repeats only its
+outline, and nothing here touches the database. The tags it does use, static
+and url, need neither. The inline script in <head> is base.html's, copied, so
+a theme the visitor chose with the toggle still applies here.
+{% endcomment %}
+<body>
+    <header class="site-header">
+        <nav aria-label="Site" class="site-nav">
+            <a href="{% url 'candy_list' %}" class="site-brand">Candy shop</a>
+        </nav>
+    </header>
+    <div class="site-body">
+        <main class="site-main narrow">
+            <h1>Our candy machine jammed</h1>
+            <p data-testid="error-message" class="empty-state">Something went wrong on our side, and it is not your fault. Give it a moment, then try again.</p>
+            <p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+        </main>
+    </div>
+</body>
+</html>

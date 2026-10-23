@@ -31,6 +31,11 @@
   --flaw-text: #7d1233;
   --notice-bg: #fff8e6;
   --notice-border: #d9a520;
+  /* Order status text; each at least 6:1 on --surface. */
+  --status-pending: #8a4b00;
+  --status-paid: #1f5fae;
+  --status-cancelled: #b3261e;
+  --status-fulfilled: #1d6b33;
   --focus: #b0165d;
   --shadow: 0 1px 2px rgb(43 37 48 / 6%), 0 4px 16px rgb(43 37 48 / 6%);
   /* The stepper's number field: white on the primary-coloured bar in both
@@ -72,6 +77,10 @@
     --flaw-text: #ffc6d8;
     --notice-bg: #2b2413;
     --notice-border: #c9982a;
+    --status-pending: #f2b24c;
+    --status-paid: #8cb8ff;
+    --status-cancelled: #ff8f87;
+    --status-fulfilled: #72d98e;
     --focus: #ff7ab4;
     --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
   }
@@ -93,6 +102,10 @@
   --flaw-text: #ffc6d8;
   --notice-bg: #2b2413;
   --notice-border: #c9982a;
+  --status-pending: #f2b24c;
+  --status-paid: #8cb8ff;
+  --status-cancelled: #ff8f87;
+  --status-fulfilled: #72d98e;
   --focus: #ff7ab4;
   --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
 }
@@ -323,6 +336,19 @@ button[disabled] {
   font-size: 1.125rem;
   margin-right: auto;
   padding-left: 0 !important;
+  /* The phone header's width budget (docs/ai/night-2026-09-17/decisions.md D5)
+     was measured against one font stack. A wider fallback -- a platform whose
+     system-ui resolves to something broader than Segoe UI/-apple-system --
+     eats into that budget with no slack left, and .site-nav has no wrap. The
+     brand is the one label that loses nothing by shrinking first: it names a
+     page the visitor is already on. min-width: 0 overrides the flex item
+     default (min-width: auto, which pins it to its full nowrap text width and
+     defeats flex-shrink entirely), so it can actually give up space instead of
+     forcing the row to overflow. */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .site-nav a.site-brand:hover {
@@ -339,7 +365,351 @@ button[disabled] {
   background: var(--surface-2);
 }
 
+/* ---- Checkout: the health warning (shop/checkout_warning.html) ---------- */
+
+.warning-section {
+  margin: 1.5rem 0;
+  padding: var(--space) 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.warning-section h2 {
+  margin-top: 0;
+}
+
+.warning-headline {
+  font-size: 1.125rem;
+}
+
+.warning-note {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Only the table scrolls sideways on a narrow phone, never the page. */
+.warning-table {
+  overflow-x: auto;
+}
+
+.warning-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.warning-table th,
+.warning-table td {
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.warning-table td {
+  white-space: nowrap;
+}
+
+.warning-unknown,
+.warning-match-summary {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem var(--space);
+  background: var(--flaw-bg);
+  border: 1px solid var(--flaw-border);
+  border-radius: var(--radius-sm);
+  color: var(--flaw-text);
+  font-weight: 600;
+}
+
+.warning-allergens {
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.warning-allergens li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.warning-candies {
+  display: block;
+  color: var(--muted);
+}
+
+/* An allergen the customer listed: marked in words, the badge, as well as
+   by the border -- never by colour alone. */
+.warning-allergen-yours {
+  padding-left: 0.75rem !important;
+  border-left: 6px solid var(--flaw-border);
+}
+
+.warning-yours {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0 0.5rem;
+  background: var(--flaw-bg);
+  border: 1px solid var(--flaw-border);
+  border-radius: var(--radius-sm);
+  color: var(--flaw-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.warning-change {
+  margin: 0;
+}
+
+.warning-acknowledge {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+}
+
+/* ---- Checkout: the three confirmations (shop/checkout_confirm.html) ----- */
+
+/* A line being confirmed has nothing to press: name and unit price beside
+   what it comes to. */
+@media (min-width: 40rem) {
+  .cart-line.confirm-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name  total"
+      "unit  total";
+  }
+}
+
+.confirm-steps {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.confirm-steps > li {
+  padding-left: 0.25rem;
+}
+
+.confirm-check {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+}
+
+.confirm-form input[type="text"]:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+/* ---- Account control in the header (accounts/partials/account_nav.html) -- */
+
+.site-account {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.site-nav a.site-account:hover,
+.site-account-menu > summary:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* The phone header has room for one account control, not two: sign-up is
+   one tap away on the login page. */
+@media (max-width: 29.99rem) {
+  .site-signup {
+    display: none !important;
+  }
+}
+
+.site-account-menu {
+  position: relative;
+}
+
+.site-account-menu > summary {
+  list-style: none;
+  padding: 0 0.5rem;
+}
+
+.site-account-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.site-account-menu[open] > summary {
+  background: var(--surface-2);
+}
+
+/* A long username is cut short on screen; the summary's accessible name is
+   still the whole of it. */
+.site-account-name {
+  display: inline-block;
+  max-width: 3.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 30rem) {
+  .site-account-name {
+    max-width: 10rem;
+  }
+}
+
+.site-account-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 20;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 11rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.site-account-panel form {
+  margin: 0;
+}
+
+.site-account-panel button {
+  width: 100%;
+}
+
 /* ---- Forms --------------------------------------------------------------- */
+
+/* Account forms render with {{ form }}: a <div> per field holding its label,
+   help text, errors and input (Django's div form template). */
+.account-form {
+  display: grid;
+  gap: var(--space);
+  margin: 1rem 0;
+}
+
+.account-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.account-form input[type="text"],
+.account-form input[type="email"],
+.account-form input[type="password"] {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+/* Browsers' default placeholder grey can fall under 4.5:1; --muted does not. */
+.account-form input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.account-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.account-form legend {
+  padding: 0;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.account-form .helptext {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 0.25rem 0;
+}
+
+.account-form .helptext ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.account-form .errorlist {
+  margin: 0 0 0.25rem;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  background: var(--flaw-bg);
+  border: 1px solid var(--flaw-border);
+  border-radius: var(--radius-sm);
+  color: var(--flaw-text);
+}
+
+.account-form > button {
+  justify-self: start;
+}
+
+/* Two short fields side by side (first and last name); stacked on a phone. */
+.field-row {
+  display: grid;
+  gap: var(--space);
+}
+
+@media (min-width: 30rem) {
+  .field-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The allergies on the profile page, boxed off from the fields above. */
+.allergies-box {
+  padding: var(--space) 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* The allergy checkboxes (Django's id_allergies -- the underscore keeps the
+   profile's #allergies box out of it): the whole label is the tap target. */
+.account-form [id$="_allergies"] {
+  display: grid;
+  gap: 0 var(--space);
+}
+
+@media (min-width: 30rem) {
+  .account-form [id$="_allergies"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.account-form [id$="_allergies"] label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* flex: none -- in a label whose text wraps, the box would otherwise shrink. */
+.account-form input[type="checkbox"] {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--primary);
+}
 
 input[type="number"] {
   min-height: var(--tap);
@@ -445,6 +815,33 @@ input[type="number"] {
   font-weight: 600;
 }
 
+/* Sugar and allergens: two label/value rows, headed like the flaw box. */
+.candy-health {
+  margin: 1.5rem 0;
+}
+
+.candy-health h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.candy-health dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem var(--space);
+  margin: 0;
+}
+
+.candy-health dt {
+  font-weight: 600;
+}
+
+.candy-health dd {
+  margin: 0;
+}
+
 .page-actions {
   margin-top: 1.5rem;
 }
@@ -453,8 +850,99 @@ input[type="number"] {
 .page-actions a {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: var(--tap);
+  min-width: var(--tap); /* a short link, like "Log in", is narrower than a tap */
 }
+
+/* ---- Orders (My orders page) --------------------------------------------- */
+
+/* As wide as the widest card, not the page. The list owns the columns and each
+   card borrows them (subgrid), so dates, statuses and totals line up from card
+   to card. A phone gets two rows per card -- date and status, then total and
+   the "View order" button; from 36rem everything fits on one line. */
+.order-list {
+  list-style: none;
+  margin: 0 0 var(--space);
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 2rem;
+  row-gap: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.order-line {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  row-gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.order-line-date {
+  color: var(--muted);
+}
+
+/* On a phone the status and the button take the right-hand column. */
+.order-status {
+  font-weight: 600;
+  text-align: right;
+}
+
+.order-line-view {
+  justify-self: end;
+}
+
+/* The column titles: the cards' columns and padding, without the card. The
+   transparent border keeps them aligned with the cards' 1px one. Only shown
+   once the cards are one line; over two-row cards they would not line up. */
+.order-head {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  padding: 0 1.25rem;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.order-head-total {
+  text-align: right;
+}
+
+.order-line-total {
+  font-weight: 700;
+}
+
+@media (min-width: 36rem) {
+  .order-list {
+    grid-template-columns: repeat(4, auto);
+  }
+
+  .order-status {
+    text-align: left;
+  }
+
+  .order-line-total {
+    text-align: right;
+  }
+
+  .order-head {
+    display: grid;
+  }
+}
+
+.order-status-pending { color: var(--status-pending); }
+.order-status-paid { color: var(--status-paid); }
+.order-status-cancelled { color: var(--status-cancelled); }
+.order-status-fulfilled { color: var(--status-fulfilled); }
 
 /* ---- Cart ------------------------------------------------------------------ */
 

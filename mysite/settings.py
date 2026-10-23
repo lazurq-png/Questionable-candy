@@ -148,6 +148,16 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# Logging in and out (accounts/urls.py)
+# https://docs.djangoproject.com/en/6.1/ref/settings/#login-url
+#
+# Login is required only past the checkout review; everything else is open.
+
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'candy_list'
+LOGOUT_REDIRECT_URL = 'candy_list'
+
+
 # Session and CSRF cookies
 # https://docs.djangoproject.com/en/6.1/ref/settings/#session-cookie-secure
 #

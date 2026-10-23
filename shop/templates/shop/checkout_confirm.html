@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Confirm your order — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+UC-08: the exact order, confirmed three times by three different actions --
+a checkbox, typing the total, and the Place my order button -- each worded
+differently, not three presses of one button.
+
+With Alpine, each control unlocks only when the one before it is done. That is
+not relied on: shop.forms.ConfirmOrderForm checks all three on the server, and
+without JavaScript all three are simply there to use.
+
+Enter in the total field must not place the order, or typing the total and
+placing it would be one action. The form's first submit button -- its default
+button, which Enter would press -- is a hidden, disabled one, and HTML submits
+nothing through a disabled default button. No script involved, so it holds
+before Alpine loads and without JavaScript too.
+
+The two inputs come from the form rather than being written out here, so a
+refused control is marked aria-invalid and points at its own error message
+(findings.md F2). The form sets use_required_attribute = False, so rendering
+them this way does not also hand the browser a `required` it never had: the
+refusals stay the server's, worded, and reachable. The Place my order button
+is not a form field; it points at its message only when there is one.
+
+`shown` posts back a fingerprint of the order this page showed; the view
+refuses a confirmation of any other. `token` names this showing of the page, so
+submitting it twice places one order (Order.objects.place).
+
+`matches()` repeats the server's reading of a typed total (a leading $ and a
+decimal comma allowed) only to decide when to unlock the button.
+{% endcomment %}
+<h1>Confirm your order</h1>
+<div class="notices" data-testid="confirm-notices">{% for notice in notices %}<p>{{ notice }}</p>{% endfor %}</div>
+
+<ul class="cart-lines" data-testid="confirm-lines">
+  {% for line in lines %}
+  <li class="cart-line confirm-line" data-testid="confirm-line">
+    <span class="cart-line-name">{{ line.candy.name }}</span>
+    <span class="cart-line-unit">{{ line.quantity }} &times; ${{ line.candy.price }}</span>
+    <span class="cart-line-total">${{ line.total }}</span>
+  </li>
+  {% endfor %}
+</ul>
+<p class="cart-total">Total: <span data-testid="confirm-total">${{ total }}</span></p>
+
+<form method="post" action="{% url 'checkout_confirm' %}" class="account-form confirm-form" data-testid="confirm-form"
+      x-data="{
+        checked: {{ form.checked_order.value|yesno:'true,false' }},
+        typed: '{{ form.typed_total.value|default_if_none:''|escapejs }}',
+        total: '{{ total }}',
+        matches() {
+          const typed = this.typed.trim().replace(/^\$/, '').trim().replace(',', '.');
+          return typed !== '' && !Number.isNaN(Number(typed)) && Number(typed) === Number(this.total);
+        },
+      }">
+  {% csrf_token %}
+  <input type="hidden" name="shown" value="{{ shown }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  <button type="submit" disabled hidden aria-hidden="true" tabindex="-1"></button>
+  <ol class="confirm-steps">
+    <li>
+      {{ form.checked_order.errors }}
+      <label class="confirm-check" for="{{ form.checked_order.id_for_label }}">
+        {{ form.checked_order }}
+        I have checked my order: {{ items }} item{{ items|pluralize }}, ${{ total }}
+      </label>
+    </li>
+    <li>
+      {{ form.typed_total.errors }}
+      <label for="{{ form.typed_total.id_for_label }}">Type the total, ${{ total }}, to confirm the amount</label>
+      {{ form.typed_total }}
+    </li>
+    <li>
+      {{ form.place_order.errors }}
+      <button type="submit" name="place_order" value="yes" data-testid="place-order"
+              {% if form.place_order.errors %}aria-invalid="true" aria-describedby="id_place_order_error"{% endif %}
+              x-bind:disabled="!(checked && matches())">Place my order</button>
+    </li>
+  </ol>
+</form>
+<p class="page-actions"><a href="{% url 'checkout' %}">Back to the order</a></p>
+{% endblock %}

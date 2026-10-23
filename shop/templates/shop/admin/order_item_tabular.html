@@ -1,0 +1,107 @@
+{% comment %}
+The order's lines: Django's own tabular inline, restyled for this one formset
+(#items-group) -- shop/admin.py, OrderItemInline.
+
+A saved line's "2 x <candy>" title is printed in its candy cell instead
+(candy_details_widget.html), so Django's title -- positioned above the row,
+with 2em of padding added to make room -- is hidden, and every cell of a line
+is centred on one axis with the admin's usual 8px padding.
+
+A line is added through the dialog below, which a green plus at the right of
+the ORDER ITEMS bar opens; choosing there saves the order with the line added
+(shop/static/shop/admin/order_lines.js). Its own fields have no name, so they
+are never submitted with the order. A saved line's delete checkbox is replaced
+by a red X that, once confirmed in the second dialog, ticks it and saves. Django's inline script, which would make an
+"Add another" row, is not loaded here (shop/admin.py, OrderItemInline.media).
+{% endcomment %}{% load static %}
+<style>
+  #items-heading { display: flex; align-items: center; justify-content: space-between; }
+  /* A black plus on the admin's green (that of its own add icon,
+     admin/img/icon-addlink.svg), drawn as two bars so it can be black. */
+  .order-lines-add {
+    flex: none; width: 1.75rem; height: 1.75rem; margin: -0.25rem 0; padding: 0;
+    border: 0; border-radius: 4px; cursor: pointer;
+    background:
+      linear-gradient(#000, #000) center / 12px 2px no-repeat,
+      linear-gradient(#000, #000) center / 2px 12px no-repeat,
+      #5fa225;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+  }
+  .order-lines-add:hover { background-color: #74bb3a; }
+  .order-lines-add:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .order-lines-remove {
+    width: 1.75rem; height: 1.75rem; padding: 0; border: 0; border-radius: 4px; cursor: pointer;
+    background: url("{% static 'admin/img/icon-deletelink.svg' %}") center / 14px no-repeat;
+  }
+  .order-lines-remove:hover { background-color: rgb(127 127 127 / 20%); }
+  .order-lines-remove:focus-visible { outline: 2px solid var(--link-fg); outline-offset: 1px; }
+  /* The remove dialog's Remove: the browser's own button, only in red. */
+  [data-confirm-remove] { background-color: var(--delete-button-bg); color: #fff; }
+  [data-confirm-remove]:hover { background-color: var(--delete-button-hover-bg); }
+
+  #items-group .tabular td { vertical-align: middle; }
+  #items-group .tabular tr.has_original td { padding-top: 8px; }
+  #items-group .tabular td.original { padding: 0; }
+  #items-group .tabular td.original p { display: none; }
+  #items-group .tabular td p { margin: 0; }
+  #items-group .candy-line-title { font-weight: bold; white-space: nowrap; }
+  #items-group .candy-line-title button {
+    padding: 0; border: 0; background: none; font: inherit;
+    color: var(--link-fg); text-decoration: underline; cursor: pointer;
+  }
+  .order-lines-dialog {
+    padding: 0; max-width: min(32rem, 90vw);
+    background: var(--body-bg); color: var(--body-fg);
+    border: 1px solid var(--hairline-color); border-radius: 4px;
+  }
+  .order-lines-dialog > div { padding: 1rem 1.25rem; }
+  .order-lines-dialog label { display: block; font-weight: bold; margin-bottom: 4px; }
+
+  /* The page's messages ("... was changed successfully") as a popup in the
+     corner rather than a banner that pushes the page down (order_lines.js
+     closes them). Order pages only: this template renders nowhere else. */
+  ul.messagelist {
+    position: fixed; top: 1rem; right: 1rem; z-index: 1000;
+    width: min(24rem, calc(100vw - 2rem)); margin: 0; padding: 0;
+  }
+  ul.messagelist li {
+    position: relative; margin: 0 0 0.5rem; padding-right: 2.75rem;
+    border-radius: 4px; box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
+    transition: opacity 0.3s;
+  }
+  ul.messagelist li.is-hiding { opacity: 0; }
+  ul.messagelist .message-close {
+    position: absolute; top: 50%; right: 0.5rem; transform: translateY(-50%);
+    width: 1.75rem; height: 1.75rem; padding: 0; border: 0; border-radius: 4px;
+    background: none; color: inherit; font: inherit; font-size: 1rem; cursor: pointer;
+  }
+  ul.messagelist .message-close:hover { background: rgb(0 0 0 / 10%); }
+  @media (prefers-reduced-motion: reduce) {
+    ul.messagelist li { transition: none; }
+  }
+</style>
+{% include "admin/edit_inline/tabular.html" %}
+<dialog id="items-add-dialog" aria-labelledby="items-add-title" class="order-lines-dialog">
+  <div>
+    <h2 id="items-add-title">Add a candy to the order</h2>
+    <p>
+      <label for="items-add-candy">Candy</label>
+      <select id="items-add-candy" required></select>
+    </p>
+    <p>
+      <label for="items-add-quantity">Quantity</label>
+      <input type="number" id="items-add-quantity" min="1" step="1" value="1" required>
+    </p>
+    <p class="help">Add saves the order. If it already has this candy, the quantity is added to that line.</p>
+    <button type="button" data-add-line>Add</button>
+    <button type="button" data-close-dialog>Cancel</button>
+  </div>
+</dialog>
+<dialog id="items-remove-dialog" aria-labelledby="items-remove-title" aria-describedby="items-remove-text" class="order-lines-dialog">
+  <div>
+    <h2 id="items-remove-title">Remove this line?</h2>
+    <p id="items-remove-text"></p>
+    <button type="button" data-confirm-remove>Remove</button>
+    <button type="button" data-close-dialog>Cancel</button>
+  </div>
+</dialog>

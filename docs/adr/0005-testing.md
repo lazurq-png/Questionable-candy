@@ -13,7 +13,7 @@ The project currently consists of `manage.py` and the `mysite/` settings package
 ## Decision Drivers
 
 - Has to be actually used in real django projects professionally
-- Should not require more than 3-5 different packages, if possible
+- Keep the stack simple: a few well-known packages rather than many tools and technologies. This is a preference, not a limit; if a later need calls for more packages, add them and revisit this decision
 - Choosing now costs nothing because there are zero tests, whereas choosing later means rewriting whatever suite exists by then
 
 ## Considered Options
@@ -25,25 +25,25 @@ The project currently consists of `manage.py` and the `mysite/` settings package
 
 ## Decision Outcome
 
-Chosen option: "pytest-django stack", because it is the default in professional Django work today and it lands exactly inside the package budget at five entries — `pytest`, `pytest-django`, `pytest-cov`, `factory_boy` and `pytest-playwright` — with Faker arriving transitively through factory_boy rather than as a sixth choice.
+Chosen option: "pytest-django stack", because it is the default in professional Django work today and it stays small, at five entries — `pytest`, `pytest-django`, `pytest-cov`, `factory_boy` and `pytest-playwright` — with Faker arriving transitively through factory_boy rather than as a sixth choice.
 
 The stack is adopted as one decision but not installed all at once: `pytest-django`, `pytest-cov` and `factory_boy` apply from the first app that has a model, while Playwright is decided here and stays dormant until the ADR 0001 templates give it a page to open. Mocking adds no package to the count — `unittest.mock` is in the standard library, and the HTTP-specific alternatives (`responses`, `requests-mock`) are not counted because nothing in the project makes an outbound call yet.
 
 ### Confirmation
 
-`python scripts/adr_guards.py` reads `requirements.txt` and fails when the test stack exceeds five packages, so adding a sixth breaks CI rather than passing unnoticed. The same script enforces [ADR 0003](0003-backend.md)'s exclusion of DRF. It runs as its own job in `.github/workflows/ci.yml`, needing no database and no installed dependencies.
+Keeping the stack small is a judgement made when a package is proposed, not a number anything checks. **Amended 2026-09-23:** `scripts/adr_guards.py` used to fail CI at a sixth test package, which read the simplicity driver as a hard cap it was never meant to be. That check was removed; the script still enforces [ADR 0003](0003-backend.md)'s exclusion of DRF.
 
 The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_SETTINGS_MODULE`, so the runner choice is a config invariant rather than a convention.
 
 Tests now run against PostgreSQL, because `pytest-django` derives the test database from the same `DATABASE_URL` the application uses and [ADR 0004](0004-database.md) leaves no SQLite fallback to fall into.
 
-Not enforced: there is no coverage threshold. `dev test` reports coverage but does not gate on it — add `--cov-fail-under` in `scripts/dev.py` once a target is agreed.
+**Update 2026-09-17 — the threshold exists.** `scripts/dev.py` passes `--cov-fail-under=95` to the full `dev test` run, so coverage is gated as well as reported, in CI too. 95 was chosen against a suite then at 99%: high enough that a new untested module fails the run, with enough slack that a line or two does not. A single suite (`test:unit`, say) is still ungated, because its coverage of the whole application is not a meaningful number.
 
 ## Pros and Cons of the Options
 
 ### Django's built-in `unittest` stack (`django.test.TestCase`, JSON fixtures, `LiveServerTestCase` with Selenium)
 
-- Good, because it ships with Django and requires no extra dependency at all, satisfying the package budget trivially
+- Good, because it ships with Django and requires no extra dependency at all, the simplest option possible
 - Good, because `self.client`, `assertTemplateUsed` and transactional test-database wrapping are integrated out of the box, and `LiveServerTestCase` hands Selenium a running server with no glue code
 - Bad, because the assertion API is verbose and the class-based `setUp`/`tearDown` boilerplate scales badly once several tests need the same Candy and User objects
 - Bad, because Selenium needs manual `WebDriverWait` calls, which makes browser tests slower and more flaky than the auto-waiting alternatives
@@ -52,7 +52,7 @@ Not enforced: there is no coverage threshold. `dev test` reports coverage but do
 
 - Good, because fixture-based dependency injection and plain `assert` statements remove the `setUp` boilerplate and the `assertEqual` zoo, and the plugin ecosystem (`pytest-xdist` for parallel runs, `pytest-mock`) is there when the suite grows
 - Good, because factory_boy composes test objects programmatically, so a schema change breaks one factory instead of every JSON fixture that mentioned the field
-- Neutral, because five packages sits at the very top of the 3-5 budget, leaving no room for a sixth without revisiting this decision
+- Neutral, because five packages is already a handful, so each further addition should earn its place
 - Bad, because it needs configuration that the built-in runner does not (`pytest.ini` or `pyproject.toml` plus `DJANGO_SETTINGS_MODULE`) and is a steeper start for anyone who only knows unittest
 
 ### pytest-django core only, without factories or a browser layer
@@ -67,15 +67,17 @@ Not enforced: there is no coverage threshold. `dev test` reports coverage but do
 - Good, because tox/nox pin reproducible environments across Python and Django versions, and schemathesis property-tests an API against its OpenAPI schema
 - Good, because hosted coverage reporting puts a threshold and a PR comment in front of every change once CI exists
 - Bad, because the DRF test tooling is dead weight while ADR 0003 defers DRF and there is no API layer to point it at
-- Bad, because tox/nox is overkill for an application targeting a single Python and Django version, and the additions push the count well past the 3-5 package budget
+- Bad, because tox/nox is overkill for an application targeting a single Python and Django version, and the additions bring in tools and technologies this project does not need
 
 ## More Information
 
 Playwright is decided but dormant — revisit when the templates from ADR 0001 exist and there are interactive flows to drive. Related: [0001](0001-frontend.md)
 
-**Update 2026-09-14 — that condition is now met.** The templates exist and [ADR 0006](0006-frontend-htmx-alpine.md) confirms the htmx interactivity layer they use, so Playwright is no longer dormant by its own terms. `pytest-playwright` is installed and `tests/e2e/` exists but is still empty; `python scripts/dev.py test:e2e` reports it as empty rather than passing silently.
+**Update 2026-09-14 — that condition is now met.** The templates exist and [ADR 0006](0006-frontend-htmx-alpine.md) confirms the htmx interactivity layer they use, so Playwright is no longer dormant by its own terms. `pytest-playwright` is installed and `tests/e2e/` existed but was still empty; `python scripts/dev.py test:e2e` reported it as empty rather than passing silently.
 
-There is a concrete first case waiting for it. The add-to-cart button 403'd in a real browser for two commits while the integration suite stayed green, because `django.test.Client` does not enforce CSRF. That gap is now covered by an `enforce_csrf_checks=True` test, but a browser test is what would have caught it natively — and the same blind spot applies to every future htmx interaction.
+**Update 2026-09-17 — `tests/e2e/` is no longer empty.** It was filled from 2026-09-16 and now covers the catalog, the candy detail page and its popup, the cart and its dropdown, the themes, the admin, accounts, the checkout warning, the confirmations, orders and the error pages. `python scripts/dev.py test:e2e` runs them, and CI runs them too, having gained a `playwright install` step.
+
+There was a concrete first case waiting for it. The add-to-cart button 403'd in a real browser for two commits while the integration suite stayed green, because `django.test.Client` does not enforce CSRF. That gap is now covered by an `enforce_csrf_checks=True` test, but a browser test is what would have caught it natively — and the same blind spot applies to every future htmx interaction.
 
 DRF-specific test tooling (`APIClient`, `pytest-drf`, `schemathesis`) is deferred, not rejected — revisit if ADR 0003 is reopened and an API layer is added. Related: [0003](0003-backend.md)
 

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.pk }} received — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+UC-05 step 7: the order just placed, shown only to the customer who placed it
+(views.order_received). Payment is not connected, so the order is pending and
+the page says plainly that nothing has been charged.
+{% endcomment %}
+<h1>Order #{{ order.pk }} received</h1>
+<div class="notices"><p data-testid="order-payment-note">Payment isn't connected yet, so nothing has been charged.</p></div>
+<ul class="cart-lines" data-testid="order-lines">
+  {% for item in order.items.all %}
+  <li class="cart-line confirm-line" data-testid="order-line">
+    <span class="cart-line-name">{{ item.candy.name }}</span>
+    <span class="cart-line-unit">{{ item.quantity }} &times; ${{ item.unit_price }}</span>
+    <span class="cart-line-total">${{ item.subtotal }}</span>
+  </li>
+  {% endfor %}
+</ul>
+<p class="cart-total">Total: <span data-testid="order-total">${{ order.total_amount }}</span></p>
+<p>Status: <span data-testid="order-status">{{ order.get_status_display }}</span></p>
+<p class="page-actions"><a href="{% url 'candy_list' %}" data-testid="back-to-catalog">Back to the catalog</a></p>
+{% endblock %}
