@@ -318,7 +318,7 @@ Examples:
 
 **CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs three jobs — the ADR guards (`scripts/adr_guards.py`, no database, no dependencies), lint, and the test suite against a PostgreSQL 17 service preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not: `scripts/dev.py` _writes_ missing migrations instead of failing on them.
 
-It triggers on pull requests to `master` and `dev`, and on pushes to `master` and `dev`. The test job installs a Playwright browser, so `tests/e2e/` runs in CI too.
+It triggers on pull requests to `master` and `dev`, and on pushes to `master` and `dev`. The test job runs in Playwright's container image, which carries the browser, so `tests/e2e/` runs in CI too.
 
 CI runs on GitHub. A local agent cannot observe its result and must never report one as evidence.
 

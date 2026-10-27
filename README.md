@@ -94,6 +94,12 @@ pip install pip-tools
 pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.txt requirements-dev.txt
 ```
 
+CI's test job runs in Playwright's container image, which carries the browser
+for one Playwright version. If the lock's `playwright==` changes, update the
+image tag, its digest and `PLAYWRIGHT_IMAGE_VERSION` in
+[`ci.yml`](.github/workflows/ci.yml) to match. Until then the job stops at its
+"Playwright matches the image" step.
+
 Dependabot bumps the ranges in the two inputs but does not regenerate the lock,
 so after merging one of its PRs, run the command above and commit the result.
 

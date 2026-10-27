@@ -91,6 +91,15 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Playwright's own image ships the browser and the libraries it needs, so no
+    # step downloads them. Its version must equal playwright== in
+    # requirements.lock -- the browser build is tied to it -- and Dependabot
+    # does not bump container images, so the "Playwright matches the image"
+    # step fails when the two drift. Pinned by digest, like the actions above.
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.64.1-noble@sha256:330d401ae23c905896a0c26c66c36fc971b621519e7b11b435a8328d7bf6e031
+      env:
+        PLAYWRIGHT_IMAGE_VERSION: "1.64.1"
 
     services:
       postgres:
@@ -102,8 +111,6 @@ jobs:
           # nothing here may ever be reused for a deployed database.
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: questionable_candy
-        ports:
-          - 5432:5432
         # The container being started is not the same as it accepting
         # connections -- without this, migrate can win the race and fail.
         options: >-
@@ -114,8 +121,9 @@ jobs:
 
     env:
       # settings.py raises ImproperlyConfigured without these two, and CI has no
-      # .env to read them from -- that file is gitignored.
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/questionable_candy
+      # .env to read them from -- that file is gitignored. The job runs in a
+      # container, so the service is reached by its name, not localhost.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/questionable_candy
       DJANGO_SECRET_KEY: ci-only-not-a-real-key-0000000000000000000000
       # Matches local development, where this suite is known to pass. Django's
       # test runner forces DEBUG off during tests anyway; what this avoids is
@@ -137,14 +145,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.lock
 
-      # pytest-playwright is a pip package; the browser it drives is not, and
-      # the runner image does not ship one. Until tests/e2e/ had tests in it the
-      # browser fixture was never instantiated and this was invisible -- an
-      # empty suite needs no browser. --with-deps pulls the shared libraries
-      # chromium needs on the ubuntu image; chromium alone, because that is the
-      # only browser the suite parametrises over.
-      - name: Install Playwright browser
-        run: python -m playwright install --with-deps chromium
+      # The image's Python is the distribution's 3.12, so setup-python above
+      # still provides 3.13; the browser comes from the image's /ms-playwright.
+      # A different playwright version would look for a browser build that is
+      # not there, so stop here and say what to bump.
+      - name: Playwright matches the image
+        shell: python
+        run: |
+          import os, sys
+          from importlib.metadata import version
+
+          locked, image = version("playwright"), os.environ["PLAYWRIGHT_IMAGE_VERSION"]
+          if locked != image:
+              sys.exit(f"requirements.lock has playwright {locked}, the container image {image}: "
+                       "bump the image tag, digest and PLAYWRIGHT_IMAGE_VERSION in ci.yml.")
 
       # scripts/dev.py runs makemigrations, which would quietly *write* a
       # missing migration and let the suite pass green. Fail here first: a model
