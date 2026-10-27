@@ -137,18 +137,26 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      # Not setup-python, as the other jobs use: its prebuilt Pythons are
+      # compiled to live at /opt/hostedtoolcache, a container job mounts that
+      # at /__t, and they do not run from there. The image's own Python is the
+      # distribution's 3.12. uv's managed Pythons run from any path, so uv
+      # provides 3.13 in a venv that later steps find first on PATH.
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
         with:
+          version: "0.13.0"
           python-version: "3.13"
-          cache: pip
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: requirements.lock
 
+      # The venv has no pip; uv installs into it, checking every hash.
       - name: Install dependencies
-        run: pip install -r requirements.lock
+        run: uv pip install --require-hashes -r requirements.lock
 
-      # The image's Python is the distribution's 3.12, so setup-python above
-      # still provides 3.13; the browser comes from the image's /ms-playwright.
-      # A different playwright version would look for a browser build that is
-      # not there, so stop here and say what to bump.
+      # The browser comes from the image's /ms-playwright. A different
+      # playwright version would look for a browser build that is not there,
+      # so stop here and say what to bump.
       - name: Playwright matches the image
         shell: python
         run: |
