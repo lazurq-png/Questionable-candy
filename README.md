@@ -53,16 +53,33 @@ on every pull request to `master` and `dev`, and on every push to `master` and
 Requires Python 3.13 and a PostgreSQL 17 server.
 
 ```sh
+python -m venv .venv
+.venv\Scripts\activate                # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.lock
 python -m playwright install chromium   # the browser tests/e2e/ drives
 cp .env.example .env          # then fill in DJANGO_SECRET_KEY and DATABASE_URL
-
-# scripts/dev.py starts a cluster at %USERPROFILE%\Binaries\pgsql (or
-# PGSQL_HOME) if it is down. Start it once yourself to create the database:
-#   pg_ctl start -D "%USERPROFILE%\Binaries\pgsql\data" -l "%USERPROFILE%\Binaries\pgsql\server.log"
-createdb -U postgres questionable_candy
+createdb -h localhost -U postgres questionable_candy
 python scripts/dev.py run             # http://127.0.0.1:8000/
 ```
+
+Any PostgreSQL 17 server works: a system service, Homebrew, a container, or a
+hosted one. Point `DATABASE_URL` in `.env` at it:
+
+```sh
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/questionable_candy
+```
+
+- Percent-encode special characters in the password: `@` is `%40`, `:` is
+  `%3A`, `/` is `%2F`.
+- The user needs `CREATEDB`, because the test suite creates and drops its own
+  `test_questionable_candy`. To make a role just for this project, run in `psql`:
+  `CREATE ROLE candy LOGIN PASSWORD '...' CREATEDB;`, then
+  `createdb -h localhost -U candy questionable_candy`.
+- `scripts/dev.py` starts a cluster only if it finds one at
+  `%USERPROFILE%\Binaries\pgsql`, or at `PGSQL_HOME`. With any other install it
+  leaves the server alone, so the server must already be running. To use such a
+  cluster, start it once yourself before creating the database:
+  `pg_ctl start -D "%USERPROFILE%\Binaries\pgsql\data" -l "%USERPROFILE%\Binaries\pgsql\server.log"`.
 
 `dev.py` applies migrations itself before every task, so no separate
 `manage.py migrate` step is needed.
