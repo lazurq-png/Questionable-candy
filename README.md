@@ -46,14 +46,15 @@ Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
 and dark themes that follow the system setting and a toggle to override it;
 no CSS framework or build step. CI runs the ADR guards, lint and the test suite
 on every pull request to `master` and `dev`, and on every push to `master` and
-`dev`([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+`dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
 
 Requires Python 3.13 and a PostgreSQL 17 server.
 
 ```sh
-pip install -r requirements.txt
+pip install -r requirements.lock
+python -m playwright install chromium   # the browser tests/e2e/ drives
 cp .env.example .env          # then fill in DJANGO_SECRET_KEY and DATABASE_URL
 
 # scripts/dev.py starts a cluster at %USERPROFILE%\Binaries\pgsql (or
@@ -65,6 +66,19 @@ python scripts/dev.py run             # http://127.0.0.1:8000/
 
 `dev.py` applies migrations itself before every task, so no separate
 `manage.py migrate` step is needed.
+
+`requirements.lock` pins every package, with hashes, so a laptop and CI install
+the same versions. `requirements.txt` and `requirements-dev.txt` stay the
+inputs; after changing either, regenerate it, then install it again and rerun
+`playwright install chromium` — a new Playwright needs its matching browser:
+
+```sh
+pip install pip-tools
+pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.txt requirements-dev.txt
+```
+
+Dependabot bumps the ranges in the two inputs but does not regenerate the lock,
+so after merging one of its PRs, run the command above and commit the result.
 
 To fill an empty catalog with the shop's candy, pictures included:
 
@@ -100,7 +114,7 @@ Verification is three commands, plus a fourth when workflows are involved, run s
 
 ```sh
 python scripts/dev.py test        # migrations + full suite + coverage
-python scripts/dev.py lint        # pylint; needs `pip install -r requirements-dev.txt`
+python scripts/dev.py lint        # pylint; installed by requirements.lock
 python scripts/dev.py lint:workflows  # only when .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR guards; no database, no dependencies
 ```

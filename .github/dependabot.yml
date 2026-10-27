@@ -6,6 +6,8 @@ updates:
       interval: weekly
     # requirements*.txt use ~= ranges; Dependabot raises the range when a new
     # minor version is released, and the suite decides whether it is safe.
+    # It does not regenerate requirements.lock, which CI installs from: after
+    # merging one of these, rerun pip-compile (README "Running it").
     open-pull-requests-limit: 5
 
   - package-ecosystem: github-actions

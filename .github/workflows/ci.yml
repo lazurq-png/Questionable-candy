@@ -34,8 +34,8 @@ jobs:
       - name: Check ADR 0003 and the docs overview
         run: python scripts/adr_guards.py
 
-  # The requirements use ~= ranges, so a transitive dependency can change
-  # between runs; this fails when any resolved package has a known advisory.
+  # Audits the pinned versions in requirements.lock: it fails when any of them
+  # has a known advisory.
   # Needs no database or settings, and is separate so an advisory published
   # tomorrow does not read as a broken test.
   dependency-audit:
@@ -52,7 +52,7 @@ jobs:
       - name: pip-audit
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt -r requirements-dev.txt
+          pip-audit -r requirements.lock
 
   # pylint-django calls django.setup(), so this needs the runtime dependencies
   # and the two settings.py demands -- but no database: dj_database_url only
@@ -75,9 +75,10 @@ jobs:
           python-version: "3.13"
           cache: pip
 
-      # requirements.txt as well, because the plugin imports Django itself.
+      # The lock holds the runtime packages too, because the plugin imports
+      # Django itself.
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: pip install -r requirements.lock
 
       # Errors fail; warnings, refactors and conventions print without failing.
       # See scripts/dev.py lint() for why that is one pass and not two.
@@ -132,7 +133,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.lock
 
       # pytest-playwright is a pip package; the browser it drives is not, and
       # the runner image does not ship one. Until tests/e2e/ had tests in it the
