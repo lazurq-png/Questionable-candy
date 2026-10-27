@@ -9,14 +9,13 @@ AGENTS.md              engineering contract — architecture, testing, security,
                         completion standards. Always relevant.
 CLAUDE.md               Claude Code operating model — always loaded by the extension/CLI
 .claude/
-├── rules/              domain reference docs — NOT auto-loaded; CLAUDE.md tells the
-│                        agent which one to open for a given task
+├── rules/              domain reference docs — frontend/backend/database are
+│                        path-scoped (`paths:` frontmatter), the rest load at launch
 ├── skills/              reusable procedures invoked as slash commands
 │                        (/code-review)
 ├── docs/                 supporting human-readable process docs — workflow narrative,
 │                          a task-request template, and ready-to-paste prompt patterns
-└── settings.example.json       copy to settings.json and adjust permissions/hooks
-                                 (not yet done here — settings.json does not exist)
+└── settings.json               shared permissions: allow-list and deny rules, no hooks
 ```
 
 This repository has **no single validation entry point.** `scripts/validate`,
@@ -44,14 +43,12 @@ CI (`.github/workflows/ci.yml`) runs three jobs on push to `master` and `dev`:
 the ADR guards, lint, and the suite — plus a `makemigrations
 --check` drift gate that `dev.py` deliberately omits.
 
-### Why rules aren't auto-loaded
+### How rules load
 
-Only `CLAUDE.md` (and nested per-directory `CLAUDE.md` files, which _are_ scoped by
-location) load automatically. There's no built-in mechanism that opens a file based on
-a glob match against whatever's being edited, so the rules in `.claude/rules/` are
-reference material Claude opens on demand — `CLAUDE.md` §2 lists which file to read for
-which kind of task (frontend, backend, database, testing, debugging, architecture,
-review, security-review).
+A rule file in `.claude/rules/` with no `paths:` frontmatter loads at launch, like
+`CLAUDE.md`. One with `paths:` loads only when Claude reads a matching file. Here,
+`frontend.md`, `backend.md` and `database.md` are path-scoped; the other five load
+every session. `CLAUDE.md` §2 lists which file covers which kind of task.
 
 If a real project has stable directory boundaries (e.g. `src/frontend/`,
 `src/backend/`), prefer dropping the matching rule file into a nested `CLAUDE.md`
@@ -76,11 +73,10 @@ diff.
    those sections exist to require. (This repo learned that the other way round
    too — a `validate` wrapper was removed and three documents went on citing it
    for weeks.)
-3. Copy `.claude/settings.example.json` to `.claude/settings.json` only if you
-   want to pre-approve specific commands/permissions or deny dangerous ones
-   (force-pushes, `rm -rf`, reading `.env`); otherwise omit it and let the
-   extension prompt as usual. A `deny` rule is enforced by the harness, unlike
-   a sentence in `CLAUDE.md`, so put anything that must never happen there.
+3. Adapt `.claude/settings.json` to the new repo: pre-approve the commands
+   agents run constantly and deny dangerous ones (force-pushes, `rm -rf`,
+   reading `.env`). A `deny` rule is enforced by the harness, unlike a sentence
+   in `CLAUDE.md`, so put anything that must never happen there.
 4. Trim `.claude/rules/*.md` and `.claude/docs/*.md` down to what the project
    actually needs — delete the domains that don't apply (e.g. `database.md` for
    a repo with no persistence layer).

@@ -1,3 +1,11 @@
+---
+paths:
+  - "**/templates/**"
+  - "templates/**"
+  - "**/static/**"
+  - "tests/e2e/**"
+---
+
 # Frontend Engineering Rules
 
 Open this for frontend and UI work (components, styles, browser-facing state).

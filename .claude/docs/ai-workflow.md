@@ -255,7 +255,7 @@ Use it for:
 
 ## Claude Rules
 
-Use `.claude/rules/*.md` for domain-scoped reference material. These are not auto-loaded — CLAUDE.md should tell the agent which one to open for a given task type.
+Use `.claude/rules/*.md` for domain-scoped reference material. Rules without `paths:` frontmatter load at launch; ones with it load only when matching files are read. CLAUDE.md names which rule covers which task type.
 
 Examples:
 
@@ -314,7 +314,7 @@ Examples:
 
 ## Hooks and CI
 
-**Hooks: none.** There is no `.claude/settings.json` (only `settings.example.json`, which is inert). Nothing is enforced at commit time.
+**Hooks: none.** `.claude/settings.json` holds an allow-list and deny rules, but there are no hooks. Nothing is enforced at commit time.
 
 **CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs three jobs — the ADR guards (`scripts/adr_guards.py`, no database, no dependencies), lint, and the test suite against a PostgreSQL 17 service preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not: `scripts/dev.py` _writes_ missing migrations instead of failing on them.
 

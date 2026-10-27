@@ -59,7 +59,9 @@ If the task touches a specific domain, read the matching reference in `.claude/r
 - `.claude/rules/review.md` — adversarial review of a finished diff
 - `.claude/rules/security-review.md` — authn/authz, secrets, payments, external input
 
-These are not auto-loaded — open the one(s) relevant to the task based on what the work touches.
+`frontend.md`, `backend.md` and `database.md` carry `paths:` frontmatter and load
+only when matching files are read; the others load at launch. Open any rule
+yourself when the task touches its domain.
 
 ---
 
@@ -436,12 +438,13 @@ This repository's `.claude/` directory is structured as follows:
 ```text
 .claude/
 ├── agents/     — specialized subagents dispatched by name (reviewer)
-├── rules/      — domain-specific reference docs (see §2), opened on demand
+├── rules/      — domain-specific reference docs (see §2); three are path-scoped
 ├── skills/     — reusable procedural workflows, invoked as slash commands
 │                 (code-review)
 ├── docs/       — supporting human-readable process docs (workflow, task
 │                 template, prompt patterns) — not auto-loaded
-└── settings.example.json — inert template; no settings.json is defined here
+└── settings.json — shared allow-list (dev.py tests/lint, read-only git) and denies
+                    (force/delete push, rm -rf, reading .env); no hooks
 ```
 
 **There is no `scripts/validate` and no `dev.py validate` task.** Both were
