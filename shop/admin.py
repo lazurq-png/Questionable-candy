@@ -83,7 +83,16 @@ class CandyAdmin(admin.ModelAdmin):
 
 
 class OrderItemFormSet(BaseInlineFormSet):
-    """Refuses lines that would take more stock than there is."""
+    """Refuses lines that would take more stock than there is.
+
+    The candies are locked while they are checked, in primary-key order as
+    place() and move_stock() lock them. The admin validates and saves in one
+    transaction, so the lock holds until save_formset() has moved the stock: a
+    checkout cannot take it in between and turn this form error into the
+    database refusing negative stock (audit C4). The lock covers the order's
+    current lines too, which save_formset() returns to stock, so it never has
+    to take a new lock while holding these.
+    """
 
     def clean(self):
         super().clean()
@@ -94,8 +103,8 @@ class OrderItemFormSet(BaseInlineFormSet):
             if form.cleaned_data and not form.cleaned_data.get("DELETE"):
                 wanted[form.cleaned_data["candy"].pk] += form.cleaned_data["quantity"]
         taken = self.instance.line_counts() if self.instance.pk else Counter()
-        short = [candy.name for candy in Candy.objects.filter(pk__in=wanted)
-                 if wanted[candy.pk] - taken[candy.pk] > candy.stock]
+        locked = Candy.objects.select_for_update().filter(pk__in=wanted | taken).order_by("pk")
+        short = [candy.name for candy in locked if wanted[candy.pk] - taken[candy.pk] > candy.stock]
         if short:
             raise ValidationError(f"Not enough stock: {', '.join(short)}.")
 
