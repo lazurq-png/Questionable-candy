@@ -4,9 +4,7 @@ psycopg[binary]~=3.2          # PostgreSQL driver -- docs/adr/0004-database.md
 python-dotenv~=1.1            # loads .env into the environment
 dj-database-url~=3.0          # DATABASE_URL -> Django DATABASES
 
-# Test stack -- docs/adr/0005-testing.md budgets 3-5 packages; this is 5.
-# Adding a sixth means revisiting that ADR. scripts/adr_guards.py enforces the
-# count, and CI runs it on every push.
+# Test stack -- docs/adr/0005-testing.md. Nothing counts packages.
 # Faker arrives transitively via factory_boy and is not counted.
 pytest~=9.1
 pytest-django~=4.14

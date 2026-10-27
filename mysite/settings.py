@@ -115,8 +115,8 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 if not os.getenv('DATABASE_URL'):
     raise ImproperlyConfigured(
         'DATABASE_URL is not set. Copy .env.example to .env and fill it in, '
-        'then start your PostgreSQL cluster -- scripts/dev.py does not start '
-        'it. See .env.example for the pg_ctl command.'
+        'then run through scripts/dev.py, which starts the local PostgreSQL '
+        'cluster if it is down. See .env.example for the pg_ctl command.'
     )
 
 DATABASES = {
@@ -171,6 +171,29 @@ SESSION_COOKIE_SECURE = _env_bool('DJANGO_SECURE_COOKIES', not DEBUG)
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 
+# HTTPS transport
+# https://docs.djangoproject.com/en/6.1/topics/security/#ssl-https
+#
+# docs/requirements.md section 3 requires authentication and payment over HTTPS.
+# Derived from DEBUG like the cookies above, so development stays on plain HTTP.
+# DJANGO_SECURE_SSL_REDIRECT=False is for a staging box behind plain HTTP.
+# HSTS starts at an hour so a mistake can be undone; raise it once HTTPS is
+# known to work. A proxy that terminates TLS must set the header named by
+# DJANGO_PROXY_SSL_HEADER or the redirect loops.
+
+SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', not DEBUG)
+SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0' if DEBUG else '3600'))
+
+if _env_bool('DJANGO_PROXY_SSL_HEADER'):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
@@ -194,8 +217,25 @@ STATIC_URL = 'static/'
 
 # MAILERS replaces the EMAIL_* settings, which Django 7.0 removes. The 'default'
 # alias is the one django.core.mail uses when no 'using' argument is passed.
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+#
+# Console in development; with DEBUG off the default is SMTP, configured from
+# the environment, because Django's deploy check rejects the console backend.
+if DEBUG:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
+else:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': os.getenv('DJANGO_EMAIL_HOST', 'localhost'),
+                'port': int(os.getenv('DJANGO_EMAIL_PORT', '587')),
+                'username': os.getenv('DJANGO_EMAIL_USER', ''),
+                'password': os.getenv('DJANGO_EMAIL_PASSWORD', ''),
+                'use_tls': _env_bool('DJANGO_EMAIL_USE_TLS', True),
+            },
+        },
+    }

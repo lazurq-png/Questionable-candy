@@ -28,7 +28,7 @@ commands, plus a fourth when workflows changed, run separately:
 python scripts/dev.py test        # migrations + full suite + coverage
 python scripts/dev.py lint        # pylint; errors fail, the rest is advisory
 python scripts/dev.py lint:workflows  # only if .github/workflows/ changed or a workflow failed
-python scripts/adr_guards.py      # ADR 0003 / 0005 guards, no deps, seconds
+python scripts/adr_guards.py      # ADR 0003 guard, no deps, seconds
 ```
 
 `scripts/dev.py` is the task runner for everything else (`run`, `test:unit`,

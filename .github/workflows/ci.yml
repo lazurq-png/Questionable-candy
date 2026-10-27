@@ -17,6 +17,10 @@ on:
   pull_request:
     branches: [master, dev]
 
+# Nothing here writes to the repository or the API, so the token is read-only.
+permissions:
+  contents: read
+
 # A newer push to the same branch makes an in-flight run irrelevant.
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,6 +32,7 @@ jobs:
   adr-guards:
     name: ADR guards
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
@@ -46,6 +51,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       # Never connected to. Present only so mysite/settings.py imports.
@@ -72,6 +78,7 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     services:
       postgres:

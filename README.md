@@ -18,10 +18,11 @@ verification its step 3 describes), and orders up to — but not including —
 payment (UC-05 steps 1-4, and step 7 in part: the order is created and the cart
 cleared, but as `pending` and with nothing to track it from).
 
+Also built: a **My orders** page at `/accounts/orders/` listing the signed-in
+customer's past orders.
+
 Not built: **payment**, so an order stays `pending` and nothing is ever
-charged; Google sign-in (UC-02); and any order history — nothing lists or links
-to past orders, only the receipt at its own address, which stays there for the
-customer who placed it.
+charged; and Google sign-in (UC-02).
 
 [`docs/data-model.md`](docs/data-model.md) §3 marks which entities exist.
 
@@ -90,8 +91,9 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 | `test:unit`, `test:int`, `test:e2e`         | Run one suite                              |
 
 Every task runs `makemigrations` and `migrate` first, so the database always
-matches the models. No task starts or stops PostgreSQL — the cluster must
-already be accepting connections. The `lint` tasks are the exception: they read source, so
+matches the models. Before that, a task starts the local cluster if
+`pg_isready` reports it down (never stopping it; skipped under CI or with no
+local install). The `lint` tasks are the exception: they read source, so
 they need no database and run with the cluster down.
 
 Verification is three commands, plus a fourth when workflows are involved, run separately:
@@ -169,4 +171,3 @@ New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 - No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md). Sign-up and login exist; the specification has not been updated to say whether they are the launch path
 - `shop.Candy` differs from the target `Candy` entity in what it calls `stock`, in the type of `flaw`, and in the extra `flavor` and `image` fields — [data model §3.3](docs/data-model.md)
 - Payment is not connected, so `Order.status` never leaves `pending`
-- [ADR 0008](docs/adr/0008-hand-written-css-themes.md), on the CSS and theme conventions, is *proposed* and awaits a decision

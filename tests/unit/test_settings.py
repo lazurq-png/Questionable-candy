@@ -80,3 +80,35 @@ def test_the_override_can_force_insecure_cookies_with_debug_off():
     settings = load_settings(DJANGO_DEBUG="False", DJANGO_SECURE_COOKIES="False")
 
     assert settings.SESSION_COOKIE_SECURE is False
+
+
+
+def test_https_is_enforced_when_debug_is_off():
+    """docs/requirements.md section 3: auth and payment over HTTPS."""
+    settings = load_settings(DJANGO_DEBUG="False")
+
+    assert settings.SECURE_SSL_REDIRECT is True
+    assert settings.SECURE_HSTS_SECONDS > 0
+
+
+def test_https_is_not_enforced_in_development():
+    settings = load_settings(DJANGO_DEBUG="True")
+
+    assert settings.SECURE_SSL_REDIRECT is False
+    assert settings.SECURE_HSTS_SECONDS == 0
+
+
+def test_proxy_header_and_trusted_origins_come_from_the_environment():
+    settings = load_settings(
+        DJANGO_PROXY_SSL_HEADER="True",
+        DJANGO_CSRF_TRUSTED_ORIGINS="https://a.example, https://b.example",
+    )
+
+    assert settings.SECURE_PROXY_SSL_HEADER == ("HTTP_X_FORWARDED_PROTO", "https")
+    assert settings.CSRF_TRUSTED_ORIGINS == ["https://a.example", "https://b.example"]
+
+
+def test_mail_uses_smtp_when_debug_is_off_and_console_otherwise():
+    assert load_settings(DJANGO_DEBUG="False").MAILERS["default"]["BACKEND"].endswith("smtp.EmailBackend")
+    assert load_settings(DJANGO_DEBUG="True").MAILERS["default"]["BACKEND"].endswith("console.EmailBackend")
+
