@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.csp import CSP
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -61,6 +63,8 @@ INSTALLED_APPS = [
     # ArrayField, for User.allergies and the planned Candy.allergens
     # (docs/data-model.md section 3).
     'django.contrib.postgres',
+    # Login throttling, see AXES_* below.
+    'axes',
 
     # Local apps
     'accounts.apps.AccountsConfig',
@@ -73,12 +77,15 @@ AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Last, as django-axes requires: it turns a locked-out login into a 429.
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -91,6 +98,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.csp',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'shop.context_processors.shoppingcart',
@@ -192,6 +200,53 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
     if origin.strip()
 ]
+
+
+# Login throttling
+# https://django-axes.readthedocs.io/
+#
+# Five wrong passwords for one username from one address locks that pair for
+# fifteen minutes, on both /accounts/login/ and /admin/login/. Keyed on the
+# pair so an attacker cannot lock a customer out from elsewhere, and a
+# customer who mistypes is not locked out for everyone. Behind a proxy the
+# address is the proxy's unless django-axes is told which header to trust
+# (AXES_IPWARE_META_PRECEDENCE_ORDER); set that together with
+# DJANGO_PROXY_SSL_HEADER when deploying.
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [['ip_address', 'username']]
+AXES_RESET_ON_SUCCESS = True
+
+
+# Content Security Policy
+# https://docs.djangoproject.com/en/6.1/ref/csp/
+#
+# Report-only: browsers log violations to the console and block nothing, so the
+# policy can be tightened against real pages before it is enforced. Move the
+# dict to SECURE_CSP once the console is clean.
+#
+# 'unsafe-eval' is there because the standard Alpine build evaluates the
+# expressions in x-data / x-on attributes; the @alpinejs/csp build removes the
+# need. unpkg.com is the CDN base.html loads htmx and Alpine from (ADR 0006),
+# each pinned by SRI hash. htmx injects a small <style> for its request
+# indicator, hence 'unsafe-inline' for styles. The one inline script in
+# base.html carries the nonce.
+
+SECURE_CSP_REPORT_ONLY = {
+    'default-src': [CSP.SELF],
+    'script-src': [CSP.SELF, CSP.NONCE, 'https://unpkg.com', CSP.UNSAFE_EVAL],
+    'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
+    'img-src': [CSP.SELF, 'data:'],
+    'object-src': [CSP.NONE],
+    'base-uri': [CSP.SELF],
+    'form-action': [CSP.SELF],
+    'frame-ancestors': [CSP.NONE],
+}
 
 
 # Internationalization

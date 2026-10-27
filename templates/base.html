@@ -12,7 +12,7 @@
     page load. With no stored choice it does nothing and site.css follows the
     system setting. theme.js holds the toggle itself.
     {% endcomment %}
-    <script>
+    <script {% csp_nonce_attr %}>
         (function () {
             try {
                 var theme = window.localStorage.getItem("theme");
