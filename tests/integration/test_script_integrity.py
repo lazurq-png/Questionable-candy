@@ -3,6 +3,7 @@
 ADR 0006 chose htmx and Alpine from a CDN and recorded the gap this closes: the
 tags named a version but nothing checked what came back.
 """
+
 import re
 
 import pytest

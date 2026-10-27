@@ -4,6 +4,7 @@ Clients enforce CSRF and post the token a real page handed out. Login itself is
 covered by tests/integration/test_accounts.py, so these sign in with
 force_login.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -33,8 +34,9 @@ def browser(user=None):
 def add(client, candy, times=1):
     """Press a candy's add-to-cart button `times` times, as htmx would."""
     for _ in range(times):
-        client.post(reverse("add_to_shoppingcart", args=[candy.pk]),
-                    headers={"x-csrftoken": client.token, "HX-Request": "true"})
+        client.post(
+            reverse("add_to_shoppingcart", args=[candy.pk]), headers={"x-csrftoken": client.token, "HX-Request": "true"}
+        )
 
 
 def acknowledge(client, fingerprint=None, tick=True):
@@ -210,8 +212,7 @@ def test_a_cart_change_that_is_later_undone_still_needs_a_new_acknowledgment(ada
     acknowledge(client)
 
     add(client, order["ropes"])
-    client.post(reverse("remove_from_shoppingcart", args=[order["ropes"].pk]),
-                {"csrfmiddlewaretoken": client.token})
+    client.post(reverse("remove_from_shoppingcart", args=[order["ropes"].pk]), {"csrfmiddlewaretoken": client.token})
 
     assert SESSION_KEY not in client.session
     assert not client.get(WARNING).context["acknowledged"]

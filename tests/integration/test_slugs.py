@@ -3,6 +3,7 @@
 The detail page moved to /candy/<slug>/; /candy/<pk>/ redirects so links that
 were already shared keep working.
 """
+
 from decimal import Decimal
 from io import StringIO
 
@@ -28,6 +29,7 @@ def by_pk(candy):
 
 
 # --- The slug a candy gets ------------------------------------------------------
+
 
 def test_a_new_candy_gets_its_slug_from_its_name():
     """Saving fills the slug, and the candy knows its own URL."""
@@ -88,6 +90,7 @@ def test_every_seeded_candy_has_the_slug_of_its_name():
 
 
 # --- The URLs -------------------------------------------------------------------
+
 
 def test_the_detail_page_is_at_the_slug(client):
     """UC-03 at the new address."""
@@ -153,6 +156,7 @@ def test_the_catalog_links_each_candy_by_slug(client):
 
 # --- The admin -------------------------------------------------------------------
 
+
 def test_the_admin_fills_the_slug_in_from_the_name(admin_client):
     """prepopulated_fields, which the admin's own JavaScript acts on.
 
@@ -170,10 +174,21 @@ def test_the_admin_fills_the_slug_in_from_the_name(admin_client):
 
 def test_an_administrator_may_leave_the_slug_blank(admin_client):
     """Saved without JavaScript, the slug still comes from the name."""
-    response = admin_client.post(reverse("admin:shop_candy_add"), {
-        "name": "Ginger Snap Drops", "slug": "", "flaw": "Too hot.", "description": "", "flavor": "",
-        "price": "1.00", "stock": "1", "is_published": "on", "image": "", "_save": "Save",
-    })
+    response = admin_client.post(
+        reverse("admin:shop_candy_add"),
+        {
+            "name": "Ginger Snap Drops",
+            "slug": "",
+            "flaw": "Too hot.",
+            "description": "",
+            "flavor": "",
+            "price": "1.00",
+            "stock": "1",
+            "is_published": "on",
+            "image": "",
+            "_save": "Save",
+        },
+    )
 
     assert response.status_code == 302
     assert Candy.objects.get(name="Ginger Snap Drops").slug == "ginger-snap-drops"
@@ -181,10 +196,21 @@ def test_an_administrator_may_leave_the_slug_blank(admin_client):
 
 def test_the_admin_refuses_a_slug_of_digits_alone(admin_client):
     """It would be read as the old number URL and never reach the candy."""
-    response = admin_client.post(reverse("admin:shop_candy_add"), {
-        "name": "Ginger Snap Drops", "slug": "12345", "flaw": "Too hot.", "description": "", "flavor": "",
-        "price": "1.00", "stock": "1", "is_published": "on", "image": "", "_save": "Save",
-    })
+    response = admin_client.post(
+        reverse("admin:shop_candy_add"),
+        {
+            "name": "Ginger Snap Drops",
+            "slug": "12345",
+            "flaw": "Too hot.",
+            "description": "",
+            "flavor": "",
+            "price": "1.00",
+            "stock": "1",
+            "is_published": "on",
+            "image": "",
+            "_save": "Save",
+        },
+    )
 
     assert response.status_code == 200
     assert "A slug needs a letter or a dash" in response.content.decode()
@@ -206,10 +232,21 @@ def test_an_existing_candys_slug_cannot_be_changed_in_the_admin(admin_client):
     candy = CandyFactory(name="Hollow Humbug")
 
     page = admin_client.get(reverse("admin:shop_candy_change", args=[candy.pk])).content.decode()
-    response = admin_client.post(reverse("admin:shop_candy_change", args=[candy.pk]), {
-        "name": "Hollow Humbug", "slug": "renamed", "flaw": "Hollow.", "description": "", "flavor": "",
-        "price": "1.00", "stock": "1", "is_published": "on", "image": "", "_save": "Save",
-    })
+    response = admin_client.post(
+        reverse("admin:shop_candy_change", args=[candy.pk]),
+        {
+            "name": "Hollow Humbug",
+            "slug": "renamed",
+            "flaw": "Hollow.",
+            "description": "",
+            "flavor": "",
+            "price": "1.00",
+            "stock": "1",
+            "is_published": "on",
+            "image": "",
+            "_save": "Save",
+        },
+    )
 
     assert 'name="slug"' not in page  # shown, not editable
     assert candy.slug in page

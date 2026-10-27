@@ -4,6 +4,7 @@ The server checks all three controls whatever the page does; these check what
 only a browser shows -- that each control unlocks only after the one before it,
 that a wrong total keeps the button locked, and that the page submits.
 """
+
 from decimal import Decimal
 
 import pytest

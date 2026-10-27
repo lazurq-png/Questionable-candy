@@ -5,6 +5,7 @@ was clicked on -- the catalog, the cart dropdown, the cart page. The detail page
 itself remains for everyone else, reached by its URL. The integration tests
 assert what the markup holds; these assert that clicking arrives somewhere.
 """
+
 from decimal import Decimal
 
 from playwright.sync_api import expect
@@ -20,9 +21,7 @@ def open_popup(page, name):
     return popup
 
 
-def test_selecting_a_candy_opens_its_details_in_a_popup(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_selecting_a_candy_opens_its_details_in_a_popup(live_server, page, assert_page_is_fully_rendered):
     """UC-03 steps 1-2: name, description and price -- without leaving the catalog."""
     CandyFactory(
         name="Hollow Humbug",
@@ -121,9 +120,7 @@ def test_a_candy_in_the_cart_dropdown_opens_the_popup(live_server, page):
     expect(popup.get_by_test_id("candy-flaw")).to_contain_text("Hollow.")
 
 
-def test_a_change_in_the_popup_updates_the_cart_page_behind_it(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_a_change_in_the_popup_updates_the_cart_page_behind_it(live_server, page, assert_page_is_fully_rendered):
     """The cart page's names open the popup too, and its lines and total follow."""
     CandyFactory(name="Hollow Humbug", price=Decimal("1.25"), stock=5)
     page.goto(live_server.url)
@@ -156,9 +153,7 @@ def test_a_change_in_the_popup_updates_the_checkout_behind_it(live_server, page,
     expect(page.get_by_test_id("checkout-total")).to_have_text("$3.75")
 
 
-def test_the_flaw_is_visible_to_the_customer(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_the_flaw_is_visible_to_the_customer(live_server, page, assert_page_is_fully_rendered):
     """UC-06 step 3, in the browser -- in the popup and on the page.
 
     The integration test asserts the flaw is in the markup. That is not the
@@ -185,9 +180,7 @@ def test_the_flaw_is_visible_to_the_customer(
     expect(page.get_by_role("heading", name="Known flaw")).to_be_visible()
 
 
-def test_an_unpublished_candy_is_hidden_and_says_it_is_unavailable(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_an_unpublished_candy_is_hidden_and_says_it_is_unavailable(live_server, page, assert_page_is_fully_rendered):
     """UC-01 step 2 and UC-03 extension 2a, as a customer meets them.
 
     The catalog no longer lists it, and following an old link to it explains

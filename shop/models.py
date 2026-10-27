@@ -1,4 +1,5 @@
 """The shop's models: candy and orders."""
+
 from collections import Counter
 from decimal import Decimal
 
@@ -54,6 +55,7 @@ def unique_candy_slug(name, taken):
 
 class Candy(models.Model):
     """A candy for sale, with the flaw it is sold with."""
+
     # Unique (docs/data-model.md section 3.3): two candies of one name could not
     # be told apart in the catalog, and their slugs would need suffixes.
     name = models.CharField(max_length=200, unique=True)
@@ -62,10 +64,12 @@ class Candy(models.Model):
     # working. The admin fills it in as the name is typed; left blank, save()
     # makes one.
     slug = models.SlugField(
-        max_length=220, unique=True, blank=True,
+        max_length=220,
+        unique=True,
+        blank=True,
         validators=[RegexValidator(r"\D", "A slug needs a letter or a dash; digits alone read as a number.")],
         help_text="The candy's web address, filled in from the name. Set once: /candy/<number>/ "
-                  "redirects here permanently, and browsers cache that.",
+        "redirects here permanently, and browsers cache that.",
     )
     # UC-03 step 2 renders this on the detail page. Not null (docs/data-model.md
     # section 3.3) but not mandatory: UC-06 singles out `flaw` as the field that
@@ -83,7 +87,9 @@ class Candy(models.Model):
     # it off as harmless. The database holds it to the three values as well
     # (Meta.constraints).
     flaw_severity = models.PositiveSmallIntegerField(
-        choices=FlawSeverity.choices, null=True, blank=True,
+        choices=FlawSeverity.choices,
+        null=True,
+        blank=True,
         help_text="How bad the flaw is. Leave empty if it has not been rated yet.",
     )
     # docs/data-model.md section 3.3. Default True so rows that existed before
@@ -98,7 +104,10 @@ class Candy(models.Model):
     # the warning names a candy with unknown sugar rather than counting it as
     # sugar-free. The database holds it to 0-100 as well (Meta.constraints).
     sugar_content_g = models.DecimalField(
-        max_digits=4, decimal_places=1, null=True, blank=True,
+        max_digits=4,
+        decimal_places=1,
+        null=True,
+        blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         help_text="Grams of sugar per 100 g. Leave empty if unknown.",
     )
@@ -106,7 +115,8 @@ class Candy(models.Model):
     # checked by full_clean() and forms, not by the database.
     allergens = ArrayField(
         models.CharField(max_length=allergens.KEY_LENGTH, choices=allergens.ALLERGENS),
-        blank=True, default=list,
+        blank=True,
+        default=list,
     )
     # docs/data-model.md section 3.3. Rows that existed before migration 0007
     # hold the time that migration ran, not when they were really created:
@@ -160,8 +170,7 @@ class Candy(models.Model):
             # The choices are checked by full_clean() and forms only, and
             # objects.create() or update() skip both -- as with flaw and slug.
             models.CheckConstraint(
-                condition=models.Q(flaw_severity__isnull=True)
-                | models.Q(flaw_severity__in=FlawSeverity.values),
+                condition=models.Q(flaw_severity__isnull=True) | models.Q(flaw_severity__in=FlawSeverity.values),
                 name="candy_flaw_severity_is_known",
                 violation_error_message="A flaw severity must be one of the listed ratings.",
             ),
@@ -281,8 +290,9 @@ class OrderManager(models.Manager):
                 confirmation_token=confirmation_token,
             )
             OrderItem.objects.bulk_create(
-                OrderItem(order=order, candy=candies[pk], quantity=quantity, unit_price=price,
-                          subtotal=price * quantity)
+                OrderItem(
+                    order=order, candy=candies[pk], quantity=quantity, unit_price=price, subtotal=price * quantity
+                )
                 for pk, quantity, price in lines
             )
             for pk, quantity, _ in lines:
@@ -351,7 +361,7 @@ class Order(models.Model):
         return counts
 
     def __str__(self):
-        """"<username> <yyyy-mm-dd>": who placed it, and the day, in the site's
+        """ "<username> <yyyy-mm-dd>": who placed it, and the day, in the site's
         time zone (settings.TIME_ZONE). Not unique -- one customer's two orders
         on one day share it. An order not yet saved is dated today.
         """

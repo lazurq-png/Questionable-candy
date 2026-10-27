@@ -5,6 +5,7 @@ fails when a record changes, or a new ADR appears, without the page being
 brought up to date and re-stamped. Stamping also embeds each record in the
 page, so it can show them formatted.
 """
+
 import importlib.util
 import json
 import re
@@ -26,9 +27,7 @@ def fixture_docs(tmp_path):
     (tmp_path / "adr" / "0001-frontend.md").write_text("decision one\n")
     (tmp_path / "requirements.md").write_text("requirements\n")
     (tmp_path / "data-model.md").write_text("model\n")
-    (tmp_path / "overview.html").write_text(
-        "<body>\n<!-- records:start -->\n<!-- records:end -->\n</body>\n"
-    )
+    (tmp_path / "overview.html").write_text("<body>\n<!-- records:start -->\n<!-- records:end -->\n</body>\n")
     return tmp_path
 
 

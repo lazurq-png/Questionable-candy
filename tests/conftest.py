@@ -1,4 +1,5 @@
 """Fixtures shared by every suite."""
+
 import pytest
 
 

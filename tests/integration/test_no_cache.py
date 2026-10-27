@@ -5,6 +5,7 @@ history cache after the customer has left -- the next person on a shared
 computer pressing Back. `Vary: Cookie`, which every page already carries, is
 about shared proxies, not about that.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -29,15 +30,26 @@ def fixture_shopper():
     acknowledge(client)
     client.get(reverse("checkout_confirm"))
     client.order = Order.objects.place(
-        user, {"lines": [[candy.pk, 1, "2.00"]], "total": "2.00"}, None, None, "1" * 32,
+        user,
+        {"lines": [[candy.pk, 1, "2.00"]], "total": "2.00"},
+        None,
+        None,
+        "1" * 32,
     )
     assert SESSION_KEY in client.session  # still mid-checkout: the pages below have content
     return client
 
 
-@pytest.mark.parametrize("name", [
-    "shoppingcart", "shoppingcart_panel", "checkout", "checkout_warning", "checkout_confirm",
-])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "shoppingcart",
+        "shoppingcart_panel",
+        "checkout",
+        "checkout_warning",
+        "checkout_confirm",
+    ],
+)
 def test_the_cart_and_checkout_pages_are_never_cached(shopper, name):
     """Each shows what this customer put in their cart, or is about to order."""
     response = shopper.get(reverse(name))

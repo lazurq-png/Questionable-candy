@@ -13,6 +13,7 @@ and writes it back -- so the rules live in one place rather than in each view:
 Functions return the messages to show rather than writing them anywhere, so a
 view can hand them to an htmx partial or to the messages framework alike.
 """
+
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -203,9 +204,7 @@ def lines(request):
             continue
         if quantity > candy.stock:
             quantity = stored[key] = candy.stock
-            messages.append(
-                f"Only {candy.stock} of {candy.name} left in stock, so the quantity is {candy.stock}."
-            )
+            messages.append(f"Only {candy.stock} of {candy.name} left in stock, so the quantity is {candy.stock}.")
         result.append(Line(candy, quantity))
     if unavailable:
         noun = "item is" if unavailable == 1 else "items are"

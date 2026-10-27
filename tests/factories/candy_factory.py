@@ -1,9 +1,12 @@
 """Factory for candy in tests."""
+
 import factory
 from shop.models import Candy
 
+
 class CandyFactory(factory.django.DjangoModelFactory):
     """A published candy with a flaw."""
+
     class Meta:
         model = Candy
 

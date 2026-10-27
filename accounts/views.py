@@ -3,6 +3,7 @@
 Logging in and out are Django's own LoginView and LogoutView (accounts/urls.py);
 logout accepts POST only, so a link or a prefetch cannot sign anyone out.
 """
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login

@@ -10,6 +10,7 @@ The guards are exercised through `test_settings.load_settings`, which runs
 settings.py under a throwaway module name, so the settings this test run is
 using are left alone.
 """
+
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 

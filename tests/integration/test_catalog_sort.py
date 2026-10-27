@@ -3,6 +3,7 @@
 The browser side -- htmx swapping the grid and the address bar following --
 is tests/e2e/test_catalog_sort.py.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -24,8 +25,7 @@ def catalog():
         ("Mystery Toffee", "4.60", None),  # unrated; same price as the pillows
     ]
     for name, price, severity in rows:
-        Candy.objects.create(name=name, price=Decimal(price), flaw="Flawed.", stock=5,
-                             flaw_severity=severity)
+        Candy.objects.create(name=name, price=Decimal(price), flaw="Flawed.", stock=5, flaw_severity=severity)
 
 
 def names(client, **params):
@@ -38,21 +38,30 @@ def names(client, **params):
 @pytest.mark.usefixtures("catalog")
 def test_with_no_choice_the_catalog_is_alphabetical(client):
     assert names(client) == [
-        "Butterscotch Pillows", "Ginger Snap Drops", "Mystery Toffee", "Sour Bricks",
+        "Butterscotch Pillows",
+        "Ginger Snap Drops",
+        "Mystery Toffee",
+        "Sour Bricks",
     ]
 
 
 @pytest.mark.usefixtures("catalog")
 def test_price_low_to_high_breaks_ties_by_name(client):
     assert names(client, sort="price") == [
-        "Ginger Snap Drops", "Butterscotch Pillows", "Mystery Toffee", "Sour Bricks",
+        "Ginger Snap Drops",
+        "Butterscotch Pillows",
+        "Mystery Toffee",
+        "Sour Bricks",
     ]
 
 
 @pytest.mark.usefixtures("catalog")
 def test_price_high_to_low_still_breaks_ties_alphabetically(client):
     assert names(client, sort="price-desc") == [
-        "Sour Bricks", "Butterscotch Pillows", "Mystery Toffee", "Ginger Snap Drops",
+        "Sour Bricks",
+        "Butterscotch Pillows",
+        "Mystery Toffee",
+        "Ginger Snap Drops",
     ]
 
 
@@ -60,7 +69,10 @@ def test_price_high_to_low_still_breaks_ties_alphabetically(client):
 def test_least_damaging_first_puts_unrated_candy_last(client):
     """Not rated is not harmless, so it does not sort as the mildest."""
     assert names(client, sort="severity") == [
-        "Butterscotch Pillows", "Ginger Snap Drops", "Sour Bricks", "Mystery Toffee",
+        "Butterscotch Pillows",
+        "Ginger Snap Drops",
+        "Sour Bricks",
+        "Mystery Toffee",
     ]
 
 

@@ -6,6 +6,7 @@ alone, focus falls back to the page, and the user starts again from the top.
 Every case uses three lines and a target that is not simply "the first line",
 so the tests tell the position logic apart from a fixed choice.
 """
+
 from playwright.sync_api import expect
 
 from tests.factories.candy_factory import CandyFactory
@@ -34,9 +35,7 @@ def test_removing_the_first_line_focuses_the_line_that_takes_its_place(live_serv
     expect(page.get_by_role("button", name="Remove Butterscotch Pillows")).to_be_focused()
 
 
-def test_removing_a_middle_line_focuses_the_line_that_takes_its_place(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_removing_a_middle_line_focuses_the_line_that_takes_its_place(live_server, page, assert_page_is_fully_rendered):
     """Lines are sorted by name: removing B from A, B, C puts C where B was."""
     fill_cart(page, live_server, *NAMES)
 

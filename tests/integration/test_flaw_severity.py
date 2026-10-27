@@ -3,6 +3,7 @@
 Null means "not rated yet" -- deliberately not the same as mild, so nothing
 here or in the catalog treats an unrated candy as harmless.
 """
+
 from decimal import Decimal
 from io import StringIO
 
@@ -46,9 +47,7 @@ def test_model_validation_refuses_a_rating_outside_the_list():
 
 
 def test_an_administrator_rates_a_candy(admin_client):
-    response = admin_client.post(
-        reverse("admin:shop_candy_add"), candy_form(flaw_severity=str(FlawSeverity.DENTAL))
-    )
+    response = admin_client.post(reverse("admin:shop_candy_add"), candy_form(flaw_severity=str(FlawSeverity.DENTAL)))
 
     assert response.status_code == 302
     assert Candy.objects.get(name="Sour Bricks").flaw_severity == FlawSeverity.DENTAL
@@ -84,9 +83,7 @@ def test_every_seeded_candy_is_rated():
 def test_seeding_rates_an_existing_unrated_candy_but_never_changes_a_rating():
     """Like every other fillable field: empty is filled, set is left alone."""
     make()
-    Candy.objects.create(
-        name="Hollow Humbug", price=Decimal("9.00"), flaw="Hollow.", flaw_severity=FlawSeverity.DENTAL
-    )
+    Candy.objects.create(name="Hollow Humbug", price=Decimal("9.00"), flaw="Hollow.", flaw_severity=FlawSeverity.DENTAL)
 
     seed()
 

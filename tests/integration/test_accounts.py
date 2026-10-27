@@ -4,6 +4,7 @@ Every client enforces CSRF and posts the token a real page handed out, as a
 browser would; the default test client would pass even if every browser were
 refused.
 """
+
 import uuid
 from decimal import Decimal
 
@@ -57,12 +58,12 @@ def signed_in_user(client):
 
 # --- Log in ------------------------------------------------------------------
 
+
 def test_logging_in_returns_to_the_page_named_by_next(visitor):
     """The header sends `next`; the customer lands back where they were."""
     make_user()
 
-    response = post(visitor, reverse("accounts:login"),
-                    {"username": "ada", "password": PASSWORD, "next": "/checkout/"})
+    response = post(visitor, reverse("accounts:login"), {"username": "ada", "password": PASSWORD, "next": "/checkout/"})
 
     assert response.status_code == 302
     assert response["Location"] == "/checkout/"
@@ -93,13 +94,15 @@ def test_an_external_next_is_ignored_after_login(visitor):
     """An open redirect would let a crafted link send a customer to another site."""
     make_user()
 
-    response = post(visitor, reverse("accounts:login"),
-                    {"username": "ada", "password": PASSWORD, "next": "https://evil.example/"})
+    response = post(
+        visitor, reverse("accounts:login"), {"username": "ada", "password": PASSWORD, "next": "https://evil.example/"}
+    )
 
     assert response["Location"] == reverse("candy_list")
 
 
 # --- Log out -----------------------------------------------------------------
+
 
 def test_logging_out_takes_a_post(visitor):
     """The header's Log out form ends the session and returns to the catalog."""
@@ -125,6 +128,7 @@ def test_a_get_does_not_log_anyone_out(visitor):
 
 
 # --- Sign up -----------------------------------------------------------------
+
 
 def signup_data(**overrides):
     """A valid sign-up submission, with `overrides` applied."""
@@ -190,6 +194,7 @@ def test_an_external_next_is_ignored_after_sign_up(visitor):
 
 
 # --- My profile --------------------------------------------------------------
+
 
 def test_profile_requires_login(visitor):
     """Anonymous visitors are sent to log in, and back here afterwards."""
@@ -273,15 +278,22 @@ def test_account_posts_are_refused_without_a_csrf_token(visitor):
 
 # --- Change password ---------------------------------------------------------
 
+
 def test_changing_the_password_returns_to_the_profile_with_a_message(visitor):
     """The new password works, the old one no longer does, and the customer stays in."""
     make_user()
     log_in(visitor)
     new_password = "fudge-Tray-2027!"
 
-    response = post(visitor, reverse("accounts:password_change"), {
-        "old_password": PASSWORD, "new_password1": new_password, "new_password2": new_password,
-    })
+    response = post(
+        visitor,
+        reverse("accounts:password_change"),
+        {
+            "old_password": PASSWORD,
+            "new_password1": new_password,
+            "new_password2": new_password,
+        },
+    )
 
     assert response.status_code == 302
     assert response["Location"] == reverse("accounts:profile")
@@ -293,10 +305,14 @@ def test_changing_the_password_returns_to_the_profile_with_a_message(visitor):
 
 # --- My orders ---------------------------------------------------------------
 
+
 def make_order(user, status=Order.Status.PENDING):
     """An order row as place() leaves it; the lines do not matter to this page."""
     return Order.objects.create(
-        user=user, status=status, total_amount=Decimal("1.00"), confirmation_token=uuid.uuid4(),
+        user=user,
+        status=status,
+        total_amount=Decimal("1.00"),
+        confirmation_token=uuid.uuid4(),
     )
 
 
@@ -352,6 +368,7 @@ def test_profile_no_longer_lists_orders(visitor):
 
 
 # --- The header ----------------------------------------------------------------
+
 
 def test_the_header_offers_log_in_and_sign_up_with_the_current_page_as_next(visitor):
     """Logged out, both links carry the current page, query string included."""

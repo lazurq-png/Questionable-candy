@@ -3,6 +3,7 @@
 Clients enforce CSRF and post the token a real page handed out; login is
 covered in test_accounts.py, so these sign in with force_login.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -100,12 +101,16 @@ def test_all_three_confirmations_place_the_order(acknowledged):
     assert order.total_amount == Decimal("11.00")
 
 
-@pytest.mark.parametrize("change", [
-    {"checked_order": None},
-    {"typed_total": None},
-    {"typed_total": "11.01"},
-    {"place_order": None},
-], ids=["no tick", "no total", "wrong total", "no button"])
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"checked_order": None},
+        {"typed_total": None},
+        {"typed_total": "11.01"},
+        {"place_order": None},
+    ],
+    ids=["no tick", "no total", "wrong total", "no button"],
+)
 def test_any_one_confirmation_missing_or_wrong_is_refused(acknowledged, change):
     """Server-side, with the other two right: no JavaScript is relied on."""
     response = confirm(acknowledged, **change)
@@ -144,7 +149,8 @@ def test_leaving_without_confirming_keeps_the_cart(acknowledged):
     acknowledged.get(reverse("checkout"))
 
     assert acknowledged.session["shoppingcart"] == {
-        str(acknowledged.candies["toffee"].pk): 2, str(acknowledged.candies["drops"].pk): 1,
+        str(acknowledged.candies["toffee"].pk): 2,
+        str(acknowledged.candies["drops"].pk): 1,
     }
 
 
@@ -194,10 +200,14 @@ def test_a_stock_cap_while_confirming_returns_to_the_warning_with_the_reason(ack
     assert "Only 1 of Toffee left in stock, so the quantity is 1." in warning
 
 
-@pytest.mark.parametrize("field, error_id", [
-    ("checked_order", "id_checked_order_error"),
-    ("typed_total", "id_typed_total_error"),
-], ids=["the tick", "the typed total"])
+@pytest.mark.parametrize(
+    "field, error_id",
+    [
+        ("checked_order", "id_checked_order_error"),
+        ("typed_total", "id_typed_total_error"),
+    ],
+    ids=["the tick", "the typed total"],
+)
 def test_a_refused_control_is_marked_invalid_and_points_at_its_own_message(acknowledged, field, error_id):
     """Otherwise a screen reader calls the field valid and never reads the reason.
 
@@ -252,7 +262,7 @@ def test_the_controls_are_not_given_a_browser_required_attribute(acknowledged):
 def place_order_button(page):
     """The Place my order button's own tag, which spans several lines."""
     start = page.index('<button type="submit" name="place_order"')
-    return page[start:page.index(">", start) + 1]
+    return page[start : page.index(">", start) + 1]
 
 
 def test_the_place_order_button_points_at_its_message_only_when_there_is_one(acknowledged):

@@ -1,4 +1,5 @@
 """Integration tests for the shop's views."""
+
 import pytest
 from django.test import Client
 from django.urls import reverse
@@ -7,6 +8,7 @@ from tests.factories.candy_factory import CandyFactory
 
 pytestmark = pytest.mark.django_db
 
+
 def test_add_to_shoppingcart_returns_partial_with_added_label(client):
     candy = CandyFactory(name="Sour Gummy Worms")
     url = reverse("add_to_shoppingcart", args=[candy.id])
@@ -14,6 +16,7 @@ def test_add_to_shoppingcart_returns_partial_with_added_label(client):
     assert response.status_code == 200
     assert b"Added" in response.content
     assert b"<html" not in response.content  # confirms it's a partial, not a full page
+
 
 def test_candy_list_shows_all_candies(client):
     CandyFactory(name="Sour Gummy Worms")
@@ -64,6 +67,7 @@ def test_adding_the_same_candy_twice_accumulates_in_the_session(client):
 # though every hx-post 403s in a real browser. These use enforce_csrf_checks so
 # the suite actually sees what the browser sees.
 
+
 def test_catalog_page_supplies_csrf_token_to_htmx():
     """The page must hand htmx a CSRF token for its hx-post requests."""
     csrf_client = Client(enforce_csrf_checks=True)
@@ -101,6 +105,7 @@ def test_add_to_shoppingcart_rejects_post_without_csrf_token():
 
     assert response.status_code == 403
 
+
 def test_the_catalog_lists_candy_alphabetically(client):
     """UC-01: a stable order. Created out of order, so insertion order cannot pass."""
     for name in ("Zesty Lime Drops", "Anise Twists", "Mint Humbugs"):
@@ -113,6 +118,7 @@ def test_the_catalog_lists_candy_alphabetically(client):
 
 
 # --- UC-03: candy detail ---------------------------------------------------
+
 
 def test_candy_detail_shows_name_description_and_price(client):
     """UC-03 step 2. The flaw is asserted separately -- that is UC-06."""
@@ -259,6 +265,7 @@ def test_catalog_links_each_candy_to_its_detail_page(client):
 
 # --- UC-06: flaw disclosure ------------------------------------------------
 
+
 def test_candy_detail_discloses_the_flaw(client):
     """UC-06 step 3, and UC-03 step 2's fourth field."""
     candy = CandyFactory(
@@ -302,6 +309,7 @@ def test_admin_user_page_lets_an_administrator_edit_allergies(admin_client, djan
 
 
 # --- Sugar and allergens on the detail view (night-2026-09-17 plan T2) ------
+
 
 def test_candy_detail_shows_sugar_per_100g_and_allergen_names(client):
     """Sugar per 100 g, and allergens by name in vocabulary order."""

@@ -5,6 +5,7 @@ these cover what only a browser shows: the header's account control, the
 forms actually submitting with the tokens the pages hand out, and the new
 pages meeting the measurable checks at phone width in both themes.
 """
+
 import uuid
 from decimal import Decimal
 
@@ -157,7 +158,8 @@ def test_account_pages_and_the_signed_in_header_meet_the_measurable_checks(
     # And with an order, so the list and its "View order" button are measured too.
     Order.objects.create(
         user=get_user_model().objects.get(username="a-customer-with-a-very-long-username"),
-        total_amount=Decimal("123.45"), confirmation_token=uuid.uuid4(),
+        total_amount=Decimal("123.45"),
+        confirmation_token=uuid.uuid4(),
     )
     page.reload()
     # Read aloud with the order it opens; on screen only "View order".

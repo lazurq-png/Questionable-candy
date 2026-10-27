@@ -6,6 +6,7 @@ there and the report-only one is gone, the policy names only the origins the
 page loads from, the one inline script carries the matching nonce, and the
 500 page, which has no request to take a nonce from, has no inline script.
 """
+
 import re
 
 import pytest

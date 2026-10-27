@@ -12,6 +12,7 @@ allergies. If any of that changes, the fingerprint no longer matches and the
 warning has to be read again: UC-07 asks that the warning be acknowledged,
 and a warning about a different order was not.
 """
+
 import hashlib
 import json
 import uuid

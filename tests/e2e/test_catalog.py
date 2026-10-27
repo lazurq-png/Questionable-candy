@@ -9,15 +9,14 @@ while the suite stayed green (docs/adr/0006-frontend-htmx-alpine.md).
 by itself (pytest_django/fixtures.py:641), so rows created here are visible to
 the server thread without a `django_db` marker.
 """
+
 from playwright.sync_api import expect
 
 from shop.models import Candy
 from tests.factories.candy_factory import CandyFactory
 
 
-def test_catalog_renders_the_available_candy(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_catalog_renders_the_available_candy(live_server, page, assert_page_is_fully_rendered):
     """UC-01 steps 1-3: the catalog a customer opens lists what is for sale."""
     CandyFactory(name="Sour Gummy Worms", price="2.50")
     CandyFactory(name="Chocolate Fudge", price="4.00")
@@ -31,9 +30,7 @@ def test_catalog_renders_the_available_candy(
     assert_page_is_fully_rendered(page)
 
 
-def test_empty_catalog_says_so_instead_of_rendering_a_blank_page(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_empty_catalog_says_so_instead_of_rendering_a_blank_page(live_server, page, assert_page_is_fully_rendered):
     """UC-01 extension 2a.
 
     A page with no items and no message is indistinguishable from one that
@@ -51,9 +48,7 @@ def test_empty_catalog_says_so_instead_of_rendering_a_blank_page(
     assert_page_is_fully_rendered(page)
 
 
-def test_the_stepper_adds_and_takes_out_in_the_browser(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_the_stepper_adds_and_takes_out_in_the_browser(live_server, page, assert_page_is_fully_rendered):
     """The htmx round trip end to end: click, POST, swap.
 
     This is the assertion the test client cannot make. The POST carries the
@@ -157,9 +152,7 @@ def test_the_stepper_is_usable_from_the_keyboard(live_server, page, wait_for_htm
     expect(minus).to_be_focused()
 
 
-def test_minus_and_plus_grey_out_at_the_ends_of_what_the_cart_can_hold(
-    live_server, page, wait_for_htmx_to_settle
-):
+def test_minus_and_plus_grey_out_at_the_ends_of_what_the_cart_can_hold(live_server, page, wait_for_htmx_to_settle):
     """Nothing to take out, and nothing left to add: each end says so on the control."""
     CandyFactory(name="Butterscotch Pillows", stock=2)
     page.goto(live_server.url)
@@ -190,9 +183,7 @@ def test_minus_and_plus_grey_out_at_the_ends_of_what_the_cart_can_hold(
     expect(page.get_by_test_id("add-to-cart-message")).to_have_text("Out of stock")
 
 
-def test_a_refusal_pops_up_over_the_page_without_moving_any_bar(
-    live_server, page, wait_for_htmx_to_settle
-):
+def test_a_refusal_pops_up_over_the_page_without_moving_any_bar(live_server, page, wait_for_htmx_to_settle):
     """The message is a bubble, not a line in the card.
 
     In the flow it made the card taller, so telling the customer anything
@@ -224,9 +215,7 @@ def test_a_refusal_pops_up_over_the_page_without_moving_any_bar(
     assert bubble.evaluate("el => getComputedStyle(el).position") == "absolute"
 
 
-def test_candy_pictures_load_in_the_catalog_and_in_the_detail_popup(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_candy_pictures_load_in_the_catalog_and_in_the_detail_popup(live_server, page, assert_page_is_fully_rendered):
     """An <img> with a wrong static path still renders -- as a broken icon.
 
     naturalWidth is 0 for an image the browser could not load or decode, so
@@ -244,9 +233,7 @@ def test_candy_pictures_load_in_the_catalog_and_in_the_detail_popup(
         image = images.nth(index)
         expect(image).to_have_js_property("complete", True)
         assert image.evaluate("img => img.naturalWidth") > 0, image.get_attribute("src")
-    expect(page.get_by_role("img", name="Mystery Mix")).to_have_attribute(
-        "src", "/static/shop/candy/placeholder.svg"
-    )
+    expect(page.get_by_role("img", name="Mystery Mix")).to_have_attribute("src", "/static/shop/candy/placeholder.svg")
 
     page.get_by_role("link", name="Sour Bricks").click()
     detail_image = page.get_by_test_id("candy-popup").get_by_role("img", name="Sour Bricks")
@@ -255,9 +242,7 @@ def test_candy_pictures_load_in_the_catalog_and_in_the_detail_popup(
     assert_page_is_fully_rendered(page)
 
 
-def test_the_cdn_scripts_pass_their_integrity_check_and_run(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_the_cdn_scripts_pass_their_integrity_check_and_run(live_server, page, assert_page_is_fully_rendered):
     """A wrong hash makes the browser refuse the script silently (T10a).
 
     Every other browser test would then fail in confusing ways -- this one says

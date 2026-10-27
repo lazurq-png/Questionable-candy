@@ -4,6 +4,7 @@ The ADR's confirmation section said nothing enforced this. These tests make the
 stack a checked invariant: removing or reordering these entries fails the suite
 rather than quietly disabling login, sessions (and so the cart) or CSRF.
 """
+
 from django.conf import settings
 
 SESSION = "django.contrib.sessions.middleware.SessionMiddleware"

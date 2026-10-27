@@ -3,6 +3,7 @@
 No database: candies and users are built in memory, because the warning is
 arithmetic and grouping over what the cart already loaded.
 """
+
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -81,6 +82,7 @@ def test_allergens_the_customer_listed_are_marked_as_theirs():
 
 def test_the_fingerprint_is_stable_for_the_same_order_and_customer():
     """The same warning twice gives the same fingerprint, or nothing could be acknowledged."""
+
     def build():
         """The warning for one fixed order and customer."""
         return health_warning([Line(candy(1, "Fudge", Decimal("70"), ["milk"]), 2)], customer("milk"))

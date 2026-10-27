@@ -8,6 +8,7 @@ on warnings, so a stage built on it would pass without checking anything.
 These tests import mysite/settings.py under a controlled environment instead, so
 hardcoding either flag to False breaks the suite.
 """
+
 import importlib.util
 import os
 from contextlib import nullcontext
@@ -82,7 +83,6 @@ def test_the_override_can_force_insecure_cookies_with_debug_off():
     assert settings.SESSION_COOKIE_SECURE is False
 
 
-
 def test_https_is_enforced_when_debug_is_off():
     """docs/requirements.md section 3: auth and payment over HTTPS."""
     settings = load_settings(DJANGO_DEBUG="False")
@@ -111,4 +111,3 @@ def test_proxy_header_and_trusted_origins_come_from_the_environment():
 def test_mail_uses_smtp_when_debug_is_off_and_console_otherwise():
     assert load_settings(DJANGO_DEBUG="False").MAILERS["default"]["BACKEND"].endswith("smtp.EmailBackend")
     assert load_settings(DJANGO_DEBUG="True").MAILERS["default"]["BACKEND"].endswith("console.EmailBackend")
-

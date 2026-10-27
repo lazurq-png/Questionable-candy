@@ -35,6 +35,7 @@ Two separate fixtures, because the database work falls into two lifetimes:
   original, so the variable is set before the original's setup and, fixtures
   being torn down in reverse, removed only after its flush.
 """
+
 import pytest
 
 
@@ -67,6 +68,7 @@ def wait_for_htmx_to_settle():
     which outlasts the delay; ``fill()``, ``press()`` and ``focus()`` do not.
     Call this after a swap and before any of those on what it brought in.
     """
+
     def wait(page):
         page.wait_for_function("!document.querySelector('.htmx-swapping, .htmx-settling')")
 
@@ -93,6 +95,7 @@ def assert_page_is_fully_rendered():
     Checks visible text via ``inner_text`` rather than the HTML, so the
     ``hx-headers`` attribute's JSON braces are not mistaken for a template tag.
     """
+
     def check(page):
         body = page.locator("body").inner_text()
         for marker in ("{#", "{%", "{{"):

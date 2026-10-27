@@ -4,6 +4,7 @@ It must do nothing under CI (the database is a service container) or where no
 local install exists, and when it does start the cluster it must detach it and
 say so.
 """
+
 import importlib.util
 from pathlib import Path
 
@@ -28,9 +29,7 @@ def fixture_pg(tmp_path, monkeypatch):
 
     state = {"answers": [], "started": []}
     monkeypatch.setattr(dev, "_pg_isready", lambda _: state["answers"].pop(0))
-    monkeypatch.setattr(
-        dev.subprocess, "Popen", lambda cmd, **kw: state["started"].append((cmd, kw))
-    )
+    monkeypatch.setattr(dev.subprocess, "Popen", lambda cmd, **kw: state["started"].append((cmd, kw)))
     return state
 
 

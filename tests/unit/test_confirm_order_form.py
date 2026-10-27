@@ -3,6 +3,7 @@
 Each control is required on its own: the other two being right never makes up
 for one that is missing or wrong.
 """
+
 from decimal import Decimal
 
 import pytest

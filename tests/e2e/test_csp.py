@@ -7,6 +7,7 @@ or an administrator does there, and fails on any CSP message.
 
 Needs unpkg.com, where base.html loads htmx and Alpine from.
 """
+
 import pytest
 from playwright.sync_api import expect
 

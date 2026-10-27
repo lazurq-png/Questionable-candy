@@ -4,6 +4,7 @@ From a cart filled without logging in, through Continue, the login it requires,
 the warning itself and its acknowledgment -- and the warning page meeting the
 measurable checks at phone width in both themes.
 """
+
 from decimal import Decimal
 
 import pytest

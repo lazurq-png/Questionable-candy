@@ -4,6 +4,7 @@ No database: `unique_candy_slug` asks a callable whether a slug is taken, so
 the rules can be checked on their own, and migration 0013 can hold a frozen
 copy of them.
 """
+
 from shop.models import unique_candy_slug
 
 FREE = set()

@@ -5,6 +5,7 @@ the dialogs open and close, that the green plus and the red X save through
 them, that a save's messages and errors arrive as popups, and that the page
 comes back where it was.
 """
+
 import uuid
 from decimal import Decimal
 
@@ -51,6 +52,7 @@ def fixture_candies():
 @pytest.fixture(name="open_order")
 def fixture_open_order(live_server, page, assert_page_is_fully_rendered):
     """Log in and open an order's change page."""
+
     def open_order(order):
         page.goto(f"{live_server.url}/admin/login/?next=/admin/shop/order/{order.pk}/change/")
         page.get_by_label("Username").fill("admin")

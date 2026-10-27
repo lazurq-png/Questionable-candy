@@ -8,6 +8,7 @@ Measured on every page, in both themes (night-run §9.4): no horizontal overflow
 at phone width, controls at least 44x44, body text at 4.5:1 against the colour
 actually painted behind it. None of this says the pages look good.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -147,18 +148,20 @@ def check_page(page, name, assert_page_is_fully_rendered):
     assert page.evaluate(CONTRAST_FAILURES) == [], f"{name}: text below 4.5:1"
 
 
-@pytest.mark.parametrize("case", [
-    # (system setting, stored toggle choice, theme expected on screen)
-    ("light", None, "light"),
-    ("dark", None, "dark"),
-    # The dark and light values are written twice in site.css -- under the
-    # media query and under [data-theme] -- so both copies are measured.
-    ("light", "dark", "dark"),
-    ("dark", "light", "light"),
-], ids=lambda case: f"system-{case[0]}-stored-{case[1]}")
-def test_every_page_meets_the_measurable_checks_in_both_themes(
-    live_server, page, assert_page_is_fully_rendered, case
-):
+@pytest.mark.parametrize(
+    "case",
+    [
+        # (system setting, stored toggle choice, theme expected on screen)
+        ("light", None, "light"),
+        ("dark", None, "dark"),
+        # The dark and light values are written twice in site.css -- under the
+        # media query and under [data-theme] -- so both copies are measured.
+        ("light", "dark", "dark"),
+        ("dark", "light", "light"),
+    ],
+    ids=lambda case: f"system-{case[0]}-stored-{case[1]}",
+)
+def test_every_page_meets_the_measurable_checks_in_both_themes(live_server, page, assert_page_is_fully_rendered, case):
     """Phone width, each theme from the system and from the toggle, every page."""
     expected = show_theme(page, case)
 
@@ -171,10 +174,10 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     # to pass the tap-target check by accident. One of each rating, so every
     # severity badge's colours are measured in both themes.
     CandyFactory(name="Taffy", price=Decimal("1.50"), stock=5, flaw_severity=FlawSeverity.DENTAL)
-    marshmallows = CandyFactory(name="Strawberry Cloud Marshmallows", price=Decimal("5.00"), stock=3,
-                                flaw_severity=FlawSeverity.MILD)
-    CandyFactory(name="Chili Mango Chews", price=Decimal("5.25"), stock=0,
-                 flaw_severity=FlawSeverity.AWKWARD)
+    marshmallows = CandyFactory(
+        name="Strawberry Cloud Marshmallows", price=Decimal("5.00"), stock=3, flaw_severity=FlawSeverity.MILD
+    )
+    CandyFactory(name="Chili Mango Chews", price=Decimal("5.25"), stock=0, flaw_severity=FlawSeverity.AWKWARD)
 
     page.goto(f"{live_server.url}/shoppingcart/")
     expect(page.get_by_test_id("shoppingcart-empty")).to_be_visible()
@@ -192,9 +195,7 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     expect(page.get_by_test_id("shoppingcart-count")).to_have_text("1")
     check_page(page, "catalog after adding", assert_page_is_fully_rendered)
 
-    page.get_by_role("listitem").filter(has_text="Taffy").get_by_role(
-        "textbox", name="Number in cart"
-    ).fill("2")
+    page.get_by_role("listitem").filter(has_text="Taffy").get_by_role("textbox", name="Number in cart").fill("2")
     expect(page.get_by_role("button", name="Ok")).to_be_visible()
     check_page(page, "catalog with a number waiting for Ok", assert_page_is_fully_rendered)
     page.reload()
@@ -227,13 +228,14 @@ def test_every_page_meets_the_measurable_checks_in_both_themes(
     check_page(page, "no longer available", assert_page_is_fully_rendered)
 
 
-@pytest.mark.parametrize(("scheme", "expected", "pressed"), [
-    ("dark", DARK_BG, "true"),
-    ("light", LIGHT_BG, "false"),
-])
-def test_with_no_stored_choice_the_system_setting_decides(
-    live_server, page, scheme, expected, pressed
-):
+@pytest.mark.parametrize(
+    ("scheme", "expected", "pressed"),
+    [
+        ("dark", DARK_BG, "true"),
+        ("light", LIGHT_BG, "false"),
+    ],
+)
+def test_with_no_stored_choice_the_system_setting_decides(live_server, page, scheme, expected, pressed):
     """No attribute is set, so the stylesheet's media query is what decides."""
     page.emulate_media(color_scheme=scheme)
     page.goto(live_server.url)
@@ -322,9 +324,7 @@ def test_the_contrast_check_refuses_text_with_nothing_painted_behind_it(live_ser
     assert any("no opaque background" in failure for failure in failures), failures
 
 
-def test_toggling_back_to_the_system_theme_stops_overriding_it(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_toggling_back_to_the_system_theme_stops_overriding_it(live_server, page, assert_page_is_fully_rendered):
     """Answering night-2026-09-16 Q3: the toggle is a way back, not a one-way door.
 
     A visitor who once pressed it is not pinned for good: pressing it back to
@@ -357,9 +357,7 @@ def test_toggling_back_to_the_system_theme_stops_overriding_it(
     assert background(page) == DARK_BG
 
 
-def test_toggling_back_works_from_a_choice_stored_earlier(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_toggling_back_works_from_a_choice_stored_earlier(live_server, page, assert_page_is_fully_rendered):
     """The choice may predate this visit: the stored value is what it undoes."""
     page.add_init_script("window.localStorage.setItem('theme', 'light')")
     page.emulate_media(color_scheme="dark")

@@ -10,6 +10,7 @@ price or a flaw survives every later seed.
 Candy data lives here rather than in a data migration so that nothing reaches a
 database unless someone runs this on purpose.
 """
+
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -20,7 +21,13 @@ from shop.models import Candy, FlawSeverity
 # The fields a later seed may fill on an existing candy, when they are empty.
 # Price and stock are never filled: 0 stock is a real value, not a gap.
 FILLABLE_FIELDS = (
-    "description", "flavor", "flaw", "flaw_severity", "image", "sugar_content_g", "allergens",
+    "description",
+    "flavor",
+    "flaw",
+    "flaw_severity",
+    "image",
+    "sugar_content_g",
+    "allergens",
 )
 
 
@@ -51,8 +58,7 @@ CANDIES = [
     },
     {
         "name": "Hollow Humbug",
-        "description": "A glossy striped peppermint humbug with a bracing, "
-        "old-fashioned mint finish.",
+        "description": "A glossy striped peppermint humbug with a bracing, old-fashioned mint finish.",
         "flavor": "mint",
         "price": Decimal("9.00"),
         "stock": 3,
@@ -64,8 +70,7 @@ CANDIES = [
     },
     {
         "name": "Fizzing Lemon Drops",
-        "description": "Bright boiled lemon drops with a sherbet centre that fizzes "
-        "when the shell cracks.",
+        "description": "Bright boiled lemon drops with a sherbet centre that fizzes when the shell cracks.",
         "flavor": "lemon",
         "price": Decimal("3.50"),
         "stock": 40,
@@ -77,8 +82,7 @@ CANDIES = [
     },
     {
         "name": "Midnight Licorice Coils",
-        "description": "Tightly wound coils of soft black licorice with a deep "
-        "anise flavour.",
+        "description": "Tightly wound coils of soft black licorice with a deep anise flavour.",
         "flavor": "licorice",
         "price": Decimal("4.25"),
         "stock": 25,
@@ -102,8 +106,7 @@ CANDIES = [
     },
     {
         "name": "Salted Caramel Chews",
-        "description": "Slow-cooked caramel chews finished with flakes of sea salt, "
-        "each twisted in wax paper.",
+        "description": "Slow-cooked caramel chews finished with flakes of sea salt, each twisted in wax paper.",
         "flavor": "salted caramel",
         "price": Decimal("6.75"),
         "stock": 18,
@@ -115,8 +118,7 @@ CANDIES = [
     },
     {
         "name": "Blue Raspberry Ropes",
-        "description": "Long, pull-apart candy ropes in an electric blue raspberry "
-        "flavour.",
+        "description": "Long, pull-apart candy ropes in an electric blue raspberry flavour.",
         "flavor": "blue raspberry",
         "price": Decimal("3.25"),
         "stock": 50,
@@ -128,8 +130,7 @@ CANDIES = [
     },
     {
         "name": "Dark Chocolate Sea Pebbles",
-        "description": "Smooth dark chocolate shaped and speckled like pebbles from "
-        "a shingle beach.",
+        "description": "Smooth dark chocolate shaped and speckled like pebbles from a shingle beach.",
         "flavor": "dark chocolate",
         "price": Decimal("8.90"),
         "stock": 12,
@@ -177,8 +178,7 @@ CANDIES = [
     },
     {
         "name": "Watermelon Slice Jellies",
-        "description": "Two-tone jellies shaped like watermelon wedges, green rind "
-        "and all.",
+        "description": "Two-tone jellies shaped like watermelon wedges, green rind and all.",
         "flavor": "watermelon",
         "price": Decimal("3.95"),
         "stock": 28,
@@ -238,8 +238,7 @@ CANDIES = [
     },
     {
         "name": "Lavender Rock Candy",
-        "description": "Purple sugar crystals grown on a wooden stick, scented with "
-        "lavender.",
+        "description": "Purple sugar crystals grown on a wooden stick, scented with lavender.",
         "flavor": "lavender",
         "price": Decimal("6.20"),
         "stock": 10,
@@ -663,10 +662,7 @@ class Command(BaseCommand):
                 created += 1
                 continue
 
-            empty = [
-                f for f in FILLABLE_FIELDS
-                if is_empty(getattr(candy, f)) and not is_empty(data.get(f))
-            ]
+            empty = [f for f in FILLABLE_FIELDS if is_empty(getattr(candy, f)) and not is_empty(data.get(f))]
             for field in empty:
                 setattr(candy, field, data[field])
             if empty:
@@ -675,6 +671,4 @@ class Command(BaseCommand):
             else:
                 unchanged += 1
 
-        self.stdout.write(
-            f"seed_candy: {created} created, {filled} filled in, {unchanged} unchanged."
-        )
+        self.stdout.write(f"seed_candy: {created} created, {filled} filled in, {unchanged} unchanged.")

@@ -1,4 +1,5 @@
 """Admin for the custom user."""
+
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as StockUserAdmin
@@ -17,9 +18,7 @@ class UserAdminChangeForm(UserChangeForm):
     a list index.
     """
 
-    allergies = forms.MultipleChoiceField(
-        choices=ALLERGENS, widget=forms.CheckboxSelectMultiple, required=False
-    )
+    allergies = forms.MultipleChoiceField(choices=ALLERGENS, widget=forms.CheckboxSelectMultiple, required=False)
 
     class Meta(UserChangeForm.Meta):
         model = User
@@ -28,6 +27,7 @@ class UserAdminChangeForm(UserChangeForm):
 @admin.register(User)
 class UserAdmin(StockUserAdmin):
     """The stock user admin with the shop's extra fields."""
+
     form = UserAdminChangeForm
     # The stock fieldsets list only the stock fields, so without this the
     # admin would silently offer no way to see or edit allergies.

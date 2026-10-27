@@ -3,6 +3,7 @@
 The integration tests use Django's test client, which skips CSRF. This logs in
 and submits the real forms, so a broken token or form would show up here.
 """
+
 from playwright.sync_api import expect
 
 from shop.admin import FLAW_REQUIRED

@@ -1,4 +1,5 @@
 """UC-06 steps 1-2 and extension 2a, on the administrator's side."""
+
 from decimal import Decimal
 
 import pytest
@@ -49,9 +50,7 @@ def test_editing_a_candy_to_remove_its_flaw_is_rejected(admin_client):
     """Extension 2a on the edit path, which keeps the flaw it had."""
     candy = Candy.objects.create(name="Sour Bricks", price=Decimal("1.00"), flaw="Hard.")
 
-    response = admin_client.post(
-        reverse("admin:shop_candy_change", args=[candy.pk]), candy_form(flaw="  ")
-    )
+    response = admin_client.post(reverse("admin:shop_candy_change", args=[candy.pk]), candy_form(flaw="  "))
 
     assert response.status_code == 200
     assert FLAW_REQUIRED in response.content.decode()
@@ -84,6 +83,7 @@ def test_the_admin_shows_timestamps_read_only(admin_client):
 
 
 # --- Sugar and allergens (night-2026-09-17 plan T2) -------------------------
+
 
 def test_an_administrator_records_sugar_and_ticks_allergens(admin_client):
     """Sugar is typed and allergens ticked, and both are saved."""

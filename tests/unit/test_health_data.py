@@ -4,6 +4,7 @@ The vocabulary is what lets the UC-07 warning match a customer's allergies to
 a candy's allergens exactly, so both fields are held to it -- by clean_fields()
 here, and by the admin forms in tests/integration.
 """
+
 from decimal import Decimal
 
 import pytest

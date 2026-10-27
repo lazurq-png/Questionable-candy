@@ -1,4 +1,5 @@
 """Admin for the shop's candy and orders."""
+
 import uuid
 from collections import Counter
 
@@ -26,7 +27,9 @@ class CandyAdminForm(forms.ModelForm):
     # text box, which would accept any spelling. The model's choices still
     # reject an unknown key from any path that skips this form.
     allergens = forms.MultipleChoiceField(
-        choices=ALLERGENS, widget=forms.CheckboxSelectMultiple, required=False,
+        choices=ALLERGENS,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
         help_text="The EU's 14 major allergens. Tick every one the candy contains.",
     )
 
@@ -46,10 +49,20 @@ class CandyAdmin(admin.ModelAdmin):
     list_filter = ("is_published", "flaw_severity")
     search_fields = ("name", "flaw")
     fields = (
-        "name", "slug", "flaw", "flaw_severity", "description", "flavor", "price", "stock",
-        "sugar_content_g", "allergens",
-        "is_published", "image",
-        "created_at", "updated_at",
+        "name",
+        "slug",
+        "flaw",
+        "flaw_severity",
+        "description",
+        "flavor",
+        "price",
+        "stock",
+        "sugar_content_g",
+        "allergens",
+        "is_published",
+        "image",
+        "created_at",
+        "updated_at",
     )
     readonly_fields = ("created_at", "updated_at")
     # Typed name, slug follows, on the add form only: prepopulated_fields
@@ -216,8 +229,13 @@ class OrderAdmin(admin.ModelAdmin):
     list_select_related = ("user",)
     list_filter = ("status",)
     fields = (
-        "user", "status", "total_amount", "warning_acknowledged_at", "purchase_confirmed_at",
-        "created_at", "paid_at",
+        "user",
+        "status",
+        "total_amount",
+        "warning_acknowledged_at",
+        "purchase_confirmed_at",
+        "created_at",
+        "paid_at",
     )
     readonly_fields = ("total_amount", "created_at")
     inlines = [OrderItemInline]

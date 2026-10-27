@@ -8,6 +8,7 @@ not swap in, so the customer sees nothing. The CSRF page is what a plain form
 post gets -- the cart page's forms without JavaScript, which the test below
 reproduces with a native form.submit(), which htmx does not intercept.
 """
+
 import pytest
 from playwright.sync_api import expect
 
@@ -25,9 +26,7 @@ def _back_to_the_catalog(page, live_server):
 
 
 @pytest.mark.parametrize("case", THEMES, ids=lambda case: f"system-{case[0]}-stored-{case[1]}")
-def test_the_404_page_leads_back_to_the_catalog(
-    live_server, page, settings, assert_page_is_fully_rendered, case
-):
+def test_the_404_page_leads_back_to_the_catalog(live_server, page, settings, assert_page_is_fully_rendered, case):
     """404.html extends base.html, so it is measured as any other page is."""
     settings.DEBUG = False
     expected = show_theme(page, case)

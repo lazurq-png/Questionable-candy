@@ -1,4 +1,5 @@
 """The user admin's allergies, one checkbox per allergen (night-2026-09-17 plan T2)."""
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse

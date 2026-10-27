@@ -37,18 +37,12 @@ def _env_bool(name, default=False):
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
-    raise ImproperlyConfigured(
-        'DJANGO_SECRET_KEY is not set. Copy .env.example to .env and fill it in.'
-    )
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY is not set. Copy .env.example to .env and fill it in.')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
-    if host.strip()
-]
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if host.strip()]
 
 
 # Application definition
@@ -65,7 +59,6 @@ INSTALLED_APPS = [
     'django.contrib.postgres',
     # Login throttling, see AXES_* below.
     'axes',
-
     # Local apps
     'accounts.apps.AccountsConfig',
     'shop.apps.ShopConfig',
@@ -196,9 +189,7 @@ if _env_bool('DJANGO_PROXY_SSL_HEADER'):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
-    if origin.strip()
+    origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
 ]
 
 

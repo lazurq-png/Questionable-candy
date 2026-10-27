@@ -21,6 +21,7 @@ Set PGSQL_HOME for an install other than ~/Binaries/pgsql. Under CI, or where
 no local install exists, the check is skipped and the database must already be
 accepting connections.
 """
+
 import os
 import shutil
 import subprocess
@@ -90,7 +91,10 @@ CLUSTER_START_TIMEOUT = 30  # seconds
 # floor of 95 and 94.5% does not.
 COVERAGE_FLOOR = 95
 COV_ARGS = [
-    "--cov=accounts", "--cov=shop", "--cov=mysite", "--cov-report=term-missing",
+    "--cov=accounts",
+    "--cov=shop",
+    "--cov=mysite",
+    "--cov-report=term-missing",
     f"--cov-fail-under={COVERAGE_FLOOR}",
 ]
 
@@ -109,7 +113,9 @@ def _pg_exe(name):
 def _pg_isready(exe):
     return subprocess.run(
         [str(exe), "-h", "localhost", "-p", "5432"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
     ).returncode
 
 
@@ -145,10 +151,11 @@ def ensure_cluster():
         else:
             detach = {"start_new_session": True}
         subprocess.Popen(  # pylint: disable=consider-using-with
-            [str(pg_ctl), "start", "-D", str(PGSQL_HOME / "data"),
-             "-l", str(PGSQL_HOME / "server.log")],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, **detach,
+            [str(pg_ctl), "start", "-D", str(PGSQL_HOME / "data"), "-l", str(PGSQL_HOME / "server.log")],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **detach,
         )
 
     deadline = time.monotonic() + CLUSTER_START_TIMEOUT
@@ -156,10 +163,7 @@ def ensure_cluster():
         if _pg_isready(isready) == PG_READY:
             return 0
         time.sleep(1)
-    print(
-        f"dev.py: cluster not accepting connections after {CLUSTER_START_TIMEOUT}s. "
-        f"See {PGSQL_HOME / 'server.log'}."
-    )
+    print(f"dev.py: cluster not accepting connections after {CLUSTER_START_TIMEOUT}s. See {PGSQL_HOME / 'server.log'}.")
     return 1
 
 
@@ -202,9 +206,7 @@ def lint_workflows(extra):
     missing one fails the task instead of narrowing it.
     """
     binaries = Path.home() / "Binaries"
-    search = os.pathsep.join(
-        [os.environ.get("PATH", ""), *(str(binaries / d) for d in WORKFLOW_TOOLS.values())]
-    )
+    search = os.pathsep.join([os.environ.get("PATH", ""), *(str(binaries / d) for d in WORKFLOW_TOOLS.values())])
     found = {name: shutil.which(name, path=search) for name in WORKFLOW_TOOLS}
     missing = [name for name, path in found.items() if path is None]
     if missing:
@@ -245,8 +247,8 @@ def pytest_suite(task, extra):
 
 def main(argv):
     """Run the named task and return its exit code."""
-    extra = argv[argv.index("--") + 1:] if "--" in argv else []
-    tasks = argv[:argv.index("--")] if "--" in argv else argv
+    extra = argv[argv.index("--") + 1 :] if "--" in argv else []
+    tasks = argv[: argv.index("--")] if "--" in argv else argv
 
     if not tasks:
         print(__doc__)

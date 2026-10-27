@@ -1,4 +1,5 @@
 """`python manage.py seed_candy` -- safe to run any number of times."""
+
 from decimal import Decimal
 from io import StringIO
 
@@ -47,8 +48,12 @@ def test_seeding_never_overwrites_a_value_that_is_already_set():
 def test_seeding_fills_only_the_empty_fields_of_an_existing_candy():
     """How the two candies that predate the seed get a description and picture."""
     Candy.objects.create(
-        name="Hollow Humbug", price=Decimal("1.23"), stock=7, flavor="mint",
-        flaw="An existing flaw.", description="",
+        name="Hollow Humbug",
+        price=Decimal("1.23"),
+        stock=7,
+        flavor="mint",
+        flaw="An existing flaw.",
+        description="",
     )
 
     seed()
@@ -62,6 +67,7 @@ def test_seeding_fills_only_the_empty_fields_of_an_existing_candy():
 
 
 # --- Sugar and allergens (night-2026-09-17 plan T2) -------------------------
+
 
 def test_every_seeded_candy_has_known_sugar_and_valid_allergens():
     """The UC-07 warning names candies with unknown sugar; seeded ones have none."""

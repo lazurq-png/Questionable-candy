@@ -3,6 +3,7 @@
 Locking is per username *and* address, so an attacker elsewhere cannot lock a
 customer out, and one customer's typos do not affect another.
 """
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -19,7 +20,9 @@ def fixture_ada():
 
 def attempt(client, username, password, url="accounts:login", address="10.0.0.1"):
     return client.post(
-        reverse(url), {"username": username, "password": password}, REMOTE_ADDR=address,
+        reverse(url),
+        {"username": username, "password": password},
+        REMOTE_ADDR=address,
     )
 
 

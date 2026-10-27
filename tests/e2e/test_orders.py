@@ -3,6 +3,7 @@
 cart → review → login → warning → the three confirmations → receipt, starting
 as an anonymous visitor, as a customer would.
 """
+
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -17,8 +18,9 @@ PASSWORD = "candy-Shop-2026!"
 def test_an_anonymous_cart_becomes_a_placed_order(live_server, page, assert_page_is_fully_rendered):
     """Every checkout step in order; stock is taken and the cart is empty afterwards."""
     ada = get_user_model().objects.create_user(username="ada", password=PASSWORD, allergies=["milk"])
-    fudge = CandyFactory(name="Fudge", price=Decimal("4.50"), sugar_content_g=Decimal("78.0"),
-                         allergens=["milk"], stock=3)
+    fudge = CandyFactory(
+        name="Fudge", price=Decimal("4.50"), sugar_content_g=Decimal("78.0"), allergens=["milk"], stock=3
+    )
 
     page.goto(live_server.url)
     page.get_by_role("button", name="Add to cart: Fudge").click()
