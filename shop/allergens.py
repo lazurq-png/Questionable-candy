@@ -9,6 +9,8 @@ A plain module rather than part of either app's models, so accounts can use it
 without depending on the shop's models (docs/ai/night-2026-09-17/decisions.md).
 """
 
+from collections.abc import Iterable
+
 ALLERGENS = (
     ("gluten", "Cereals containing gluten"),
     ("crustaceans", "Crustaceans"),
@@ -31,7 +33,7 @@ ALLERGENS = (
 KEY_LENGTH = 20
 
 
-def names(keys):
+def names(keys: Iterable[str]) -> list[str]:
     """The labels for `keys`, in the vocabulary's order, skipping unknown keys."""
     wanted = set(keys)
     return [label for key, label in ALLERGENS if key in wanted]
