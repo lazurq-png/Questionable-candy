@@ -62,6 +62,15 @@ The "Adopt htmx + Alpine.js but vendor them as static files" option below
 remains the fallback if that turns out to matter more than the no-build-step
 property this ADR was written to keep.
 
+**Amended 2026-10-27 — versions bumped.** `base.html` now loads
+`htmx.org@2.0.11` and `alpinejs@3.15.12` (the latest 2.0.x and 3.15.x; Alpine
+3.16 and later were not considered). The D17 procedure was followed: each
+file was fetched from unpkg, jsDelivr and the npm tarball, the three copies
+were byte-identical, and each tarball matched the npm registry's published
+`sha512`. The new `sha384` values are in `base.html`. Neither changelog lists a
+breaking change for the `hx-*` attributes or Alpine directives the templates
+use. The decision itself is unchanged.
+
 ## Pros and Cons of the Options
 
 ### Adopt htmx + Alpine.js via CDN and supersede ADR 0001

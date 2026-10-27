@@ -133,6 +133,10 @@ def show_theme(page, case):
 def check_page(page, name, assert_page_is_fully_rendered):
     """The four measurable properties, for whichever page is showing."""
     assert_page_is_fully_rendered(page)
+    # Buttons fade their colours over 120ms (site.css), and halfway between the
+    # disabled and enabled states the contrast drops to about 1:1 although both
+    # ends pass. Measure the settled page, not a frame of the fade.
+    page.evaluate("() => Promise.all(document.getAnimations().map((a) => a.finished))")
     assert page.evaluate(OVERFLOW) == 0, f"{name}: scrolls sideways at {PHONE['width']}px"
     assert page.evaluate(HEADER_WRAPS) == {"rows": 1, "tall": []}, f"{name}: header wraps"
     assert page.evaluate(SMALL_TARGETS) == [], f"{name}: tap targets under 44x44"

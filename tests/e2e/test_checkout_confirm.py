@@ -91,6 +91,7 @@ def test_the_confirmation_page_meets_the_measurable_checks(live_server, page, as
     check_page(page, f"confirm, {scheme}", assert_page_is_fully_rendered)
     page.get_by_label("I have checked my order: 2 items, $6.00").check()
     page.get_by_label("Type the total, $6.00, to confirm the amount").fill("6.00")
+    expect(page.get_by_role("button", name="Place my order")).to_be_enabled()
     check_page(page, f"confirm, all unlocked, {scheme}", assert_page_is_fully_rendered)
     page.get_by_role("button", name="Place my order").click()
     expect(page.get_by_test_id("order-payment-note")).to_be_visible()
