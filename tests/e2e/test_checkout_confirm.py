@@ -85,7 +85,7 @@ def test_the_three_controls_unlock_in_order_and_confirm_the_order(live_server, p
 def test_the_confirmation_page_meets_the_measurable_checks(live_server, page, assert_page_is_fully_rendered, scheme):
     """Phone width, both themes: confirming, and the receipt it leads to."""
     page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=scheme)
+    page.emulate_media(color_scheme=scheme, reduced_motion="reduce")
     reach_confirmation(page, live_server)
 
     check_page(page, f"confirm, {scheme}", assert_page_is_fully_rendered)

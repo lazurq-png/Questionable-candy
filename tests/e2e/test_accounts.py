@@ -120,7 +120,7 @@ def test_account_pages_and_the_signed_in_header_meet_the_measurable_checks(
     ninety pixels of account control and a long name must not break the row.
     """
     page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=scheme)
+    page.emulate_media(color_scheme=scheme, reduced_motion="reduce")
 
     page.goto(f"{live_server.url}/accounts/login/")
     check_page(page, f"login, {scheme}", assert_page_is_fully_rendered)

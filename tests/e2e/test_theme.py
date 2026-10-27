@@ -113,6 +113,9 @@ def background(page):
     return page.evaluate("getComputedStyle(document.body).backgroundColor")
 
 
+REDUCED_MOTION = "matchMedia('(prefers-reduced-motion: reduce)').matches"
+
+
 def show_theme(page, case):
     """Set up a (system setting, stored choice, theme shown) case at phone width.
 
@@ -124,7 +127,7 @@ def show_theme(page, case):
     """
     system, stored, shown = case
     page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=system)
+    page.emulate_media(color_scheme=system, reduced_motion="reduce")
     if stored:
         page.add_init_script(f"window.localStorage.setItem('theme', '{stored}')")
     return DARK_BG if shown == "dark" else LIGHT_BG
@@ -135,8 +138,9 @@ def check_page(page, name, assert_page_is_fully_rendered):
     assert_page_is_fully_rendered(page)
     # Buttons fade their colours over 120ms (site.css), and halfway between the
     # disabled and enabled states the contrast drops to about 1:1 although both
-    # ends pass. Measure the settled page, not a frame of the fade.
-    page.evaluate("() => Promise.all(document.getAnimations().map((a) => a.finished))")
+    # ends pass. Under reduced motion site.css has no fades, so each check
+    # measures what the visitor is left reading, never a frame of a fade.
+    assert page.evaluate(REDUCED_MOTION), f"{name}: emulate reduced_motion='reduce' before measuring"
     assert page.evaluate(OVERFLOW) == 0, f"{name}: scrolls sideways at {PHONE['width']}px"
     assert page.evaluate(HEADER_WRAPS) == {"rows": 1, "tall": []}, f"{name}: header wraps"
     assert page.evaluate(SMALL_TARGETS) == [], f"{name}: tap targets under 44x44"

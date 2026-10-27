@@ -58,7 +58,7 @@ def test_the_warning_is_read_and_acknowledged_after_logging_in(live_server, page
 def test_the_warning_page_meets_the_measurable_checks(live_server, page, assert_page_is_fully_rendered, scheme):
     """Phone width: the sugar table scrolls inside itself, never the page."""
     page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=scheme)
+    page.emulate_media(color_scheme=scheme, reduced_motion="reduce")
     fill_cart_and_log_in_at_the_warning(page, live_server)
 
     check_page(page, f"health warning, {scheme}", assert_page_is_fully_rendered)
