@@ -226,9 +226,10 @@ AXES_RESET_ON_SUCCESS = True
 # Content Security Policy
 # https://docs.djangoproject.com/en/6.1/ref/csp/
 #
-# Report-only: browsers log violations to the console and block nothing, so the
-# policy can be tightened against real pages before it is enforced. Move the
-# dict to SECURE_CSP once the console is clean.
+# Enforced since 2026-10-27, after a click-through under report-only left the
+# console clean: a browser now refuses anything outside these sources. A new
+# inline script needs {% csp_nonce_attr %}, or a static file where no request
+# is available (500.html). tests/e2e/test_csp.py fails on any violation.
 #
 # 'unsafe-eval' is there because the standard Alpine build evaluates the
 # expressions in x-data / x-on attributes; the @alpinejs/csp build removes the
@@ -237,7 +238,7 @@ AXES_RESET_ON_SUCCESS = True
 # indicator, hence 'unsafe-inline' for styles. The one inline script in
 # base.html carries the nonce.
 
-SECURE_CSP_REPORT_ONLY = {
+SECURE_CSP = {
     'default-src': [CSP.SELF],
     'script-src': [CSP.SELF, CSP.NONCE, 'https://unpkg.com', CSP.UNSAFE_EVAL],
     'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
