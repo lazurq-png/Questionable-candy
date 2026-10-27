@@ -443,6 +443,7 @@ This repository's `.claude/` directory is structured as follows:
 │                 (code-review)
 ├── docs/       — supporting human-readable process docs (workflow, task
 │                 template, prompt patterns) — not auto-loaded
+├── launch.json — the desktop app's preview server: `dev.py run` on port 8000
 └── settings.json — shared allow-list (dev.py tests/lint, read-only git) and denies
                     (force/delete push, rm -rf, reading .env); no hooks
 ```
