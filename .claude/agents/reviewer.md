@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Independent adversarial reviewer for a finished diff. Use when a non-trivial change is complete and needs a review that does not rely on the implementer's assumptions — required before every unattended commit, recommended before any high-risk one. Reports findings; does not fix them.
+description: Independent adversarial reviewer for a finished diff. Use when a non-trivial change is complete and needs a review that does not rely on the implementer's assumptions — recommended before any high-risk one. Reports findings; does not fix them.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -46,7 +46,7 @@ Things that have actually gone wrong here, and are worth checking every time:
   If the change adds or alters a form or a POST, ask what proves it works in a
   browser — a Playwright test in `tests/e2e/`, or nothing.
 - **Unintended migrations.** `scripts/dev.py` runs `makemigrations`, which
-  *writes* files. A migration in the diff that the task did not call for is a
+  _writes_ files. A migration in the diff that the task did not call for is a
   finding.
 - **ADR guards.** `requirements.txt` is constrained by ADR 0003 (no DRF). ADR
   0005 prefers a small test stack but sets no number: a new test package is
@@ -55,8 +55,7 @@ Things that have actually gone wrong here, and are worth checking every time:
   A new service layer, repository class, or `services.py` is an abstraction that
   ADR explicitly did not choose — flag it.
 - **Claimed verification.** If the change description asserts a command passed,
-  and you can run it cheaply, run it. Unattended, you are the only check on a
-  result nobody observed. Treat "lint passed" with particular suspicion: the
+  and you can run it cheaply, run it. Treat "lint passed" with particular suspicion: the
   gate is errors only, so a zero exit is compatible with a page of new
   warnings.
 

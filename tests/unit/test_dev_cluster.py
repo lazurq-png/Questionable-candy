@@ -2,7 +2,7 @@
 
 It must do nothing under CI (the database is a service container) or where no
 local install exists, and when it does start the cluster it must detach it and
-say so -- an unattended run reads that line to learn the cluster went down.
+say so.
 """
 import importlib.util
 from pathlib import Path

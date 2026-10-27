@@ -71,7 +71,7 @@ PGSQL_HOME = Path(os.getenv("PGSQL_HOME", Path.home() / "Binaries" / "pgsql"))
 # output is localised, so the text differs by machine locale.
 PG_READY, PG_STARTING, PG_DOWN = 0, 1, 2
 
-CLUSTER_START_TIMEOUT = 30  # seconds, matching the night-run preflight
+CLUSTER_START_TIMEOUT = 30  # seconds
 
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
 # Gated since 2026-09-17: the target ADR 0005 left open is 95%, a little under
@@ -107,8 +107,6 @@ def _pg_exe(name):
 
 
 def _pg_isready(exe):
-    # Same probe as the night-run preflight: localhost:5432, as .env.example's
-    # DATABASE_URL points at.
     return subprocess.run(
         [str(exe), "-h", "localhost", "-p", "5432"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
@@ -136,8 +134,6 @@ def ensure_cluster():
         return 0
 
     if state == PG_DOWN:
-        # Said aloud, not done quietly: an unattended run must be able to see
-        # in its output that the cluster had gone down mid-run.
         print(f"dev.py: PostgreSQL cluster at {PGSQL_HOME} is down -- starting it.", flush=True)
         # Detached, or the server is a child of this shell and dies with it --
         # after every short-lived shell an agent opens, for instance.

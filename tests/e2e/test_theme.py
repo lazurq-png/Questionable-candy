@@ -6,8 +6,7 @@ scheme emulation stands in for the operating system.
 
 Measured on every page, in both themes (night-run §9.4): no horizontal overflow
 at phone width, controls at least 44x44, body text at 4.5:1 against the colour
-actually painted behind it. None of this says the pages look good -- that still
-needs a person (docs/ai/night-2026-09-16/progress.md, T5).
+actually painted behind it. None of this says the pages look good.
 """
 from decimal import Decimal
 

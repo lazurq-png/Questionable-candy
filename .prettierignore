@@ -1,0 +1,4 @@
+# Markdown here is hand-formatted (bullet style, table alignment) and some of it
+# is checked by scripts/adr_guards.py; format-on-save rewrites it and buries real
+# edits in whitespace diffs.
+*.md

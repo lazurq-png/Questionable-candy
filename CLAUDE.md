@@ -4,7 +4,9 @@
 
 This file contains Claude Code-specific instructions.
 
-The repository-wide engineering contract is defined in `AGENTS.md`. Read and follow it first.
+The repository-wide engineering contract is defined in `AGENTS.md`, imported here so it always loads:
+
+@AGENTS.md
 
 This file defines how Claude should operate within that contract.
 
@@ -48,14 +50,14 @@ For recorded decisions and constraints, read `docs/README.md` first — one row 
 
 If the task touches a specific domain, read the matching reference in `.claude/rules/` before implementing:
 
-* `.claude/rules/architecture.md` — boundaries, layering, refactors
-* `.claude/rules/frontend.md` — UI, accessibility, state, browser-facing work
-* `.claude/rules/backend.md` — APIs, services, validation, errors, transactions
-* `.claude/rules/database.md` — schemas, migrations, persistence, data integrity
-* `.claude/rules/testing.md` — coverage strategy, flaky tests, definition of done
-* `.claude/rules/debugging.md` — evidence-driven failure diagnosis
-* `.claude/rules/review.md` — adversarial review of a finished diff
-* `.claude/rules/security-review.md` — authn/authz, secrets, payments, external input
+- `.claude/rules/architecture.md` — boundaries, layering, refactors
+- `.claude/rules/frontend.md` — UI, accessibility, state, browser-facing work
+- `.claude/rules/backend.md` — APIs, services, validation, errors, transactions
+- `.claude/rules/database.md` — schemas, migrations, persistence, data integrity
+- `.claude/rules/testing.md` — coverage strategy, flaky tests, definition of done
+- `.claude/rules/debugging.md` — evidence-driven failure diagnosis
+- `.claude/rules/review.md` — adversarial review of a finished diff
+- `.claude/rules/security-review.md` — authn/authz, secrets, payments, external input
 
 These are not auto-loaded — open the one(s) relevant to the task based on what the work touches.
 
@@ -67,15 +69,15 @@ Exploration should answer the questions necessary to make a good implementation 
 
 Prioritize:
 
-* relevant symbols
-* callers
-* implementations
-* tests
-* configuration
-* data flow
-* API boundaries
-* error handling
-* neighboring patterns
+- relevant symbols
+- callers
+- implementations
+- tests
+- configuration
+- data flow
+- API boundaries
+- error handling
+- neighboring patterns
 
 Avoid reading large numbers of unrelated files.
 
@@ -87,24 +89,24 @@ Do not start editing simply because you have found one plausible implementation.
 
 Create a plan before substantial implementation when the task involves:
 
-* multiple files
-* architectural changes
-* database changes
-* external integrations
-* security-sensitive behavior
-* complicated debugging
-* uncertain ownership
-* non-trivial migrations
+- multiple files
+- architectural changes
+- database changes
+- external integrations
+- security-sensitive behavior
+- complicated debugging
+- uncertain ownership
+- non-trivial migrations
 
 A useful plan contains:
 
-* current behavior
-* desired behavior
-* affected components
-* implementation approach
-* verification strategy
-* risks
-* open questions
+- current behavior
+- desired behavior
+- affected components
+- implementation approach
+- verification strategy
+- risks
+- open questions
 
 The plan should be actionable rather than descriptive.
 
@@ -116,14 +118,14 @@ Implement the smallest sufficient change.
 
 Prefer existing:
 
-* utilities
-* components
-* services
-* repositories
-* validation
-* error handling
-* state-management patterns
-* API conventions
+- utilities
+- components
+- services
+- repositories
+- validation
+- error handling
+- state-management patterns
+- API conventions
 
 Avoid introducing a new abstraction unless the existing architecture cannot reasonably support the requested behavior.
 
@@ -137,13 +139,13 @@ Important project knowledge should live in the repository.
 
 Use:
 
-* `AGENTS.md`
-* `CLAUDE.md`
-* `.claude/rules/`
-* documentation
-* architecture records
-* task plans
-* handoffs
+- `AGENTS.md`
+- `CLAUDE.md`
+- `.claude/rules/`
+- documentation
+- architecture records
+- task plans
+- handoffs
 
 for durable knowledge.
 
@@ -159,14 +161,14 @@ Prefer targeted context over indiscriminate context.
 
 Search for the exact:
 
-* function
-* class
-* component
-* endpoint
-* error
-* schema
-* test
-* configuration value
+- function
+- class
+- component
+- endpoint
+- error
+- schema
+- test
+- configuration value
 
 that matters.
 
@@ -184,32 +186,28 @@ Use specialized subagents when the task benefits from independent investigation 
 
 Good uses include:
 
-* repository exploration
-* architecture investigation
-* security review
-* test analysis
-* independent code review
-* isolated research
+- repository exploration
+- architecture investigation
+- security review
+- test analysis
+- independent code review
+- isolated research
 
 Do not delegate tiny tasks merely to increase parallelism.
 
 When using multiple agents:
 
-* give each a narrow objective
-* provide relevant context
-* avoid overlapping edits
-* prefer independent investigation over competing modifications
-* synthesize results before implementation
+- give each a narrow objective
+- provide relevant context
+- avoid overlapping edits
+- prefer independent investigation over competing modifications
+- synthesize results before implementation
 
 For high-risk changes, an independent reviewer should ideally evaluate the implementation without relying on the builder's assumptions.
 
 `.claude/agents/reviewer.md` is the standing reviewer for this — dispatch it by
 name. It has no Edit or Write tool, follows the `code-review` skill, and knows
 this repository's recurring failure modes.
-
-Unattended, "ideally" becomes "always": it is the only review a change will get
-before it is committed. Give it the task, not your reasoning —
-`.claude/skills/night-run/SKILL.md` §2.
 
 ---
 
@@ -219,14 +217,14 @@ Verification is mandatory for meaningful code changes.
 
 In this repository the checks that exist are:
 
-| Check              | Command                                        |
-| ------------------ | ---------------------------------------------- |
-| Targeted tests     | `python scripts/dev.py test:unit` / `test:int` / `test:e2e` |
-| Full suite (+ coverage) | `python scripts/dev.py test`              |
-| Lint               | `python scripts/dev.py lint`                   |
-| Workflow lint (conditional) | `python scripts/dev.py lint:workflows` |
-| ADR guards         | `python scripts/adr_guards.py`                 |
-| Browser            | `python scripts/dev.py run`, then open the page |
+| Check                       | Command                                                     |
+| --------------------------- | ----------------------------------------------------------- |
+| Targeted tests              | `python scripts/dev.py test:unit` / `test:int` / `test:e2e` |
+| Full suite (+ coverage)     | `python scripts/dev.py test`                                |
+| Lint                        | `python scripts/dev.py lint`                                |
+| Workflow lint (conditional) | `python scripts/dev.py lint:workflows`                      |
+| ADR guards                  | `python scripts/adr_guards.py`                              |
+| Browser                     | `python scripts/dev.py run`, then open the page             |
 
 Every `dev.py` task runs `makemigrations` and `migrate` first, so the database
 always matches the models. Before that, it starts the local cluster
@@ -255,22 +253,13 @@ have run one.
 CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): ADR-guards, lint, and a
 test job with a PostgreSQL service and a Playwright browser, so `tests/e2e/`
 runs there too. It triggers on pull requests to `master` and `dev`, and on
-pushes to `master`, `dev` and `night-**` — the last for unattended runs, which
-push a branch per finished task. It runs on GitHub, not on your machine — you
+pushes to `master`and `dev`. It runs on GitHub, not on your machine — you
 cannot observe its result from here, so never report a CI run as evidence.
-(The one exception is the night-run skill itself, which polls the public repo's
-read-only Actions API for a commit it just pushed — a narrow, documented case,
-not license to check CI any other way; see
-`.claude/skills/night-run/SKILL.md` §2.6 and §3.) CI also checks migration
-drift with `makemigrations --check`, which `dev.py` deliberately does not.
+CI also checks migration drift with `makemigrations --check`, which `dev.py` deliberately does not.
 
 Browser verification is not interchangeable with the test suite: `django.test.Client`
 does not enforce CSRF, so a green suite has already coexisted with a page that
 403'd on every interaction. See `.claude/rules/frontend.md`.
-
-When running unattended there is nobody to look at a page. The substitute is a
-Playwright `tests/e2e/` test driving a real browser — not a waiver of the check.
-`.claude/rules/frontend.md` defines what that must cover.
 
 Start with the narrowest useful verification.
 
@@ -304,13 +293,13 @@ For large tasks, maintain durable progress.
 
 A useful task state includes:
 
-* objective
-* current understanding
-* decisions made
-* files changed
-* remaining work
-* verification status
-* unresolved risks
+- objective
+- current understanding
+- decisions made
+- files changed
+- remaining work
+- verification status
+- unresolved risks
 
 Do not keep critical state exclusively in the conversation.
 
@@ -321,12 +310,6 @@ That state lives in `docs/ai/<branch>/` — `plan.md`, `progress.md`,
 each. It is committed on the branch it describes, so the reasoning stays
 attached to the diff it explains.
 
-Unattended runs must maintain it; there is no conversation for a human to read
-afterwards, so these files are the entire record of what happened. Such a run
-spans several branches — one per task, plus an integration branch it merges and
-pushes each finished task onto (`.claude/skills/night-run/SKILL.md` §1.3, §2.6)
-— but keeps a single directory, named after the integration branch.
-
 ---
 
 ## 12. Parallelization
@@ -335,10 +318,10 @@ Parallelize independent work when it reduces total task time.
 
 Examples:
 
-* one agent maps architecture
-* one agent investigates tests
-* one agent performs security review
-* one agent evaluates an isolated subsystem
+- one agent maps architecture
+- one agent investigates tests
+- one agent performs security review
+- one agent evaluates an isolated subsystem
 
 Do not have multiple agents modify the same files unless the workflow explicitly supports conflict resolution.
 
@@ -352,16 +335,16 @@ Before declaring substantial work complete, review the resulting diff.
 
 Ask:
 
-* Does this actually solve the requested problem?
-* Did the implementation follow existing architecture?
-* Did it introduce unnecessary complexity?
-* Are edge cases covered?
-* Are contracts preserved?
-* Are errors handled correctly?
-* Are security boundaries intact?
-* Are tests meaningful?
-* Did unrelated files change?
-* Is there anything a skeptical reviewer would question?
+- Does this actually solve the requested problem?
+- Did the implementation follow existing architecture?
+- Did it introduce unnecessary complexity?
+- Are edge cases covered?
+- Are contracts preserved?
+- Are errors handled correctly?
+- Are security boundaries intact?
+- Are tests meaningful?
+- Did unrelated files change?
+- Is there anything a skeptical reviewer would question?
 
 Review the final state, not merely the edits made during implementation.
 
@@ -373,19 +356,19 @@ Minimality means avoiding unnecessary complexity, not avoiding necessary code.
 
 Prefer:
 
-* direct solutions
-* established project patterns
-* small interfaces
-* localized changes
-* explicit behavior
+- direct solutions
+- established project patterns
+- small interfaces
+- localized changes
+- explicit behavior
 
 Avoid:
 
-* speculative extensibility
-* premature abstractions
-* unnecessary wrappers
-* broad refactors
-* unrelated dependency changes
+- speculative extensibility
+- premature abstractions
+- unnecessary wrappers
+- broad refactors
+- unrelated dependency changes
 
 ---
 
@@ -412,19 +395,13 @@ Ask when the task requires a material product or architecture decision that cann
 
 Examples:
 
-* two incompatible interpretations of requirements
-* destructive database behavior
-* breaking public API changes
-* irreversible external operations
-* unclear security requirements
+- two incompatible interpretations of requirements
+- destructive database behavior
+- breaking public API changes
+- irreversible external operations
+- unclear security requirements
 
 When asking, explain the actual decision and its consequences rather than asking a vague "what should I do?"
-
-If no human is available to answer — an unattended run — do not wait. Write the
-question, the options and your recommendation to the run's `questions.md`, take
-the smallest reversible interpretation, commit that work separately and flag it
-provisional, then continue. `.claude/skills/night-run/SKILL.md` governs this;
-AGENTS.md §18 states the same rule for tool-agnostic agents.
 
 ---
 
@@ -461,7 +438,7 @@ This repository's `.claude/` directory is structured as follows:
 ├── agents/     — specialized subagents dispatched by name (reviewer)
 ├── rules/      — domain-specific reference docs (see §2), opened on demand
 ├── skills/     — reusable procedural workflows, invoked as slash commands
-│                 (code-review, night-run)
+│                 (code-review)
 ├── docs/       — supporting human-readable process docs (workflow, task
 │                 template, prompt patterns) — not auto-loaded
 └── settings.example.json — inert template; no settings.json is defined here
@@ -478,27 +455,6 @@ it is down (never stopping it; skipped under CI).
 
 Use `.claude/skills/code-review/` for an adversarial review pass over a diff —
 see §13 for when to run it.
-
-Use `.claude/skills/night-run/` when this session is running unattended (no
-human available to answer). It defines the preflight, the branch-per-task and
-commit cadence, when a finished task's branch may be pushed and to where, the
-durable state files, the forbidden operations, the 08:00 Europe/Stockholm
-deadline — at which a nearly-finished task runs to completion rather than being
-discarded, bounded by a ceiling — and the stop conditions for that mode. A
-nearly-spent session budget triggers the same treatment, because a run that
-spends its last tokens on a commit leaves branches nobody can interpret.
-
-A run may span several sessions; §10 covers resuming one, and what a session
-must leave behind for the next. The state files in `docs/ai/<branch>/` are the
-only handover — nothing of the conversation survives — which is why §1.5 makes
-them current before every commit rather than at the end. It also
-carries the single bounded exception to "do not invent work": once the requested
-list is done, §9 permits visual work under fixed constraints, with only the four
-properties that can actually be measured treated as verified.
-
-Do not improvise unattended operation without it — least of all the push rules,
-which are the only part of this repository's agent protocol that reaches another
-machine.
 
 `.claude/agents/reviewer.md` is the standing independent reviewer — see §8 and
 §13. Add further specialized subagents only if the task mix justifies them; a

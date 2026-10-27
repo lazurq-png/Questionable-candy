@@ -1,3 +1,13 @@
+---
+paths:
+  - "**/views.py"
+  - "**/forms.py"
+  - "**/urls.py"
+  - "**/admin.py"
+  - "**/middleware.py"
+  - "mysite/**"
+---
+
 # Backend Engineering Rules
 
 Open this for API, service, and server-side implementation work.

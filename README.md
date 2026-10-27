@@ -31,13 +31,13 @@ at 0.2.
 
 ## Stack
 
-| Layer         | Choice                                                    |
-| ------------- | --------------------------------------------------------- |
-| Backend       | Django 6.1 monolith, server-rendered (MVT, no API layer)   |
-| Frontend      | Django Templates + htmx + Alpine.js via CDN, no build step |
-| Auth          | Django built-in session authentication                     |
-| Database      | PostgreSQL                                                 |
-| Tests         | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
+| Layer    | Choice                                                             |
+| -------- | ------------------------------------------------------------------ |
+| Backend  | Django 6.1 monolith, server-rendered (MVT, no API layer)           |
+| Frontend | Django Templates + htmx + Alpine.js via CDN, no build step         |
+| Auth     | Django built-in session authentication                             |
+| Database | PostgreSQL                                                         |
+| Tests    | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
 
 The suite is gated at 95% coverage (`scripts/dev.py`), and `tests/e2e/` drives
 a real browser over every customer-facing page.
@@ -45,8 +45,8 @@ a real browser over every customer-facing page.
 Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
 and dark themes that follow the system setting and a toggle to override it;
 no CSS framework or build step. CI runs the ADR guards, lint and the test suite
-on every pull request to `master` and `dev`, and on every push to `master`,
-`dev` and `night-**` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+on every pull request to `master` and `dev`, and on every push to `master` and
+`dev`([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
 
@@ -82,13 +82,13 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 
 `scripts/dev.py` is the task runner (`dev.cmd` wraps it on Windows):
 
-| Task                                        | Does                                       |
-| ------------------------------------------- | ------------------------------------------ |
-| `run`                                       | Start the dev server                       |
-| `lint`                                      | pylint; errors fail, the rest is advisory  |
-| `lint:workflows`                            | actionlint + shellcheck + pyflakes         |
-| `test`                                      | Whole suite, with coverage                 |
-| `test:unit`, `test:int`, `test:e2e`         | Run one suite                              |
+| Task                                | Does                                      |
+| ----------------------------------- | ----------------------------------------- |
+| `run`                               | Start the dev server                      |
+| `lint`                              | pylint; errors fail, the rest is advisory |
+| `lint:workflows`                    | actionlint + shellcheck + pyflakes        |
+| `test`                              | Whole suite, with coverage                |
+| `test:unit`, `test:int`, `test:e2e` | Run one suite                             |
 
 Every task runs `makemigrations` and `migrate` first, so the database always
 matches the models. Before that, a task starts the local cluster if
@@ -154,7 +154,7 @@ plain-language summary, was last brought up to date. Everything else in
 
 ### Architecture decision records
 
-- [ADR 0001 — Frontend stack](docs/adr/0001-frontend.md) — *superseded in part by 0006*
+- [ADR 0001 — Frontend stack](docs/adr/0001-frontend.md) — _superseded in part by 0006_
 - [ADR 0002 — Middleware: authentication, session and cart handling](docs/adr/0002-middleware.md)
 - [ADR 0003 — Backend architecture](docs/adr/0003-backend.md)
 - [ADR 0004 — Database engine](docs/adr/0004-database.md)
@@ -168,6 +168,6 @@ New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 ## Known open items
 
 - Media storage for candy pictures is undecided — [ADR 0004](docs/adr/0004-database.md)
-- No login method is currently a *Must have*, while placing an order is — [requirements §5](docs/requirements.md). Sign-up and login exist; the specification has not been updated to say whether they are the launch path
+- No login method is currently a _Must have_, while placing an order is — [requirements §5](docs/requirements.md). Sign-up and login exist; the specification has not been updated to say whether they are the launch path
 - `shop.Candy` differs from the target `Candy` entity in what it calls `stock`, in the type of `flaw`, and in the extra `flavor` and `image` fields — [data model §3.3](docs/data-model.md)
 - Payment is not connected, so `Order.status` never leaves `pending`

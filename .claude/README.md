@@ -12,7 +12,7 @@ CLAUDE.md               Claude Code operating model — always loaded by the ext
 ├── rules/              domain reference docs — NOT auto-loaded; CLAUDE.md tells the
 │                        agent which one to open for a given task
 ├── skills/              reusable procedures invoked as slash commands
-│                        (/code-review, /night-run)
+│                        (/code-review)
 ├── docs/                 supporting human-readable process docs — workflow narrative,
 │                          a task-request template, and ready-to-paste prompt patterns
 └── settings.example.json       copy to settings.json and adjust permissions/hooks
@@ -40,13 +40,13 @@ There is no type checker, formatter or build step here. Lint is pylint with the
 Django plugin (`.pylintrc`, `requirements-dev.txt`), gated on the error class
 only — warnings print without failing, so a zero exit is not an empty report.
 
-CI (`.github/workflows/ci.yml`) runs three jobs on push to `master`, `dev` and
-`night-**`: the ADR guards, lint, and the suite — plus a `makemigrations
+CI (`.github/workflows/ci.yml`) runs three jobs on push to `master` and `dev`:
+the ADR guards, lint, and the suite — plus a `makemigrations
 --check` drift gate that `dev.py` deliberately omits.
 
 ### Why rules aren't auto-loaded
 
-Only `CLAUDE.md` (and nested per-directory `CLAUDE.md` files, which *are* scoped by
+Only `CLAUDE.md` (and nested per-directory `CLAUDE.md` files, which _are_ scoped by
 location) load automatically. There's no built-in mechanism that opens a file based on
 a glob match against whatever's being edited, so the rules in `.claude/rules/` are
 reference material Claude opens on demand — `CLAUDE.md` §2 lists which file to read for
@@ -57,16 +57,6 @@ If a real project has stable directory boundaries (e.g. `src/frontend/`,
 `src/backend/`), prefer dropping the matching rule file into a nested `CLAUDE.md`
 there instead — Claude Code loads those automatically based on which files are being
 touched, which scopes guidance by location more precisely than a flat `rules/` folder.
-
-### Unattended operation
-
-`.claude/skills/night-run/SKILL.md` is the protocol for running with no human
-available — preflight, a branch per task merged onto a run branch and pushed as
-each one finishes, durable state under `docs/ai/<branch>/`, forbidden
-operations, and stop conditions. It is invoked
-(`/night-run`) rather than auto-loaded, so it costs nothing during ordinary
-supervised work. Unattended sessions run with permission prompts bypassed, which
-means its guardrails are honoured by instruction, not enforced by the harness.
 
 ### Code review
 
@@ -87,19 +77,15 @@ diff.
    too — a `validate` wrapper was removed and three documents went on citing it
    for weeks.)
 3. Copy `.claude/settings.example.json` to `.claude/settings.json` only if you
-   want to pre-approve specific commands/permissions; otherwise omit it and let
-   the extension prompt as usual. Note that a `deny` list there does **not**
-   protect an unattended run started with permissions bypassed — in that mode
-   nothing in `settings.json` is consulted, which is why `night-run`'s forbidden
-   operations are written as instructions instead.
+   want to pre-approve specific commands/permissions or deny dangerous ones
+   (force-pushes, `rm -rf`, reading `.env`); otherwise omit it and let the
+   extension prompt as usual. A `deny` rule is enforced by the harness, unlike
+   a sentence in `CLAUDE.md`, so put anything that must never happen there.
 4. Trim `.claude/rules/*.md` and `.claude/docs/*.md` down to what the project
    actually needs — delete the domains that don't apply (e.g. `database.md` for
    a repo with no persistence layer).
 5. Update the curated list in `CLAUDE.md`'s "Start With Repository Context"
    section if you remove or rename any rule file.
-6. Rewrite `.claude/skills/night-run/SKILL.md`'s **Preflight** section for the
-   new project. Everything else in that skill is portable; the preflight is not
-   — it names this repository's PostgreSQL cluster, paths and commands.
-7. Commit all of it — `CLAUDE.md`/`AGENTS.md` are meant to be checked into the
+6. Commit all of it — `CLAUDE.md`/`AGENTS.md` are meant to be checked into the
    repo so every contributor's agent sees the same contract, the same way a
    project's `CLAUDE.md` already works in this machine's other repos.
