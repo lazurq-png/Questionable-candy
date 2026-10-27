@@ -34,6 +34,26 @@ jobs:
       - name: Check ADR 0003 and the docs overview
         run: python scripts/adr_guards.py
 
+  # The requirements use ~= ranges, so a transitive dependency can change
+  # between runs; this fails when any resolved package has a known advisory.
+  # Needs no database or settings, and is separate so an advisory published
+  # tomorrow does not read as a broken test.
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt -r requirements-dev.txt
+
   # pylint-django calls django.setup(), so this needs the runtime dependencies
   # and the two settings.py demands -- but no database: dj_database_url only
   # parses DATABASE_URL, it does not connect. Hence no service container here.
