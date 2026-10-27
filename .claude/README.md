@@ -25,7 +25,7 @@ commands, plus a fourth when workflows changed, run separately:
 
 ```text
 python scripts/dev.py test        # migrations + full suite + coverage
-python scripts/dev.py lint        # pylint; errors fail, the rest is advisory
+python scripts/dev.py lint        # ruff check + format --check, then pylint
 python scripts/dev.py lint:workflows  # only if .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR 0003 guard, no deps, seconds
 ```
@@ -35,9 +35,10 @@ python scripts/adr_guards.py      # ADR 0003 guard, no deps, seconds
 starting the local PostgreSQL cluster first if it is down (skipped under CI).
 `lint` is the exception: source-only, so it needs no database.
 
-There is no type checker, formatter or build step here. Lint is pylint with the
-Django plugin (`.pylintrc`, `requirements-dev.txt`), gated on the error class
-only — warnings print without failing, so a zero exit is not an empty report.
+There is no type checker or build step here. Lint is ruff (`ruff.toml`: any
+finding or unformatted file fails) followed by pylint with the Django plugin
+(`.pylintrc`), gated on the error class only. pylint's warnings print without
+failing, so a zero exit is not an empty report.
 
 CI (`.github/workflows/ci.yml`) runs three jobs on push to `master` and `dev`:
 the ADR guards, lint, and the suite — plus a `makemigrations

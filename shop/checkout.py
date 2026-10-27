@@ -16,8 +16,8 @@ and a warning about a different order was not.
 import hashlib
 import json
 import uuid
-from datetime import datetime
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 
 from django.utils import timezone

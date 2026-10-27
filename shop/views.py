@@ -9,7 +9,8 @@ from django.utils.cache import patch_vary_headers
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from . import cart, checkout as checkout_state
+from . import cart
+from . import checkout as checkout_state
 from .forms import ConfirmOrderForm, HealthWarningForm, QuantityForm, StepperQuantityForm
 from .models import Candy, Order, OrderChanged
 

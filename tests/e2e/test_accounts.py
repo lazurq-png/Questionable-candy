@@ -14,7 +14,6 @@ from django.contrib.auth import get_user_model
 from playwright.sync_api import expect
 
 from shop.models import Order
-
 from tests.e2e.test_theme import PHONE, check_page
 
 PASSWORD = "candy-Shop-2026!"

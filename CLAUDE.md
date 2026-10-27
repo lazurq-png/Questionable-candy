@@ -244,13 +244,15 @@ skip it and don't list it as verification. It fails with exit 2 if any of the
 three is missing rather than running with fewer rules — actionlint on its own
 quietly skips a rule whose tool it cannot find and still reports clean.
 
-`lint` is pylint with the Django plugin (`.pylintrc`, `requirements-dev.txt`).
-**Errors fail; warnings, refactors and conventions print without failing** — so
-a clean exit does not mean an empty report. Read the output; do not report
-"lint passed" as though it found nothing.
+`lint` runs `ruff check`, `ruff format --check` (`ruff.toml`) and then pylint
+with the Django plugin (`.pylintrc`). Any ruff finding, and any file the
+formatter would change, fails. `python -m ruff format` and `python -m ruff
+check --fix` repair most of them. For pylint, **errors fail; warnings,
+refactors and conventions print without failing**, so a clean exit does not
+mean an empty report. Read the output; do not report "lint passed" as though it
+found nothing.
 
-There is still **no** type checker, formatter or build step. Do not claim to
-have run one.
+There is still **no** type checker or build step. Do not claim to have run one.
 
 CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): ADR-guards, lint, and a
 test job with a PostgreSQL service and a Playwright browser, so `tests/e2e/`

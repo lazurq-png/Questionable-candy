@@ -15,8 +15,8 @@ from django.urls import reverse
 from shop.admin import OrderItemFormSet
 from shop.models import Order, OrderChanged
 from tests.integration.test_orders import (  # pylint: disable=unused-import
-    fixture_ada,
-    fixture_candies,
+    fixture_ada,  # noqa: F401 -- pytest finds the `ada` fixture by this import
+    fixture_candies,  # noqa: F401 -- and `candies`
     order_form,
     place,
     snapshot_of,

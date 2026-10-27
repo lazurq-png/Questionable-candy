@@ -6,7 +6,7 @@ moment between confirming and placing -- a price, stock or publication change
 """
 
 import uuid
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -16,8 +16,8 @@ from django.db.models import ProtectedError
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from shop.checkout import SESSION_KEY, order_snapshot, snapshot_fingerprint
 from shop.cart import Line
+from shop.checkout import SESSION_KEY, order_snapshot, snapshot_fingerprint
 from shop.models import Candy, Order, OrderChanged, OrderItem
 from tests.factories.candy_factory import CandyFactory
 from tests.integration.test_checkout_confirm import confirm
@@ -25,8 +25,8 @@ from tests.integration.test_checkout_warning import acknowledge, add, browser
 
 pytestmark = pytest.mark.django_db
 
-ACKNOWLEDGED = datetime(2026, 9, 17, 20, 0, tzinfo=dt_timezone.utc)
-CONFIRMED = datetime(2026, 9, 17, 20, 5, tzinfo=dt_timezone.utc)
+ACKNOWLEDGED = datetime(2026, 9, 17, 20, 0, tzinfo=UTC)
+CONFIRMED = datetime(2026, 9, 17, 20, 5, tzinfo=UTC)
 
 
 @pytest.fixture(name="ada")
@@ -637,7 +637,7 @@ def test_staff_without_order_permissions_cannot_see_or_change_orders(client, ada
 def test_an_order_is_named_by_its_customer_and_the_day_it_was_placed(admin_client, ada, candies):
     """ "<username> <yyyy-mm-dd>", in the site's time zone, wherever the admin names it."""
     order = place(ada, snapshot_of((candies[0], 1)))
-    Order.objects.filter(pk=order.pk).update(created_at=datetime(2026, 9, 3, 23, 30, tzinfo=dt_timezone.utc))
+    Order.objects.filter(pk=order.pk).update(created_at=datetime(2026, 9, 3, 23, 30, tzinfo=UTC))
     order.refresh_from_db()
 
     assert str(order) == "ada 2026-09-03"

@@ -122,7 +122,7 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 | Task                                | Does                                      |
 | ----------------------------------- | ----------------------------------------- |
 | `run`                               | Start the dev server                      |
-| `lint`                              | pylint; errors fail, the rest is advisory |
+| `lint`                              | ruff check + format check, then pylint; ruff findings and pylint errors fail |
 | `lint:workflows`                    | actionlint + shellcheck + pyflakes        |
 | `test`                              | Whole suite, with coverage                |
 | `test:unit`, `test:int`, `test:e2e` | Run one suite                             |
@@ -137,19 +137,25 @@ Verification is three commands, plus a fourth when workflows are involved, run s
 
 ```sh
 python scripts/dev.py test        # migrations + full suite + coverage
-python scripts/dev.py lint        # pylint; installed by requirements.lock
+python scripts/dev.py lint        # ruff + pylint; installed by requirements.lock
 python scripts/dev.py lint:workflows  # only when .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR guards; no database, no dependencies
 ```
 
 Together these are what `AGENTS.md` §13 and `CLAUDE.md` §9 mean by verification.
-There is no type checker, formatter or build step. CI additionally runs
+There is no type checker or build step. CI additionally runs
 `makemigrations --check`, which `dev.py` deliberately does not — `dev.py` writes
 a missing migration rather than failing on it.
 
 ### Lint
 
-`pylint` with `pylint-django`, configured in [`.pylintrc`](.pylintrc) and pinned
+First `ruff check` and `ruff format --check`, configured in
+[`ruff.toml`](ruff.toml): any finding, or any file the formatter would change,
+fails. `python -m ruff format` and `python -m ruff check --fix` repair most of
+them. [`.git-blame-ignore-revs`](.git-blame-ignore-revs) lists the commit that
+first formatted the codebase, so `git blame` can skip it.
+
+Then `pylint` with `pylint-django`, configured in [`.pylintrc`](.pylintrc) and pinned
 in [`requirements-dev.txt`](requirements-dev.txt). **Errors fail the build;
 warnings, refactors and conventions are reported but do not.** Generated
 migrations are excluded. The plugin calls `django.setup()`, so `DATABASE_URL`

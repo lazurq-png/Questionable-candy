@@ -1,6 +1,7 @@
 """Factory for candy in tests."""
 
 import factory
+
 from shop.models import Candy
 
 

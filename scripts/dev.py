@@ -1,7 +1,7 @@
 """Project task runner.
 
     python scripts/dev.py run                 # dev server at 127.0.0.1:8000
-    python scripts/dev.py lint                # pylint; errors fail, rest advisory
+    python scripts/dev.py lint                # ruff + pylint; ruff and pylint errors fail
     python scripts/dev.py lint:workflows      # actionlint + shellcheck + pyflakes
     python scripts/dev.py test                # whole suite, with coverage
     python scripts/dev.py test:unit           # tests/unit only
@@ -52,7 +52,7 @@ TASKS = ["run", "lint", "lint:workflows", *SUITES]
 # source-only check is still perfectly valid.
 NO_DB_TASKS = {"lint", "lint:workflows"}
 
-# Migrations are excluded by .pylintrc, not here.
+# Migrations are excluded by ruff.toml and .pylintrc, not here.
 LINT_TARGETS = ["accounts", "shop", "mysite", "scripts", "tests"]
 
 # Standalone executables, not Python requirements, so they are looked up rather
@@ -181,18 +181,27 @@ def prepare():
 
 
 def lint(extra):
-    """Errors fail the build; warnings, refactors and conventions only print.
+    """ruff check, ruff format --check, then pylint; all three run, any can fail.
 
-    pylint's exit status is a bitfield, one bit per message class, so a plain
-    run returns non-zero for a missing docstring. --fail-under=0 drops that
-    score-based failure and --fail-on=E puts back the one that matters, which
-    leaves a single pass that reports everything and fails on errors alone.
+    ruff fails on any finding of the rules ruff.toml selects, and on a file
+    the formatter would change (`python -m ruff format` fixes those, `ruff
+    check --fix` most of the rest).
 
-    Configuration -- the Django plugin, the settings module, the migration
-    exclusion -- lives in .pylintrc so that a bare `pylint shop/` agrees with
-    this task.
+    pylint's errors fail the build; its warnings, refactors and conventions
+    only print. Its exit status is a bitfield, one bit per message class, so a
+    plain run returns non-zero for a missing docstring. --fail-under=0 drops
+    that score-based failure and --fail-on=E puts back the one that matters.
+    `extra` goes to pylint, as it always has.
+
+    Configuration lives in ruff.toml and .pylintrc, so a bare `ruff check` or
+    `pylint shop/` agrees with this task.
     """
-    return run("-m", "pylint", "--fail-under=0", "--fail-on=E", *LINT_TARGETS, *extra)
+    codes = [
+        run("-m", "ruff", "check", *LINT_TARGETS),
+        run("-m", "ruff", "format", "--check", *LINT_TARGETS),
+        run("-m", "pylint", "--fail-under=0", "--fail-on=E", *LINT_TARGETS, *extra),
+    ]
+    return next((code for code in codes if code), 0)
 
 
 def lint_workflows(extra):

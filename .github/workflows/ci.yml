@@ -82,9 +82,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.lock
 
-      # Errors fail; warnings, refactors and conventions print without failing.
-      # See scripts/dev.py lint() for why that is one pass and not two.
-      - name: pylint
+      # ruff check and ruff format --check, then pylint. Any ruff finding fails;
+      # for pylint only errors do. See scripts/dev.py lint().
+      - name: ruff and pylint
         run: python scripts/dev.py lint
 
   tests:
