@@ -1,5 +1,5 @@
 # Runtime
-Django~=6.1.1
+Django~=6.1.2
 psycopg[binary]~=3.2          # PostgreSQL driver -- docs/adr/0004-database.md
 python-dotenv~=1.1            # loads .env into the environment
 dj-database-url~=3.0          # DATABASE_URL -> Django DATABASES
