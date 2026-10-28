@@ -142,7 +142,7 @@ python scripts/dev.py lint:workflows  # only when .github/workflows/ changed or 
 python scripts/adr_guards.py      # ADR guards; no database, no dependencies
 ```
 
-Together these are what `AGENTS.md` §13 and `CLAUDE.md` §9 mean by verification.
+Together these are what `AGENTS.md` §10 and `CLAUDE.md` §3 mean by verification.
 There is no type checker or build step. CI additionally runs
 `makemigrations --check`, which `dev.py` deliberately does not — `dev.py` writes
 a missing migration rather than failing on it.

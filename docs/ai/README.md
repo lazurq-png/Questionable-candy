@@ -60,7 +60,7 @@ task needs it only if it expects to churn a lot of code.
 
 **questions.md** — the queue for a human. Each entry states the ambiguity, the
 options, a recommendation, and what was done in the meantime. An unattended run
-parks questions here rather than stopping (`AGENTS.md` §18).
+parks questions here rather than stopping (`AGENTS.md` §15).
 
 ## Lifecycle
 
