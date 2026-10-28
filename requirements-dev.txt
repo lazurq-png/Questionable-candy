@@ -18,4 +18,4 @@ pylint-django~=2.8
 
 # Formatter, plus import-order / pyupgrade / bugbear checks; both fail `lint`.
 # Config in ruff.toml.
-ruff~=0.17.0
+ruff~=0.17.2
