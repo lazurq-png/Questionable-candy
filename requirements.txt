@@ -11,7 +11,7 @@ whitenoise~=6.12              # serves static files in production -- same ADR
 # Faker arrives transitively via factory_boy and is not counted.
 pytest~=9.1
 pytest-django~=4.14
-pytest-cov~=7.0
+pytest-cov~=7.1
 factory_boy~=3.3
 pytest-playwright~=0.7        # unblocked by ADR 0006; drives tests/e2e/
 
