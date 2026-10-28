@@ -62,6 +62,15 @@ The "Adopt htmx + Alpine.js but vendor them as static files" option below
 remains the fallback if that turns out to matter more than the no-build-step
 property this ADR was written to keep.
 
+**Amended 2026-10-27 — versions bumped.** `base.html` now loads
+`htmx.org@2.0.11` and `alpinejs@3.15.12` (the latest 2.0.x and 3.15.x; Alpine
+3.16 and later were not considered). The D17 procedure was followed: each
+file was fetched from unpkg, jsDelivr and the npm tarball, the three copies
+were byte-identical, and each tarball matched the npm registry's published
+`sha512`. The new `sha384` values are in `base.html`. Neither changelog lists a
+breaking change for the `hx-*` attributes or Alpine directives the templates
+use. The decision itself is unchanged.
+
 ## Pros and Cons of the Options
 
 ### Adopt htmx + Alpine.js via CDN and supersede ADR 0001
@@ -96,7 +105,7 @@ property this ADR was written to keep.
 
 Supersedes [0001](0001-frontend.md). The Django Templates half of 0001 is unchanged.
 
-This ADR is written after the fact: the code landed in `2935aac` and this record follows in `7f690d3`'s wake. That ordering is the defect this document closes, not a pattern to repeat — see `CLAUDE.md` §4 on deciding before implementing.
+This ADR is written after the fact: the code landed in `2935aac` and this record follows in `7f690d3`'s wake. That ordering is the defect this document closes, not a pattern to repeat — see `AGENTS.md` §2 on planning before implementing.
 
 Revisit when: a CDN outage or version removal breaks the page (adopt the vendoring option), or when styling work begins and the hand-written-CSS half of ADR 0001 finally gets exercised.
 

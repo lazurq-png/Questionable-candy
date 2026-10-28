@@ -1,9 +1,11 @@
 """Admin for the shop's candy and orders."""
+
 import uuid
 from collections import Counter
 
 from django import forms
 from django.contrib import admin
+from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
 
@@ -26,7 +28,9 @@ class CandyAdminForm(forms.ModelForm):
     # text box, which would accept any spelling. The model's choices still
     # reject an unknown key from any path that skips this form.
     allergens = forms.MultipleChoiceField(
-        choices=ALLERGENS, widget=forms.CheckboxSelectMultiple, required=False,
+        choices=ALLERGENS,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
         help_text="The EU's 14 major allergens. Tick every one the candy contains.",
     )
 
@@ -35,6 +39,22 @@ class CandyAdminForm(forms.ModelForm):
         fields = "__all__"
         error_messages = {"flaw": {"required": FLAW_REQUIRED}}
         help_texts = {"flaw": "Required. A specific, honest downside, shown on the candy's page."}
+
+    def clean_image(self):
+        """A path with no static file behind it is refused here, not shown later.
+
+        In production static names are looked up in collectstatic's manifest
+        (settings.py, "Static files"), which raises for a file that does not
+        exist, so one mistyped path would turn every page showing that candy
+        into a 500 -- there only, never in development or the tests.
+        """
+        image = self.cleaned_data["image"].strip()
+        if image and not finders.find(image):
+            raise ValidationError(
+                f"No static file named “{image}”. Use a path under a static/ folder, "
+                "like shop/candy/sour-bricks.svg, or leave this blank for the placeholder picture."
+            )
+        return image
 
 
 @admin.register(Candy)
@@ -46,10 +66,20 @@ class CandyAdmin(admin.ModelAdmin):
     list_filter = ("is_published", "flaw_severity")
     search_fields = ("name", "flaw")
     fields = (
-        "name", "slug", "flaw", "flaw_severity", "description", "flavor", "price", "stock",
-        "sugar_content_g", "allergens",
-        "is_published", "image",
-        "created_at", "updated_at",
+        "name",
+        "slug",
+        "flaw",
+        "flaw_severity",
+        "description",
+        "flavor",
+        "price",
+        "stock",
+        "sugar_content_g",
+        "allergens",
+        "is_published",
+        "image",
+        "created_at",
+        "updated_at",
     )
     readonly_fields = ("created_at", "updated_at")
     # Typed name, slug follows, on the add form only: prepopulated_fields
@@ -83,7 +113,16 @@ class CandyAdmin(admin.ModelAdmin):
 
 
 class OrderItemFormSet(BaseInlineFormSet):
-    """Refuses lines that would take more stock than there is."""
+    """Refuses lines that would take more stock than there is.
+
+    The candies are locked while they are checked, in primary-key order as
+    place() and move_stock() lock them. The admin validates and saves in one
+    transaction, so the lock holds until save_formset() has moved the stock: a
+    checkout cannot take it in between and turn this form error into the
+    database refusing negative stock (audit C4). The lock covers the order's
+    current lines too, which save_formset() returns to stock, so it never has
+    to take a new lock while holding these.
+    """
 
     def clean(self):
         super().clean()
@@ -94,8 +133,8 @@ class OrderItemFormSet(BaseInlineFormSet):
             if form.cleaned_data and not form.cleaned_data.get("DELETE"):
                 wanted[form.cleaned_data["candy"].pk] += form.cleaned_data["quantity"]
         taken = self.instance.line_counts() if self.instance.pk else Counter()
-        short = [candy.name for candy in Candy.objects.filter(pk__in=wanted)
-                 if wanted[candy.pk] - taken[candy.pk] > candy.stock]
+        locked = Candy.objects.select_for_update().filter(pk__in=wanted | taken).order_by("pk")
+        short = [candy.name for candy in locked if wanted[candy.pk] - taken[candy.pk] > candy.stock]
         if short:
             raise ValidationError(f"Not enough stock: {', '.join(short)}.")
 
@@ -207,8 +246,13 @@ class OrderAdmin(admin.ModelAdmin):
     list_select_related = ("user",)
     list_filter = ("status",)
     fields = (
-        "user", "status", "total_amount", "warning_acknowledged_at", "purchase_confirmed_at",
-        "created_at", "paid_at",
+        "user",
+        "status",
+        "total_amount",
+        "warning_acknowledged_at",
+        "purchase_confirmed_at",
+        "created_at",
+        "paid_at",
     )
     readonly_fields = ("total_amount", "created_at")
     inlines = [OrderItemInline]

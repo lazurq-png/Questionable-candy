@@ -5,6 +5,7 @@ A unique, required column cannot be given one default for existing rows, so
 unique and required (docs/ai/night-2026-09-17/decisions.md D14). No such order
 exists anywhere yet; this pins down that one would survive the migration.
 """
+
 import pytest
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor

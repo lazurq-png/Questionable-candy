@@ -6,6 +6,7 @@ a row does not keep "unknown": it gets the moment the migration ran. This pins
 that down, because it is the opposite of what the first version of this change
 assumed (docs/ai/night-2026-09-16/decisions.md D9).
 """
+
 import pytest
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor

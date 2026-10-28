@@ -1,0 +1,6 @@
+# Commits that only reformat; `git blame` skips them with
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub's blame view reads this file on its own).
+
+# Audit C3: format the codebase with ruff
+7440836aad0c140063ae914855d0f1397407763e

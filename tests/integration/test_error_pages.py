@@ -3,6 +3,7 @@
 DEBUG is set off explicitly in each test rather than trusted to be off, because
 with it on Django shows its debug pages and none of these templates is used.
 """
+
 import pytest
 from django.test import Client
 from django.urls import reverse
@@ -28,9 +29,7 @@ def test_an_unknown_url_shows_the_404_page(client, settings):
 
 
 @pytest.mark.urls("tests.integration.error_urls")
-def test_an_unhandled_error_shows_the_500_page_without_touching_the_database(
-    settings, django_assert_num_queries
-):
+def test_an_unhandled_error_shows_the_500_page_without_touching_the_database(settings, django_assert_num_queries):
     """The 500 page must render when whatever failed was the database.
 
     Asserting zero queries is what holds it to that: a tag or include added to

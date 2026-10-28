@@ -1,4 +1,5 @@
 """Validation of what a customer submits (docs/adr/0003-backend.md)."""
+
 from decimal import Decimal, InvalidOperation
 
 from django import forms
@@ -83,10 +84,14 @@ class ConfirmOrderForm(forms.Form):
     )
     typed_total = forms.CharField(
         error_messages={"required": "Type the total to confirm the amount."},
-        widget=forms.TextInput(attrs={
-            "inputmode": "decimal", "autocomplete": "off",
-            "x-model": "typed", "x-bind:disabled": "!checked",
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "inputmode": "decimal",
+                "autocomplete": "off",
+                "x-model": "typed",
+                "x-bind:disabled": "!checked",
+            }
+        ),
     )
     place_order = forms.CharField(
         error_messages={"required": "Press Place my order to place it."},

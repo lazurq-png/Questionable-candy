@@ -1,5 +1,6 @@
 /*
- * The theme toggle -- the only JavaScript the site adds besides htmx and Alpine.
+ * The theme toggle -- the only JavaScript the site adds besides htmx and Alpine,
+ * apart from theme-early.js, 500.html's copy of base.html's inline script.
  *
  * With no stored choice, site.css follows the system setting on its own. A
  * click stores "light" or "dark" and sets data-theme on <html>, which site.css

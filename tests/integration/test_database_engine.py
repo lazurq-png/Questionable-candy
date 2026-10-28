@@ -4,6 +4,7 @@ The ADR's confirmation section said nothing checked the engine version. This
 asserts it against the connection the suite actually uses -- which is the same
 DATABASE_URL the application uses (ADR 0004, ADR 0005), locally and in CI.
 """
+
 import pytest
 from django.db import connection
 

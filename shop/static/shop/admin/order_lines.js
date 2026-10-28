@@ -192,6 +192,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+// Restored twice: once as soon as the lines exist, so the page does not sit at
+// the top first, and again once the page has finished loading. Django's
+// DateTimeShortcuts.js adds its Today/Now links (and a time zone warning when
+// the browser's offset differs from the server's) to the date fields above the
+// lines on window load, which pushes them down after the first restore. The
+// browser's scroll anchoring usually hides that, but not reliably, so the
+// second restore does not leave it to the browser. Every load handler,
+// Django's included, has run by the next animation frame.
 document.addEventListener("DOMContentLoaded", () => {
   let top = null;
   try {
@@ -201,9 +209,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
   const lines = document.getElementById("items-group");
-  if (top !== null && lines) {
-    window.scrollTo(0, window.scrollY + lines.getBoundingClientRect().top - Number(top));
+  if (top === null || !lines) {
+    return;
   }
+  const restore = () => window.scrollTo(0, window.scrollY + lines.getBoundingClientRect().top - Number(top));
+  restore();
+  window.addEventListener("load", () => requestAnimationFrame(restore), { once: true });
 });
 
 function addDialog() {

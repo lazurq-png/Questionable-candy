@@ -4,6 +4,7 @@ django.test.Client cannot run htmx, so only a browser shows that changing
 the menu swaps the grid without a page load, that the address keeps the
 choice, and that the steppers in the swapped-in grid still work.
 """
+
 from decimal import Decimal
 
 from playwright.sync_api import expect
@@ -18,8 +19,7 @@ def make_catalog():
         ("Sour Bricks", "12.50", FlawSeverity.DENTAL),
         ("Ginger Snap Drops", "3.40", FlawSeverity.AWKWARD),
     ]:
-        Candy.objects.create(name=name, price=Decimal(price), flaw="Flawed.", stock=5,
-                             flaw_severity=severity)
+        Candy.objects.create(name=name, price=Decimal(price), flaw="Flawed.", stock=5, flaw_severity=severity)
 
 
 def test_choosing_an_order_re_sorts_the_grid_without_a_page_load(
@@ -42,8 +42,7 @@ def test_choosing_an_order_re_sorts_the_grid_without_a_page_load(
     page.get_by_label("Sort").select_option("severity")
     expect(names).to_have_text(["Butterscotch Pillows", "Ginger Snap Drops", "Sour Bricks"])
     expect(page.get_by_test_id("candy-severity")).to_have_text(
-        ["Flaw severity: Mildly annoying", "Flaw severity: Socially awkward",
-         "Flaw severity: Call your dentist"]
+        ["Flaw severity: Mildly annoying", "Flaw severity: Socially awkward", "Flaw severity: Call your dentist"]
     )
 
     # The swapped-in steppers are live: htmx processed the new markup.
@@ -56,7 +55,5 @@ def test_a_reload_keeps_the_chosen_order(live_server, page):
     make_catalog()
     page.goto(f"{live_server.url}/?sort=price-desc")
 
-    expect(page.locator(".candy-card-name")).to_have_text(
-        ["Sour Bricks", "Butterscotch Pillows", "Ginger Snap Drops"]
-    )
+    expect(page.locator(".candy-card-name")).to_have_text(["Sour Bricks", "Butterscotch Pillows", "Ginger Snap Drops"])
     expect(page.get_by_label("Sort")).to_have_value("price-desc")

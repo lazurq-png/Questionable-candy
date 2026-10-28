@@ -1,4 +1,5 @@
 """Unit tests for the shop's models."""
+
 from decimal import Decimal
 
 import pytest
@@ -40,14 +41,13 @@ def test_stock_defaults_to_zero():
 # through the manager for exactly that reason -- a test that called full_clean
 # would be checking the half of the guarantee that was never in doubt.
 
+
 @pytest.mark.django_db
 def test_a_candy_cannot_be_saved_without_a_flaw():
     """The whole premise of the shop is that every candy discloses one."""
     with pytest.raises(IntegrityError):
         with transaction.atomic():
-            Candy.objects.create(
-                name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw=""
-            )
+            Candy.objects.create(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="")
 
 
 @pytest.mark.django_db
@@ -60,17 +60,13 @@ def test_whitespace_does_not_count_as_a_flaw():
     """
     with pytest.raises(IntegrityError):
         with transaction.atomic():
-            Candy.objects.create(
-                name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   "
-            )
+            Candy.objects.create(name="Suspiciously Perfect Truffle", price=Decimal("3.00"), flaw="   ")
 
 
 @pytest.mark.django_db
 def test_a_candy_with_a_flaw_saves_normally():
     """The constraint must not reject the ordinary case."""
-    candy = Candy.objects.create(
-        name="Hollow Humbug", price=Decimal("9.95"), flaw="Hollow, and not on purpose."
-    )
+    candy = Candy.objects.create(name="Hollow Humbug", price=Decimal("9.95"), flaw="Hollow, and not on purpose.")
 
     assert Candy.objects.get(pk=candy.pk).flaw == "Hollow, and not on purpose."
 
@@ -122,6 +118,7 @@ def test_model_validation_rejects_a_whitespace_flaw_via_the_constraint():
 
 # --- Publication: UC-01 step 2, UC-03 extension 2a ---------------------------
 
+
 @pytest.mark.django_db
 def test_a_new_candy_is_published_unless_said_otherwise():
     """Rows that predate the field must not vanish from the catalog."""
@@ -139,6 +136,7 @@ def test_published_excludes_unpublished_candy():
 
 
 # --- Timestamps: docs/data-model.md section 3.3 -------------------------------
+
 
 @pytest.mark.django_db
 def test_a_new_candy_records_when_it_was_created_and_updated():

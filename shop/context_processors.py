@@ -1,4 +1,5 @@
 """Template context available on every page."""
+
 from . import cart
 
 

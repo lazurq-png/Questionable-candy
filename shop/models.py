@@ -1,6 +1,11 @@
 """The shop's models: candy and orders."""
+
+import uuid
 from collections import Counter
+from collections.abc import Callable, Iterable, Mapping
+from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
@@ -12,11 +17,16 @@ from django.utils.text import slugify
 
 from . import allergens
 
+if TYPE_CHECKING:  # accounts sits outside the shop; checkout imports nothing from here
+    from accounts.models import User
+
+    from .checkout import OrderSnapshot
+
 
 class CandyQuerySet(models.QuerySet):
     """Query helpers, so every view shares one definition of available."""
 
-    def published(self):
+    def published(self) -> "CandyQuerySet":
         """The candy a customer may see or buy (UC-01 step 2, UC-03 ext. 2a)."""
         return self.filter(is_published=True)
 
@@ -34,7 +44,7 @@ class FlawSeverity(models.IntegerChoices):
     DENTAL = 3, "Call your dentist"
 
 
-def unique_candy_slug(name, taken):
+def unique_candy_slug(name: str, taken: Callable[[str], bool]) -> str:
     """A slug for `name` that `taken(slug)` says is free.
 
     slugify(name), with "-2", "-3", ... when that is taken, since two different
@@ -54,6 +64,7 @@ def unique_candy_slug(name, taken):
 
 class Candy(models.Model):
     """A candy for sale, with the flaw it is sold with."""
+
     # Unique (docs/data-model.md section 3.3): two candies of one name could not
     # be told apart in the catalog, and their slugs would need suffixes.
     name = models.CharField(max_length=200, unique=True)
@@ -62,10 +73,12 @@ class Candy(models.Model):
     # working. The admin fills it in as the name is typed; left blank, save()
     # makes one.
     slug = models.SlugField(
-        max_length=220, unique=True, blank=True,
+        max_length=220,
+        unique=True,
+        blank=True,
         validators=[RegexValidator(r"\D", "A slug needs a letter or a dash; digits alone read as a number.")],
         help_text="The candy's web address, filled in from the name. Set once: /candy/<number>/ "
-                  "redirects here permanently, and browsers cache that.",
+        "redirects here permanently, and browsers cache that.",
     )
     # UC-03 step 2 renders this on the detail page. Not null (docs/data-model.md
     # section 3.3) but not mandatory: UC-06 singles out `flaw` as the field that
@@ -83,7 +96,9 @@ class Candy(models.Model):
     # it off as harmless. The database holds it to the three values as well
     # (Meta.constraints).
     flaw_severity = models.PositiveSmallIntegerField(
-        choices=FlawSeverity.choices, null=True, blank=True,
+        choices=FlawSeverity.choices,
+        null=True,
+        blank=True,
         help_text="How bad the flaw is. Leave empty if it has not been rated yet.",
     )
     # docs/data-model.md section 3.3. Default True so rows that existed before
@@ -98,7 +113,10 @@ class Candy(models.Model):
     # the warning names a candy with unknown sugar rather than counting it as
     # sugar-free. The database holds it to 0-100 as well (Meta.constraints).
     sugar_content_g = models.DecimalField(
-        max_digits=4, decimal_places=1, null=True, blank=True,
+        max_digits=4,
+        decimal_places=1,
+        null=True,
+        blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         help_text="Grams of sugar per 100 g. Leave empty if unknown.",
     )
@@ -106,7 +124,8 @@ class Candy(models.Model):
     # checked by full_clean() and forms, not by the database.
     allergens = ArrayField(
         models.CharField(max_length=allergens.KEY_LENGTH, choices=allergens.ALLERGENS),
-        blank=True, default=list,
+        blank=True,
+        default=list,
     )
     # docs/data-model.md section 3.3. Rows that existed before migration 0007
     # hold the time that migration ran, not when they were really created:
@@ -160,8 +179,7 @@ class Candy(models.Model):
             # The choices are checked by full_clean() and forms only, and
             # objects.create() or update() skip both -- as with flaw and slug.
             models.CheckConstraint(
-                condition=models.Q(flaw_severity__isnull=True)
-                | models.Q(flaw_severity__in=FlawSeverity.values),
+                condition=models.Q(flaw_severity__isnull=True) | models.Q(flaw_severity__in=FlawSeverity.values),
                 name="candy_flaw_severity_is_known",
                 violation_error_message="A flaw severity must be one of the listed ratings.",
             ),
@@ -170,7 +188,7 @@ class Candy(models.Model):
     def __str__(self):
         return self.name
 
-    def ensure_slug(self):
+    def ensure_slug(self) -> None:
         """Give the candy its slug from its name, if nobody set one."""
         if not self.slug:
             self.slug = unique_candy_slug(
@@ -192,11 +210,11 @@ class Candy(models.Model):
         self.ensure_slug()
         super().save(*args, **kwargs)
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         """The candy's own page, by slug (UC-03)."""
         return reverse("candy_detail", args=[self.slug])
 
-    def allergen_names(self):
+    def allergen_names(self) -> list[str]:
         """The allergens' labels, in the vocabulary's order, for display."""
         return allergens.names(self.allergens)
 
@@ -207,12 +225,12 @@ class OrderChanged(Exception):
     `candies` names each affected candy, for the customer (UC-05 ext. 4a).
     """
 
-    def __init__(self, candies):
+    def __init__(self, candies: list[str]) -> None:
         super().__init__(", ".join(candies))
         self.candies = candies
 
 
-def move_stock(changes):
+def move_stock(changes: Mapping[int, int]) -> None:
     """Take stock (positive quantity) or return it (negative), per candy pk.
 
     Call inside a transaction: the candies are locked, in primary-key order as
@@ -229,7 +247,14 @@ def move_stock(changes):
 class OrderManager(models.Manager):
     """Customers' orders are created through place(); administrators' in the admin."""
 
-    def place(self, user, snapshot, warning_acknowledged_at, purchase_confirmed_at, confirmation_token):
+    def place(
+        self,
+        user: "User",
+        snapshot: "OrderSnapshot",
+        warning_acknowledged_at: datetime,
+        purchase_confirmed_at: datetime,
+        confirmation_token: uuid.UUID | str,
+    ) -> "Order":
         """UC-05 steps 4 and 7: re-validate the confirmed order, then record it.
 
         `snapshot` is what the customer confirmed (shop.checkout.order_snapshot):
@@ -281,8 +306,9 @@ class OrderManager(models.Manager):
                 confirmation_token=confirmation_token,
             )
             OrderItem.objects.bulk_create(
-                OrderItem(order=order, candy=candies[pk], quantity=quantity, unit_price=price,
-                          subtotal=price * quantity)
+                OrderItem(
+                    order=order, candy=candies[pk], quantity=quantity, unit_price=price, subtotal=price * quantity
+                )
                 for pk, quantity, price in lines
             )
             for pk, quantity, _ in lines:
@@ -291,7 +317,7 @@ class OrderManager(models.Manager):
                 candy.save(update_fields=["stock", "updated_at"])
         return order
 
-    def delete_and_restock(self, orders):
+    def delete_and_restock(self, orders: Iterable["Order"]) -> None:
         """Delete orders; any not fulfilled (not yet sent) return their items to stock.
 
         The orders are locked first, so two admins deleting the same order at
@@ -299,7 +325,7 @@ class OrderManager(models.Manager):
         """
         with transaction.atomic():
             locked = list(self.select_for_update().filter(pk__in=[o.pk for o in orders]).order_by("pk"))
-            returned = Counter()
+            returned: Counter[int] = Counter()
             for order in locked:
                 if order.status != Order.Status.FULFILLED:
                     returned.update(order.line_counts())
@@ -343,15 +369,15 @@ class Order(models.Model):
             models.CheckConstraint(condition=models.Q(total_amount__gte=0), name="order_total_not_negative"),
         ]
 
-    def line_counts(self):
+    def line_counts(self) -> Counter[int]:
         """{candy pk: total quantity} across this order's lines."""
-        counts = Counter()
+        counts: Counter[int] = Counter()
         for candy_pk, quantity in self.items.values_list("candy", "quantity"):
             counts[candy_pk] += quantity
         return counts
 
     def __str__(self):
-        """"<username> <yyyy-mm-dd>": who placed it, and the day, in the site's
+        """ "<username> <yyyy-mm-dd>": who placed it, and the day, in the site's
         time zone (settings.TIME_ZONE). Not unique -- one customer's two orders
         on one day share it. An order not yet saved is dated today.
         """

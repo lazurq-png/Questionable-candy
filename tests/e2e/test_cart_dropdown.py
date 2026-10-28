@@ -5,6 +5,7 @@ page around it: that the toggle opens it without navigating, that it stays in
 view and beside the content rather than over it, that it keeps up with the
 steppers while open, and that its Checkout button arrives at the checkout.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -142,9 +143,7 @@ def test_escape_closes_the_dropdown_and_returns_focus_to_the_toggle(live_server,
     expect(toggle).to_be_focused()
 
 
-def test_checkout_from_the_dropdown_shows_the_order(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_checkout_from_the_dropdown_shows_the_order(live_server, page, assert_page_is_fully_rendered):
     """The button at the bottom of the dropdown leads to the checkout page."""
     CandyFactory(name="Sour Bricks", price=Decimal("2.50"), stock=9)
     CandyFactory(name="Hollow Humbug", price=Decimal("1.25"), stock=9)

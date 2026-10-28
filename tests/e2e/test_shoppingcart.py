@@ -4,6 +4,7 @@ The integration tests prove the server's rules. These prove the page carries
 them out: that the hx-post fires with a CSRF token, the right fragment is
 swapped in, and the header count and totals follow along without a reload.
 """
+
 from decimal import Decimal
 
 from playwright.sync_api import expect
@@ -42,9 +43,7 @@ def test_adding_from_the_catalog_updates_the_header_and_fills_the_cart(
     assert_page_is_fully_rendered(page)
 
 
-def test_changing_a_quantity_updates_the_totals_and_caps_at_stock(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_changing_a_quantity_updates_the_totals_and_caps_at_stock(live_server, page, assert_page_is_fully_rendered):
     """Step 4 and extension 2a, including the message the cap must show."""
     CandyFactory(name="Hollow Humbug", price=Decimal("1.25"), stock=3)
     page.goto(live_server.url)
@@ -64,22 +63,16 @@ def test_changing_a_quantity_updates_the_totals_and_caps_at_stock(
 
     page.get_by_label("Quantity of Hollow Humbug", exact=True).fill("40")
     page.get_by_role("button", name="Update quantity of Hollow Humbug").click()
-    expect(page.get_by_test_id("shoppingcart-messages")).to_contain_text(
-        "Only 3 of Hollow Humbug in stock"
-    )
+    expect(page.get_by_test_id("shoppingcart-messages")).to_contain_text("Only 3 of Hollow Humbug in stock")
     # ...and the same message reaches the live region that was on the page all
     # along -- the element a screen reader is actually listening to.
-    expect(page.get_by_test_id("announcer")).to_have_text(
-        "Only 3 of Hollow Humbug in stock, so the quantity is 3."
-    )
+    expect(page.get_by_test_id("announcer")).to_have_text("Only 3 of Hollow Humbug in stock, so the quantity is 3.")
     expect(page.get_by_label("Quantity of Hollow Humbug", exact=True)).to_have_value("3")
     expect(page.get_by_test_id("shoppingcart-total")).to_have_text("$3.75")
     assert_page_is_fully_rendered(page)
 
 
-def test_removing_the_last_item_shows_the_empty_cart(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_removing_the_last_item_shows_the_empty_cart(live_server, page, assert_page_is_fully_rendered):
     """Step 4 and extension 4a."""
     CandyFactory(name="Sour Bricks", stock=5)
     page.goto(live_server.url)
@@ -119,9 +112,7 @@ def test_adding_more_than_is_in_stock_is_refused_on_the_page(
     assert_page_is_fully_rendered(page)
 
 
-def test_an_out_of_stock_candy_offers_no_add_to_cart(
-    live_server, page, assert_page_is_fully_rendered
-):
+def test_an_out_of_stock_candy_offers_no_add_to_cart(live_server, page, assert_page_is_fully_rendered):
     """The button is there, disabled and saying why, rather than missing."""
     CandyFactory(name="Chili Mango Chews", stock=0)
 

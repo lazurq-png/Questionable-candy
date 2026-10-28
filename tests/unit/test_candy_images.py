@@ -6,6 +6,7 @@ script or an event handler in one of these files would be stored XSS. The scan
 below is the guard; it parses the files rather than grepping them, so an
 attribute split across lines or oddly cased still counts.
 """
+
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path

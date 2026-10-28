@@ -12,22 +12,44 @@ allergies. If any of that changes, the fingerprint no longer matches and the
 warning has to be read again: UC-07 asks that the warning be acknowledged,
 and a warning about a different order was not.
 """
+
 import hashlib
 import json
 import uuid
-from datetime import datetime
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING, Any, TypedDict
 
+from django.http import HttpRequest
 from django.utils import timezone
 
 from . import allergens
+
+if TYPE_CHECKING:  # cart imports this module, and accounts sits outside the shop
+    from accounts.models import User
+
+    from .cart import Line
 
 SESSION_KEY = "checkout"
 
 # How much candy one bag is, for turning sugar per 100 g into grams. The shop
 # records no bag weights, so every bag counts as 100 g, and the warning says so.
 GRAMS_PER_BAG = Decimal("100")
+
+
+class OrderSnapshot(TypedDict):
+    """What the confirmation page showed, as order_snapshot() builds it.
+
+    JSON-safe for the session: each line is [candy pk, quantity, unit price as
+    a string], and the total is a string too, so no Decimal is lost to a float.
+    A line stays a list -- the session's JSON gives back lists -- so its mixed
+    element types cannot be spelled out, hence Any.
+    """
+
+    lines: list[list[Any]]
+    total: str
 
 
 @dataclass(frozen=True)
@@ -62,15 +84,16 @@ class HealthWarning:
     your_allergies: list[str] = field(default_factory=list)
 
     @property
-    def matches(self):
+    def matches(self) -> list[AllergenInOrder]:
         """The allergens in the order that the customer said they are allergic to."""
         return [allergen for allergen in self.allergens if allergen.yours]
 
 
-def health_warning(lines, user):
+def health_warning(lines: Sequence["Line"], user: "User") -> HealthWarning:
     """The warning for `lines` (cart.Line) and the signed-in `user`."""
     yours = set(user.allergies)
-    sugar_lines, unknown = [], []
+    sugar_lines: list[SugarLine] = []
+    unknown: list[str] = []
     total = Decimal("0.0")
     for line in lines:
         per_100g = line.candy.sugar_content_g
@@ -82,7 +105,7 @@ def health_warning(lines, user):
             total += grams
         sugar_lines.append(SugarLine(line.candy.name, line.quantity, per_100g, grams))
 
-    in_order = []
+    in_order: list[AllergenInOrder] = []
     for key, label in allergens.ALLERGENS:
         candies = [line.candy.name for line in lines if key in line.candy.allergens]
         if candies:
@@ -98,7 +121,7 @@ def health_warning(lines, user):
     )
 
 
-def _fingerprint(lines, your_allergies):
+def _fingerprint(lines: Sequence["Line"], your_allergies: Iterable[str]) -> str:
     content = {
         "lines": sorted(
             [line.candy.pk, line.quantity, str(line.candy.sugar_content_g), sorted(line.candy.allergens)]
@@ -109,7 +132,7 @@ def _fingerprint(lines, your_allergies):
     return hashlib.sha256(json.dumps(content).encode()).hexdigest()
 
 
-def acknowledge(request, warning):
+def acknowledge(request: HttpRequest, warning: HealthWarning) -> None:
     """Record that the customer acknowledged exactly this warning, and when.
 
     Starts checkout progress afresh: a confirmation made before acknowledging
@@ -120,22 +143,22 @@ def acknowledge(request, warning):
     }
 
 
-def _stored(request):
+def _stored(request: HttpRequest) -> dict:
     stored = request.session.get(SESSION_KEY, {})
     return stored if isinstance(stored, dict) else {}
 
 
-def _save(request, **changes):
+def _save(request: HttpRequest, **changes: object) -> None:
     request.session[SESSION_KEY] = {**_stored(request), **changes}
 
 
-def is_acknowledged(request, warning):
+def is_acknowledged(request: HttpRequest, warning: HealthWarning) -> bool:
     """Whether this warning, as it now stands, has been acknowledged."""
     acknowledged = _stored(request).get("warning", {})
     return isinstance(acknowledged, dict) and acknowledged.get("fingerprint") == warning.fingerprint
 
 
-def order_snapshot(lines, total):
+def order_snapshot(lines: Sequence["Line"], total: Decimal) -> OrderSnapshot:
     """Exactly what the confirmation page shows: each line's candy, quantity and
     unit price, and the total. JSON-safe, so it can live in the session.
     """
@@ -145,12 +168,12 @@ def order_snapshot(lines, total):
     }
 
 
-def snapshot_fingerprint(snapshot):
+def snapshot_fingerprint(snapshot: OrderSnapshot) -> str:
     """A short hash of a snapshot, for the page to post back as what it showed."""
     return hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest()
 
 
-def show_for_confirmation(request, snapshot):
+def show_for_confirmation(request: HttpRequest, snapshot: OrderSnapshot) -> str:
     """Remember the order the confirmation page is showing, and give this showing
     of the page a new token. Returns the token, for the page to post back.
     """
@@ -159,16 +182,16 @@ def show_for_confirmation(request, snapshot):
     return token
 
 
-def confirmation_token(request):
+def confirmation_token(request: HttpRequest) -> str | None:
     """The token of the confirmation page last shown, or None."""
     return _stored(request).get("token")
 
 
-def shown_for_confirmation(request):
+def shown_for_confirmation(request: HttpRequest) -> OrderSnapshot | None:
     """The order the confirmation page last showed, or None."""
     return _stored(request).get("showing")
 
 
-def acknowledged_at(request):
+def acknowledged_at(request: HttpRequest) -> datetime:
     """When the health warning now in force was acknowledged, for the order record."""
     return datetime.fromisoformat(_stored(request)["warning"]["at"])

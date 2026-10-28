@@ -3,6 +3,7 @@
 Used through ``@pytest.mark.urls`` only, so the failing view never exists in the
 real URLconf. Not collected by pytest: the name does not match ``test_*.py``.
 """
+
 from django.urls import include, path
 
 

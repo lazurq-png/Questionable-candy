@@ -5,6 +5,7 @@ the dialogs open and close, that the green plus and the red X save through
 them, that a save's messages and errors arrive as popups, and that the page
 comes back where it was.
 """
+
 import uuid
 from decimal import Decimal
 
@@ -51,6 +52,7 @@ def fixture_candies():
 @pytest.fixture(name="open_order")
 def fixture_open_order(live_server, page, assert_page_is_fully_rendered):
     """Log in and open an order's change page."""
+
     def open_order(order):
         page.goto(f"{live_server.url}/admin/login/?next=/admin/shop/order/{order.pk}/change/")
         page.get_by_label("Username").fill("admin")
@@ -223,6 +225,16 @@ def test_a_save_keeps_the_lines_where_they_were_on_screen(page, admin, candies, 
     assert page.evaluate("window.scrollY") > 0, "the page must scroll for this to test anything"
     before = page.evaluate(lines_top)
 
+    # On the reloaded page, switch off the browser's scroll anchoring. It
+    # usually hides Django's DateTimeShortcuts pushing the lines down after the
+    # first restore, but not reliably (it failed on CI), so the script must
+    # hold the position on its own.
+    page.add_init_script(
+        "document.addEventListener('DOMContentLoaded', () => {"
+        " const style = document.createElement('style');"
+        " style.textContent = '* { overflow-anchor: none !important; }';"
+        " document.head.append(style); });"
+    )
     page.get_by_role("button", name="Add another Order item").click()
     dialog = page.get_by_role("dialog", name="Add a candy to the order")
     dialog.get_by_label("Candy").select_option(label="Drops")

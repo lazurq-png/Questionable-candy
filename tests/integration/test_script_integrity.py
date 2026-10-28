@@ -3,6 +3,7 @@
 ADR 0006 chose htmx and Alpine from a CDN and recorded the gap this closes: the
 tags named a version but nothing checked what came back.
 """
+
 import re
 
 import pytest
@@ -26,8 +27,8 @@ def test_the_page_loads_exactly_the_two_scripts_adr_0006_chose(client):
     tags = script_tags(client)
 
     assert len(tags) == 2
-    assert "htmx.org@2.0.3" in tags[0]
-    assert "alpinejs@3.14.1" in tags[1]
+    assert "htmx.org@2.0.11" in tags[0]
+    assert "alpinejs@3.15.12" in tags[1]
 
 
 def test_every_external_script_is_pinned_by_hash(client):

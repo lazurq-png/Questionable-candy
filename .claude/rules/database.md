@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/models.py"
+  - "**/migrations/**"
+---
+
 # Database Engineering Rules
 
 Open this for schema, migration, and persistence work. Database changes are high-risk changes — treat existing data as valuable production state.

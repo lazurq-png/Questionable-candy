@@ -4,8 +4,9 @@
 moment between confirming and placing -- a price, stock or publication change
 -- and through the view for what the customer sees.
 """
+
 import uuid
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -15,8 +16,8 @@ from django.db.models import ProtectedError
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from shop.checkout import SESSION_KEY, order_snapshot, snapshot_fingerprint
 from shop.cart import Line
+from shop.checkout import SESSION_KEY, order_snapshot, snapshot_fingerprint
 from shop.models import Candy, Order, OrderChanged, OrderItem
 from tests.factories.candy_factory import CandyFactory
 from tests.integration.test_checkout_confirm import confirm
@@ -24,8 +25,8 @@ from tests.integration.test_checkout_warning import acknowledge, add, browser
 
 pytestmark = pytest.mark.django_db
 
-ACKNOWLEDGED = datetime(2026, 9, 17, 20, 0, tzinfo=dt_timezone.utc)
-CONFIRMED = datetime(2026, 9, 17, 20, 5, tzinfo=dt_timezone.utc)
+ACKNOWLEDGED = datetime(2026, 9, 17, 20, 0, tzinfo=UTC)
+CONFIRMED = datetime(2026, 9, 17, 20, 5, tzinfo=UTC)
 
 
 @pytest.fixture(name="ada")
@@ -56,6 +57,7 @@ def place(user, snapshot, token=None):
 
 # --- Order.objects.place --------------------------------------------------------
 
+
 def test_placing_records_the_order_its_lines_at_confirmed_prices_and_reduces_stock(ada, candies):
     """UC-05 step 7: a pending order, price snapshots, and stock taken."""
     toffee, drops = candies
@@ -70,7 +72,10 @@ def test_placing_records_the_order_its_lines_at_confirmed_prices_and_reduces_sto
     assert order.paid_at is None
     items = {item.candy.name: item for item in order.items.all()}
     assert (items["Toffee"].quantity, items["Toffee"].unit_price, items["Toffee"].subtotal) == (
-        2, Decimal("3.00"), Decimal("6.00"))
+        2,
+        Decimal("3.00"),
+        Decimal("6.00"),
+    )
     assert (items["Drops"].quantity, items["Drops"].subtotal) == (2, Decimal("10.00"))
     assert Candy.objects.get(pk=toffee.pk).stock == 3
     assert Candy.objects.get(pk=drops.pk).stock == 0
@@ -134,11 +139,15 @@ def test_a_later_price_change_does_not_change_a_placed_order(ada, candies):
     assert order.items.get().unit_price == Decimal("3.00")
 
 
-@pytest.mark.parametrize("change", [
-    {"price": Decimal("3.50")},
-    {"stock": 1},
-    {"is_published": False},
-], ids=["price", "stock", "unpublished"])
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"price": Decimal("3.50")},
+        {"stock": 1},
+        {"is_published": False},
+    ],
+    ids=["price", "stock", "unpublished"],
+)
 def test_anything_changed_since_confirming_stops_the_order_with_nothing_written(ada, candies, change):
     """UC-05 step 4 and ext. 4a: the affected candy is named; no order, stock untouched."""
     toffee, drops = candies
@@ -182,8 +191,9 @@ def test_the_database_refuses_an_item_whose_subtotal_is_not_quantity_times_price
     order = place(ada, snapshot_of((candies[0], 1)))
 
     with pytest.raises(IntegrityError), transaction.atomic():
-        OrderItem.objects.create(order=order, candy=candies[1], quantity=2, unit_price=Decimal("5.00"),
-                                 subtotal=Decimal("9.00"))
+        OrderItem.objects.create(
+            order=order, candy=candies[1], quantity=2, unit_price=Decimal("5.00"), subtotal=Decimal("9.00")
+        )
 
 
 def test_the_database_refuses_an_item_of_zero(ada, candies):
@@ -191,8 +201,9 @@ def test_the_database_refuses_an_item_of_zero(ada, candies):
     order = place(ada, snapshot_of((candies[0], 1)))
 
     with pytest.raises(IntegrityError), transaction.atomic():
-        OrderItem.objects.create(order=order, candy=candies[1], quantity=0, unit_price=Decimal("5.00"),
-                                 subtotal=Decimal("0.00"))
+        OrderItem.objects.create(
+            order=order, candy=candies[1], quantity=0, unit_price=Decimal("5.00"), subtotal=Decimal("0.00")
+        )
 
 
 def test_an_ordered_candy_and_a_customer_with_orders_cannot_be_deleted(ada, candies):
@@ -206,6 +217,7 @@ def test_an_ordered_candy_and_a_customer_with_orders_cannot_be_deleted(ada, cand
 
 
 # --- Through checkout ------------------------------------------------------------
+
 
 @pytest.fixture(name="confirming")
 def fixture_confirming(ada, candies):
@@ -241,8 +253,14 @@ def test_placing_through_checkout_empties_the_cart_and_shows_the_receipt(confirm
 def test_submitting_the_confirmation_twice_places_one_order(confirming):
     """One after the other: the second submit finds an empty cart."""
     first = confirm(confirming)
-    resubmitted = {"csrfmiddlewaretoken": confirming.token, "checked_order": "on",
-                   "typed_total": "11.00", "place_order": "yes", "shown": "x", "token": "x"}
+    resubmitted = {
+        "csrfmiddlewaretoken": confirming.token,
+        "checked_order": "on",
+        "typed_total": "11.00",
+        "place_order": "yes",
+        "shown": "x",
+        "token": "x",
+    }
 
     second = confirming.post(reverse("checkout_confirm"), resubmitted)
 
@@ -258,10 +276,16 @@ def test_a_double_click_whose_two_submits_both_see_the_full_cart_places_one_orde
     """
     session = confirming.session
     before = {"shoppingcart": dict(session["shoppingcart"]), SESSION_KEY: dict(session[SESSION_KEY])}
-    data = {"csrfmiddlewaretoken": confirming.token, **{
-        "checked_order": "on", "typed_total": "11.00", "place_order": "yes",
-        "shown": snapshot_fingerprint(before[SESSION_KEY]["showing"]), "token": before[SESSION_KEY]["token"],
-    }}
+    data = {
+        "csrfmiddlewaretoken": confirming.token,
+        **{
+            "checked_order": "on",
+            "typed_total": "11.00",
+            "place_order": "yes",
+            "shown": snapshot_fingerprint(before[SESSION_KEY]["showing"]),
+            "token": before[SESSION_KEY]["token"],
+        },
+    }
 
     first = confirming.post(reverse("checkout_confirm"), data)
     session = confirming.session
@@ -277,8 +301,10 @@ def test_a_double_click_whose_two_submits_both_see_the_full_cart_places_one_orde
 
 def test_a_change_in_the_moment_before_placing_keeps_the_cart_and_names_the_candy(confirming, monkeypatch):
     """UC-05 ext. 4a through the view: the race place() guards against, simulated."""
+
     def changed(*args, **kwargs):
         raise OrderChanged(["Toffee"])
+
     monkeypatch.setattr(Order.objects, "place", changed)
     cart_before = dict(confirming.session["shoppingcart"])
 
@@ -302,6 +328,7 @@ def test_a_receipt_is_only_for_the_customer_who_placed_the_order(ada, candies):
 
 
 # --- Admin -----------------------------------------------------------------------
+
 
 def order_form(user, lines=(), status="pending", initial=0):
     """The admin's order add/change form; each of `lines` is one inline row's fields."""
@@ -348,8 +375,9 @@ def test_an_existing_lines_candy_is_its_name_opening_its_details(admin_client, a
     page = admin_client.get(reverse("admin:shop_order_change", args=[order.pk])).content.decode()
 
     assert 'name="items-0-candy"' not in page
-    assert ('<span class="candy-line-title">2 x <button type="button" '
-            'data-candy-dialog="id_items-0-candy-dialog"') in page
+    assert (
+        '<span class="candy-line-title">2 x <button type="button" data-candy-dialog="id_items-0-candy-dialog"'
+    ) in page
     assert '<dialog id="id_items-0-candy-dialog"' in page
     assert toffee.flaw in page
 
@@ -372,9 +400,16 @@ def test_an_existing_lines_candy_cannot_be_swapped(admin_client, ada, candies):
     order = place(ada, snapshot_of((toffee, 2)))
     line = order.items.get()
 
-    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), order_form(ada, [
-        {"id": line.pk, "order": order.pk, "candy": drops.pk, "quantity": 2, "unit_price": "3.00"},
-    ], initial=1))
+    response = admin_client.post(
+        reverse("admin:shop_order_change", args=[order.pk]),
+        order_form(
+            ada,
+            [
+                {"id": line.pk, "order": order.pk, "candy": drops.pk, "quantity": 2, "unit_price": "3.00"},
+            ],
+            initial=1,
+        ),
+    )
 
     assert response.status_code == 302
     assert order.items.get().candy == toffee
@@ -385,8 +420,9 @@ def test_an_administrator_can_add_an_order_at_the_candys_current_price(admin_cli
     """A blank unit price is the candy's price; the order gets a token and its total, and takes stock."""
     toffee, _ = candies
 
-    response = admin_client.post(reverse("admin:shop_order_add"), order_form(
-        ada, [{"candy": toffee.pk, "quantity": 2, "unit_price": ""}]))
+    response = admin_client.post(
+        reverse("admin:shop_order_add"), order_form(ada, [{"candy": toffee.pk, "quantity": 2, "unit_price": ""}])
+    )
 
     assert response.status_code == 302
     order = Order.objects.get()
@@ -399,8 +435,10 @@ def test_an_administrator_can_add_an_order_at_the_candys_current_price(admin_cli
 
 def test_a_unit_price_typed_by_the_administrator_is_kept(admin_client, ada, candies):
     """The current price is only the default."""
-    response = admin_client.post(reverse("admin:shop_order_add"), order_form(
-        ada, [{"candy": candies[0].pk, "quantity": 1, "unit_price": "2.50"}]))
+    response = admin_client.post(
+        reverse("admin:shop_order_add"),
+        order_form(ada, [{"candy": candies[0].pk, "quantity": 1, "unit_price": "2.50"}]),
+    )
 
     assert response.status_code == 302
     assert Order.objects.get().total_amount == Decimal("2.50")
@@ -411,9 +449,13 @@ def test_a_line_sent_as_the_add_dialog_sends_it_is_added_at_the_current_price(ad
     toffee, drops = candies
     order = place(ada, snapshot_of((toffee, 2)))
     line = order.items.get()
-    data = order_form(ada, [
-        {"id": line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 2, "unit_price": "3.00"},
-    ], initial=1)
+    data = order_form(
+        ada,
+        [
+            {"id": line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 2, "unit_price": "3.00"},
+        ],
+        initial=1,
+    )
     data.update({"items-TOTAL_FORMS": 2, "items-1-candy": drops.pk, "items-1-quantity": 2, "_continue": "Save"})
     del data["_save"]
 
@@ -434,15 +476,26 @@ def test_adding_a_candy_the_order_already_has_adds_to_its_line(admin_client, ada
     order = place(ada, snapshot_of((toffee, 2)))  # stock: toffee 3
     line = order.items.get()
 
-    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), order_form(ada, [
-        {"id": line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 2, "unit_price": "3.00"},
-        {"candy": toffee.pk, "quantity": 1, "unit_price": "9.99"},
-    ], initial=1))
+    response = admin_client.post(
+        reverse("admin:shop_order_change", args=[order.pk]),
+        order_form(
+            ada,
+            [
+                {"id": line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 2, "unit_price": "3.00"},
+                {"candy": toffee.pk, "quantity": 1, "unit_price": "9.99"},
+            ],
+            initial=1,
+        ),
+    )
 
     assert response.status_code == 302
     merged = order.items.get()
     assert (merged.pk, merged.quantity, merged.unit_price, merged.subtotal) == (
-        line.pk, 3, Decimal("3.00"), Decimal("9.00"))
+        line.pk,
+        3,
+        Decimal("3.00"),
+        Decimal("9.00"),
+    )
     order.refresh_from_db()
     assert order.total_amount == Decimal("9.00")
     assert stock(toffee) == 2
@@ -452,10 +505,16 @@ def test_two_new_lines_for_one_candy_become_one(admin_client, ada, candies):
     """The same rule on a new order, with nothing saved yet to join."""
     toffee, _ = candies
 
-    response = admin_client.post(reverse("admin:shop_order_add"), order_form(ada, [
-        {"candy": toffee.pk, "quantity": 1, "unit_price": ""},
-        {"candy": toffee.pk, "quantity": 2, "unit_price": ""},
-    ]))
+    response = admin_client.post(
+        reverse("admin:shop_order_add"),
+        order_form(
+            ada,
+            [
+                {"candy": toffee.pk, "quantity": 1, "unit_price": ""},
+                {"candy": toffee.pk, "quantity": 2, "unit_price": ""},
+            ],
+        ),
+    )
 
     assert response.status_code == 302
     item = Order.objects.get().items.get()
@@ -469,11 +528,24 @@ def test_editing_an_orders_lines_moves_stock_by_the_difference(admin_client, ada
     order = place(ada, snapshot_of((toffee, 2), (drops, 1)))  # stock: toffee 3, drops 1
     toffee_line, drops_line = order.items.order_by("pk")
 
-    response = admin_client.post(reverse("admin:shop_order_change", args=[order.pk]), order_form(ada, [
-        {"id": toffee_line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 3, "unit_price": "3.00"},
-        {"id": drops_line.pk, "order": order.pk, "candy": drops.pk, "quantity": 1, "unit_price": "5.00",
-         "DELETE": "on"},
-    ], initial=2))
+    response = admin_client.post(
+        reverse("admin:shop_order_change", args=[order.pk]),
+        order_form(
+            ada,
+            [
+                {"id": toffee_line.pk, "order": order.pk, "candy": toffee.pk, "quantity": 3, "unit_price": "3.00"},
+                {
+                    "id": drops_line.pk,
+                    "order": order.pk,
+                    "candy": drops.pk,
+                    "quantity": 1,
+                    "unit_price": "5.00",
+                    "DELETE": "on",
+                },
+            ],
+            initial=2,
+        ),
+    )
 
     assert response.status_code == 302
     order.refresh_from_db()
@@ -486,8 +558,9 @@ def test_an_order_line_beyond_the_stock_is_refused(admin_client, ada, candies):
     """The form says which candy is short, and nothing is saved."""
     toffee, _ = candies
 
-    response = admin_client.post(reverse("admin:shop_order_add"), order_form(
-        ada, [{"candy": toffee.pk, "quantity": 6, "unit_price": ""}]))
+    response = admin_client.post(
+        reverse("admin:shop_order_add"), order_form(ada, [{"candy": toffee.pk, "quantity": 6, "unit_price": ""}])
+    )
 
     assert response.status_code == 200
     assert "Not enough stock: Toffee." in response.content.decode()
@@ -528,8 +601,10 @@ def test_deleting_selected_orders_from_the_list_returns_their_stock(admin_client
     first = place(ada, snapshot_of((toffee, 2)))
     second = place(ada, snapshot_of((toffee, 1), (drops, 2)))
 
-    response = admin_client.post(reverse("admin:shop_order_changelist"), {
-        "action": "delete_selected", "_selected_action": [first.pk, second.pk], "post": "yes"})
+    response = admin_client.post(
+        reverse("admin:shop_order_changelist"),
+        {"action": "delete_selected", "_selected_action": [first.pk, second.pk], "post": "yes"},
+    )
 
     assert response.status_code == 302
     assert not Order.objects.exists()
@@ -560,9 +635,9 @@ def test_staff_without_order_permissions_cannot_see_or_change_orders(client, ada
 
 
 def test_an_order_is_named_by_its_customer_and_the_day_it_was_placed(admin_client, ada, candies):
-    """"<username> <yyyy-mm-dd>", in the site's time zone, wherever the admin names it."""
+    """ "<username> <yyyy-mm-dd>", in the site's time zone, wherever the admin names it."""
     order = place(ada, snapshot_of((candies[0], 1)))
-    Order.objects.filter(pk=order.pk).update(created_at=datetime(2026, 9, 3, 23, 30, tzinfo=dt_timezone.utc))
+    Order.objects.filter(pk=order.pk).update(created_at=datetime(2026, 9, 3, 23, 30, tzinfo=UTC))
     order.refresh_from_db()
 
     assert str(order) == "ada 2026-09-03"
@@ -571,6 +646,7 @@ def test_an_order_is_named_by_its_customer_and_the_day_it_was_placed(admin_clien
 
 def test_the_order_list_names_its_orders_without_a_query_each(admin_client, candies):
     """Each name needs its customer, fetched with the orders rather than one query per row."""
+
     def list_queries():
         with CaptureQueriesContext(connection) as queries:
             assert admin_client.get(reverse("admin:shop_order_changelist")).status_code == 200

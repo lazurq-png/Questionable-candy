@@ -4,6 +4,7 @@ Every client here enforces CSRF and posts with the token a page actually
 handed out, because the default test client would pass even if every real
 browser were refused (docs/adr/0006-frontend-htmx-alpine.md).
 """
+
 from decimal import Decimal
 
 import pytest
@@ -54,6 +55,7 @@ def stored(client):
 
 # --- Adding: UC-04 steps 1-3 and ext. 2a -------------------------------------
 
+
 def test_adding_updates_the_session_and_the_header_count(shopper):
     """Step 3: the cart changes and the page shows the change."""
     candy = CandyFactory(stock=5)
@@ -101,6 +103,7 @@ def test_the_catalog_disables_add_to_cart_for_an_out_of_stock_candy(shopper):
 
 
 # --- The stepper: UC-04 steps 3-4 from the catalog ---------------------------
+
 
 def test_the_catalog_steppers_show_what_is_already_in_the_cart(shopper):
     """A page loaded after adding starts from the cart, not from zero."""
@@ -262,8 +265,8 @@ def test_plus_is_greyed_out_once_every_one_in_stock_is_in_the_cart(shopper):
     all_of_them = add(shopper, candy).content.decode()
 
     assert stored(shopper) == {str(candy.pk): 2}
-    plus = all_of_them[all_of_them.index(f'id="page-add-one-{candy.pk}"'):]
-    assert 'aria-disabled="true"' in plus[:plus.index("</button>")]
+    plus = all_of_them[all_of_them.index(f'id="page-add-one-{candy.pk}"') :]
+    assert 'aria-disabled="true"' in plus[: plus.index("</button>")]
 
 
 def test_a_greyed_out_plus_pressed_anyway_still_says_why(shopper):
@@ -306,6 +309,7 @@ def test_minus_on_a_candy_unpublished_since_still_takes_it_out(shopper):
 
 
 # --- The header's cart dropdown ------------------------------------------------
+
 
 def test_the_dropdown_lists_every_item_and_the_total_and_offers_checkout(shopper):
     """Every line with its quantity and total, and the way on to checkout."""
@@ -355,6 +359,7 @@ def test_cart_page_changes_tell_the_dropdown_to_reload(shopper):
 
 
 # --- Checkout: UC-05 step 1 ---------------------------------------------------
+
 
 def test_checkout_lists_the_lines_and_the_total(shopper):
     """The order under review, read-only."""
@@ -423,6 +428,7 @@ def test_a_capped_line_shows_the_capped_amount_in_its_checkout_stepper(shopper):
 
 # --- The cart page: UC-04 step 5 and ext. 4a ---------------------------------
 
+
 def test_the_cart_lists_items_quantities_line_totals_and_the_total(shopper):
     """Step 5: every line, its quantity, its total, and the overall total."""
     sour = CandyFactory(name="Sour Bricks", price=Decimal("2.50"), stock=9)
@@ -447,6 +453,7 @@ def test_an_empty_cart_says_so(shopper):
 
 
 # --- Changing a quantity: UC-04 step 4 and ext. 2a ---------------------------
+
 
 def test_a_quantity_within_stock_is_set(shopper):
     """Step 4: the ordinary edit."""
@@ -520,6 +527,7 @@ def test_updating_a_candy_unpublished_since_reports_it_once(shopper):
 
 # --- Removing: UC-04 step 4 and ext. 4a ---------------------------------------
 
+
 def test_removing_the_last_item_shows_the_empty_state(shopper):
     """Ext. 4a, and the header count follows."""
     candy = CandyFactory()
@@ -568,6 +576,7 @@ def test_a_plain_remove_reports_a_stale_cart_on_the_page_it_redirects_to(shopper
 
 # --- The shop changed since the cart was filled -------------------------------
 
+
 def test_unpublished_and_deleted_candy_leave_the_cart_with_a_notice(shopper):
     """The cart may be days old; it is reconciled with the shop when viewed."""
     kept = CandyFactory(name="Sour Bricks")
@@ -614,6 +623,7 @@ def test_a_candy_that_sold_out_since_is_removed_when_the_cart_is_viewed(shopper)
 
 
 # --- Without JavaScript, and without a token ---------------------------------
+
 
 def test_a_plain_form_post_redirects_back_to_the_cart_with_its_notice(shopper):
     """The forms work without htmx; the notice survives the redirect."""

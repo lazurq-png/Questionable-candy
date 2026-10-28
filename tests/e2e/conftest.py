@@ -14,7 +14,10 @@ how the sync API is designed to work, so Django's documented opt-out,
 ``DJANGO_ALLOW_ASYNC_UNSAFE``, is correct here -- but only here. It is set by
 the two fixtures below, for exactly the stretch of each e2e test that touches
 the database with the loop running, and is unset again afterwards so the guard
-stays armed for every other suite, async tests included.
+stays armed for every other suite, async tests included. Those two fixtures
+live in tests/conftest.py since audit C4: the loop outlives tests/e2e, which
+the full run collects first, so an integration test that races two
+transactions with ``transactional_db`` needs the same opt-out.
 
 Two separate fixtures, because the database work falls into two lifetimes:
 
@@ -28,10 +31,11 @@ Two separate fixtures, because the database work falls into two lifetimes:
 
 * Each test's own database work -- factories in the test body, and the flush
   ``transactional_db`` runs on teardown -- happens with the loop running. The
-  ``transactional_db`` override lists ``_allow_async_unsafe`` *before* the
+  ``transactional_db`` override (tests/conftest.py) lists ``_allow_async_unsafe`` *before* the
   original, so the variable is set before the original's setup and, fixtures
   being torn down in reverse, removed only after its flush.
 """
+
 import pytest
 
 
@@ -46,22 +50,6 @@ def _test_database_before_browser(django_db_setup):  # pylint: disable=unused-ar
     runs with the loop alive and the variable gone. pytest-django reports that
     as a mere warning and leaves the test database behind.
     """
-
-
-@pytest.fixture
-def _allow_async_unsafe(monkeypatch):
-    monkeypatch.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "1")
-
-
-@pytest.fixture
-def transactional_db(_allow_async_unsafe, transactional_db):  # pylint: disable=redefined-outer-name
-    """``transactional_db``, with the async-safety guard lifted for its lifetime.
-
-    Every browser test gets this: ``live_server`` requests ``transactional_db``
-    by name (pytest_django/fixtures.py:660) and resolves to this override. The
-    argument order is load-bearing -- see the module docstring.
-    """
-    return transactional_db
 
 
 @pytest.fixture
@@ -80,6 +68,7 @@ def wait_for_htmx_to_settle():
     which outlasts the delay; ``fill()``, ``press()`` and ``focus()`` do not.
     Call this after a swap and before any of those on what it brought in.
     """
+
     def wait(page):
         page.wait_for_function("!document.querySelector('.htmx-swapping, .htmx-settling')")
 
@@ -106,6 +95,7 @@ def assert_page_is_fully_rendered():
     Checks visible text via ``inner_text`` rather than the HTML, so the
     ``hx-headers`` attribute's JSON braces are not mistaken for a template tag.
     """
+
     def check(page):
         body = page.locator("body").inner_text()
         for marker in ("{#", "{%", "{{"):

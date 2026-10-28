@@ -4,6 +4,7 @@ The server checks all three controls whatever the page does; these check what
 only a browser shows -- that each control unlocks only after the one before it,
 that a wrong total keeps the button locked, and that the page submits.
 """
+
 from decimal import Decimal
 
 import pytest
@@ -85,12 +86,13 @@ def test_the_three_controls_unlock_in_order_and_confirm_the_order(live_server, p
 def test_the_confirmation_page_meets_the_measurable_checks(live_server, page, assert_page_is_fully_rendered, scheme):
     """Phone width, both themes: confirming, and the receipt it leads to."""
     page.set_viewport_size(PHONE)
-    page.emulate_media(color_scheme=scheme)
+    page.emulate_media(color_scheme=scheme, reduced_motion="reduce")
     reach_confirmation(page, live_server)
 
     check_page(page, f"confirm, {scheme}", assert_page_is_fully_rendered)
     page.get_by_label("I have checked my order: 2 items, $6.00").check()
     page.get_by_label("Type the total, $6.00, to confirm the amount").fill("6.00")
+    expect(page.get_by_role("button", name="Place my order")).to_be_enabled()
     check_page(page, f"confirm, all unlocked, {scheme}", assert_page_is_fully_rendered)
     page.get_by_role("button", name="Place my order").click()
     expect(page.get_by_test_id("order-payment-note")).to_be_visible()

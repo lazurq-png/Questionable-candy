@@ -18,15 +18,15 @@ Before changing code, establish what actually exists.
 
 The agent should:
 
-* Read applicable repository instructions.
-* Inspect the relevant directory structure.
-* Locate the current implementation.
-* Trace the relevant execution path.
-* Inspect nearby abstractions.
-* Read relevant tests.
-* Identify callers and consumers.
-* Check configuration and environment assumptions.
-* Identify database, API, security, and concurrency boundaries.
+- Read applicable repository instructions.
+- Inspect the relevant directory structure.
+- Locate the current implementation.
+- Trace the relevant execution path.
+- Inspect nearby abstractions.
+- Read relevant tests.
+- Identify callers and consumers.
+- Check configuration and environment assumptions.
+- Identify database, API, security, and concurrency boundaries.
 
 The goal is not to read the entire repository.
 
@@ -36,12 +36,12 @@ The goal is to build the smallest reliable mental model needed to make the chang
 
 Do not infer architecture from:
 
-* filenames alone
-* folder names alone
-* framework defaults
-* stale documentation
-* generated code
-* previous implementations
+- filenames alone
+- folder names alone
+- framework defaults
+- stale documentation
+- generated code
+- previous implementations
 
 Repository behavior is the source of truth.
 
@@ -74,24 +74,24 @@ Implement the smallest sufficient change.
 
 Prefer:
 
-* Existing abstractions
-* Existing patterns
-* Existing dependencies
-* Existing validation
-* Existing error handling
-* Existing test utilities
-* Existing UI components
-* Existing data-access patterns
+- Existing abstractions
+- Existing patterns
+- Existing dependencies
+- Existing validation
+- Existing error handling
+- Existing test utilities
+- Existing UI components
+- Existing data-access patterns
 
 Avoid:
 
-* speculative abstractions
-* unrelated refactoring
-* unnecessary dependency additions
-* broad renaming
-* style-only cleanup
-* duplicated implementations
-* changing public behavior without justification
+- speculative abstractions
+- unrelated refactoring
+- unnecessary dependency additions
+- broad renaming
+- style-only cleanup
+- duplicated implementations
+- changing public behavior without justification
 
 A smaller change is easier for both humans and agents to reason about.
 
@@ -141,12 +141,12 @@ Read the complete error rather than reacting to the first line.
 
 Determine whether the failure is:
 
-* caused by the change
-* caused by an incorrect assumption
-* pre-existing
-* environmental
-* flaky
-* unrelated
+- caused by the change
+- caused by an incorrect assumption
+- pre-existing
+- environmental
+- flaky
+- unrelated
 
 ### Diagnose
 
@@ -170,18 +170,18 @@ After implementation and verification, review the final state independently.
 
 Inspect:
 
-* final diff
-* correctness
-* edge cases
-* security
-* authorization
-* data integrity
-* compatibility
-* concurrency
-* tests
-* performance
-* observability
-* scope
+- final diff
+- correctness
+- edge cases
+- security
+- authorization
+- data integrity
+- compatibility
+- concurrency
+- tests
+- performance
+- observability
+- scope
 
 The final review should answer:
 
@@ -199,15 +199,15 @@ AI should not require humans to supervise every edit.
 
 Human attention is most valuable at decision boundaries:
 
-* architecture
-* product behavior
-* security-sensitive choices
-* destructive data changes
-* public API changes
-* significant dependency changes
-* migration strategy
-* final diff
-* unresolved uncertainty
+- architecture
+- product behavior
+- security-sensitive choices
+- destructive data changes
+- public API changes
+- significant dependency changes
+- migration strategy
+- final diff
+- unresolved uncertainty
 
 The agent should handle routine mechanical work and verification.
 
@@ -236,11 +236,11 @@ Shared, cross-tool engineering contract.
 
 Use it for:
 
-* architecture expectations
-* testing standards
-* security principles
-* repository conventions
-* completion requirements
+- architecture expectations
+- testing standards
+- security principles
+- repository conventions
+- completion requirements
 
 ## CLAUDE.md
 
@@ -248,14 +248,14 @@ Claude Code-specific operating instructions. Always loaded by the Claude Code ex
 
 Use it for:
 
-* Claude's workflow
-* context management
-* subagent conventions
-* Claude-specific tools and assets
+- Claude's workflow
+- context management
+- subagent conventions
+- Claude-specific tools and assets
 
 ## Claude Rules
 
-Use `.claude/rules/*.md` for domain-scoped reference material. These are not auto-loaded — CLAUDE.md should tell the agent which one to open for a given task type.
+Use `.claude/rules/*.md` for domain-scoped reference material. Rules without `paths:` frontmatter load at launch; ones with it load only when matching files are read. CLAUDE.md names which rule covers which task type.
 
 Examples:
 
@@ -286,9 +286,9 @@ Rules define constraints.
 
 Examples:
 
-* Always validate authorization server-side.
-* Follow repository error-handling conventions.
-* Run tests before completion.
+- Always validate authorization server-side.
+- Follow repository error-handling conventions.
+- Run tests before completion.
 
 ## Skills
 
@@ -296,46 +296,44 @@ Skills define repeatable procedures, invoked as slash commands in Claude Code (e
 
 Examples:
 
-* Investigate a production incident.
-* Review a migration.
-* Perform a UI verification pass.
-* Prepare a release.
+- Investigate a production incident.
+- Review a migration.
+- Perform a UI verification pass.
+- Prepare a release.
 
 ## Subagents
 
 Subagents provide specialized reasoning. **This repository defines none** — there is no `.claude/agents/` directory, so the roles below describe how you might scope a general-purpose subagent, not agents that exist to be invoked by name.
 
-Unattended, an independent reviewer subagent is the only substitute for the human review that would otherwise happen at the end of a task. `night-run` requires one per completed task.
-
 Examples:
 
-* security reviewer
-* database reviewer
-* frontend reviewer
-* architecture reviewer
+- security reviewer
+- database reviewer
+- frontend reviewer
+- architecture reviewer
 
 ## Hooks and CI
 
-**Hooks: none.** There is no `.claude/settings.json` (only `settings.example.json`, which is inert). Nothing is enforced at commit time, and an unattended run started with permissions bypassed ignores `settings.json` entirely even if one is added — see `.claude/skills/night-run/SKILL.md`.
+**Hooks: none.** `.claude/settings.json` holds an allow-list and deny rules, but there are no hooks. Nothing is enforced at commit time.
 
-**CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs three jobs — the ADR guards (`scripts/adr_guards.py`, no database, no dependencies), lint, and the test suite against a PostgreSQL 17 service preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not: `scripts/dev.py` *writes* missing migrations instead of failing on them.
+**CI: yes, as of 2026-09-15.** `.github/workflows/ci.yml` runs three jobs — the ADR guards (`scripts/adr_guards.py`, no database, no dependencies), lint, and the test suite against a PostgreSQL 17 service preceded by a `makemigrations --check --dry-run` drift gate. That gate is the one check CI has and local runs do not: `scripts/dev.py` _writes_ missing migrations instead of failing on them.
 
-It triggers on pull requests to `master` and `dev`, and on pushes to `master`, `dev` and `night-**`. The last of those is there for unattended runs, which push a branch per finished task (`.claude/skills/night-run/SKILL.md` §2.6) with nobody awake to read a failure. The test job installs a Playwright browser, so `tests/e2e/` runs in CI too.
+It triggers on pull requests to `master` and `dev`, and on pushes to `master` and `dev`. The test job runs in Playwright's container image, which carries the browser, so `tests/e2e/` runs in CI too.
 
 CI runs on GitHub. A local agent cannot observe its result and must never report one as evidence.
 
 Locally, verification is `python scripts/dev.py test`, `python scripts/dev.py lint` and `python scripts/adr_guards.py`, run separately, plus `python scripts/dev.py lint:workflows` when a change touches `.github/workflows/` or a workflow run is known to have failed. `lint:workflows` (actionlint, with shellcheck and pyflakes) is local-only: the tools are standalone executables under `%USERPROFILE%\Binaries\`, and CI does not install them. There is no `scripts/validate` and no `dev.py validate` task — both were removed. Lint is pylint plus pylint-django (pinned in `requirements-dev.txt`, configured in `.pylintrc`), gated on the error class only. There is still no formatting or type-checking stage, because this repository installs no such tools; a stage that prints success without checking anything is worse than no stage.
 
-The deterministic requirements still *not* mechanically enforced anywhere:
+The deterministic requirements still _not_ mechanically enforced anywhere:
 
-* formatting
-* type checking
-* secret detection
-* generated-file validation
+- formatting
+- type checking
+- secret detection
+- generated-file validation
 
 Lint left that list on 2026-09-15: pylint now runs as its own CI job and as `dev.py lint`.
 
-Do not rely on an AI instruction for something that can be mechanically enforced. This matters most in unattended mode, where an instruction is the *only* thing standing between the agent and a destructive command.
+Do not rely on an AI instruction for something that can be mechanically enforced.
 
 ---
 
@@ -343,13 +341,13 @@ Do not rely on an AI instruction for something that can be mechanically enforced
 
 Good AI tasks contain:
 
-* desired outcome
-* context
-* requirements
-* non-goals
-* acceptance criteria
-* constraints
-* verification expectations
+- desired outcome
+- context
+- requirements
+- non-goals
+- acceptance criteria
+- constraints
+- verification expectations
 
 Bad task:
 
@@ -391,7 +389,8 @@ docs/ai/
     handoff.md
 ```
 
-In this repository that location is real and scoped per branch: `docs/ai/<branch>/` — see `docs/ai/README.md` for the layout. Unattended runs must maintain it (`.claude/skills/night-run/SKILL.md`); supervised runs should when a task spans many files or sessions.
+In this repository that location is real and scoped per branch: `docs/ai/<branch>/` — see `docs/ai/README.md` for the layout.
+When a task spans many files or sessions.
 
 The purpose is to prevent critical context from existing only inside the agent's current conversation.
 
@@ -399,13 +398,13 @@ The purpose is to prevent critical context from existing only inside the agent's
 
 Record:
 
-* completed work
-* remaining work
-* decisions
-* failed approaches
-* verification results
-* known risks
-* next action
+- completed work
+- remaining work
+- decisions
+- failed approaches
+- verification results
+- known risks
+- next action
 
 A future agent should be able to continue without reconstructing the entire history.
 
@@ -433,10 +432,10 @@ Agent C → simultaneously refactors same service
 
 Parallel agents should have:
 
-* clear ownership
-* non-overlapping files where possible
-* explicit outputs
-* a defined integration point
+- clear ownership
+- non-overlapping files where possible
+- explicit outputs
+- a defined integration point
 
 More agents do not automatically produce more progress.
 
@@ -448,18 +447,18 @@ Use different models or reviewers when a problem benefits from independent reaso
 
 Examples:
 
-* primary agent implements
-* second model reviews architecture
-* security-focused agent reviews attack surface
-* test-focused agent checks regression coverage
+- primary agent implements
+- second model reviews architecture
+- security-focused agent reviews attack surface
+- test-focused agent checks regression coverage
 
 Independent reasoning is particularly valuable for:
 
-* difficult bugs
-* security-sensitive changes
-* architecture
-* migrations
-* large refactors
+- difficult bugs
+- security-sensitive changes
+- architecture
+- migrations
+- large refactors
 
 Do not use model diversity merely to generate more opinions.
 
@@ -518,16 +517,16 @@ For frontend tasks, functional verification is necessary but insufficient.
 
 Verify:
 
-* loading state
-* success state
-* empty state
-* error state
-* disabled state
-* keyboard interaction
-* responsive behavior
-* accessibility
-* navigation
-* visual consistency
+- loading state
+- success state
+- empty state
+- error state
+- disabled state
+- keyboard interaction
+- responsive behavior
+- accessibility
+- navigation
+- visual consistency
 
 When browser tooling is available, use it to verify the actual rendered result.
 
@@ -541,13 +540,13 @@ Database changes require additional caution.
 
 Before changing schema or migrations:
 
-* inspect existing schema
-* inspect migration conventions
-* identify affected data
-* consider existing production data
-* consider deployment ordering
-* consider backwards compatibility
-* consider rollback/recovery
+- inspect existing schema
+- inspect migration conventions
+- identify affected data
+- consider existing production data
+- consider deployment ordering
+- consider backwards compatibility
+- consider rollback/recovery
 
 For risky changes, prefer:
 
@@ -571,18 +570,18 @@ Security-sensitive code requires explicit verification.
 
 Check:
 
-* authentication
-* authorization
-* object ownership
-* tenant boundaries
-* input validation
-* injection
-* secrets
-* sensitive data
-* sessions/tokens
-* external requests
-* file handling
-* abuse/rate limits
+- authentication
+- authorization
+- object ownership
+- tenant boundaries
+- input validation
+- injection
+- secrets
+- sensitive data
+- sessions/tokens
+- external requests
+- file handling
+- abuse/rate limits
 
 Security behavior should be tested through negative cases, not just successful flows.
 
@@ -592,15 +591,15 @@ Security behavior should be tested through negative cases, not just successful f
 
 Before completion:
 
-* inspect the final diff
-* remove debugging artifacts
-* remove temporary files
-* remove accidental formatting changes
-* verify generated files
-* verify migrations
-* check new dependencies
-* confirm no user changes were overwritten
-* confirm scope matches the task
+- inspect the final diff
+- remove debugging artifacts
+- remove temporary files
+- remove accidental formatting changes
+- verify generated files
+- verify migrations
+- check new dependencies
+- confirm no user changes were overwritten
+- confirm scope matches the task
 
 The final diff is the artifact being reviewed.
 
@@ -610,16 +609,16 @@ The final diff is the artifact being reviewed.
 
 A task is done when:
 
-* intended behavior is implemented
-* existing contracts are preserved
-* relevant edge cases are handled
-* appropriate tests exist
-* verification passes
-* security implications are addressed
-* UI behavior is verified where applicable
-* final diff is reviewed
-* no unexplained failures remain
-* remaining risks are documented
+- intended behavior is implemented
+- existing contracts are preserved
+- relevant edge cases are handled
+- appropriate tests exist
+- verification passes
+- security implications are addressed
+- UI behavior is verified where applicable
+- final diff is reviewed
+- no unexplained failures remain
+- remaining risks are documented
 
 "Code was written" is not a completion state.
 

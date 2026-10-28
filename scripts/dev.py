@@ -1,7 +1,7 @@
 """Project task runner.
 
     python scripts/dev.py run                 # dev server at 127.0.0.1:8000
-    python scripts/dev.py lint                # pylint; errors fail, rest advisory
+    python scripts/dev.py lint                # ruff + pylint; ruff and pylint errors fail
     python scripts/dev.py lint:workflows      # actionlint + shellcheck + pyflakes
     python scripts/dev.py test                # whole suite, with coverage
     python scripts/dev.py test:unit           # tests/unit only
@@ -21,6 +21,7 @@ Set PGSQL_HOME for an install other than ~/Binaries/pgsql. Under CI, or where
 no local install exists, the check is skipped and the database must already be
 accepting connections.
 """
+
 import os
 import shutil
 import subprocess
@@ -51,7 +52,7 @@ TASKS = ["run", "lint", "lint:workflows", *SUITES]
 # source-only check is still perfectly valid.
 NO_DB_TASKS = {"lint", "lint:workflows"}
 
-# Migrations are excluded by .pylintrc, not here.
+# Migrations are excluded by ruff.toml and .pylintrc, not here.
 LINT_TARGETS = ["accounts", "shop", "mysite", "scripts", "tests"]
 
 # Standalone executables, not Python requirements, so they are looked up rather
@@ -71,7 +72,7 @@ PGSQL_HOME = Path(os.getenv("PGSQL_HOME", Path.home() / "Binaries" / "pgsql"))
 # output is localised, so the text differs by machine locale.
 PG_READY, PG_STARTING, PG_DOWN = 0, 1, 2
 
-CLUSTER_START_TIMEOUT = 30  # seconds, matching the night-run preflight
+CLUSTER_START_TIMEOUT = 30  # seconds
 
 # Coverage over the application packages only -- see docs/adr/0005-testing.md.
 # Gated since 2026-09-17: the target ADR 0005 left open is 95%, a little under
@@ -90,7 +91,10 @@ CLUSTER_START_TIMEOUT = 30  # seconds, matching the night-run preflight
 # floor of 95 and 94.5% does not.
 COVERAGE_FLOOR = 95
 COV_ARGS = [
-    "--cov=accounts", "--cov=shop", "--cov=mysite", "--cov-report=term-missing",
+    "--cov=accounts",
+    "--cov=shop",
+    "--cov=mysite",
+    "--cov-report=term-missing",
     f"--cov-fail-under={COVERAGE_FLOOR}",
 ]
 
@@ -107,11 +111,11 @@ def _pg_exe(name):
 
 
 def _pg_isready(exe):
-    # Same probe as the night-run preflight: localhost:5432, as .env.example's
-    # DATABASE_URL points at.
     return subprocess.run(
         [str(exe), "-h", "localhost", "-p", "5432"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
     ).returncode
 
 
@@ -136,8 +140,6 @@ def ensure_cluster():
         return 0
 
     if state == PG_DOWN:
-        # Said aloud, not done quietly: an unattended run must be able to see
-        # in its output that the cluster had gone down mid-run.
         print(f"dev.py: PostgreSQL cluster at {PGSQL_HOME} is down -- starting it.", flush=True)
         # Detached, or the server is a child of this shell and dies with it --
         # after every short-lived shell an agent opens, for instance.
@@ -149,10 +151,11 @@ def ensure_cluster():
         else:
             detach = {"start_new_session": True}
         subprocess.Popen(  # pylint: disable=consider-using-with
-            [str(pg_ctl), "start", "-D", str(PGSQL_HOME / "data"),
-             "-l", str(PGSQL_HOME / "server.log")],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, **detach,
+            [str(pg_ctl), "start", "-D", str(PGSQL_HOME / "data"), "-l", str(PGSQL_HOME / "server.log")],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **detach,
         )
 
     deadline = time.monotonic() + CLUSTER_START_TIMEOUT
@@ -160,10 +163,7 @@ def ensure_cluster():
         if _pg_isready(isready) == PG_READY:
             return 0
         time.sleep(1)
-    print(
-        f"dev.py: cluster not accepting connections after {CLUSTER_START_TIMEOUT}s. "
-        f"See {PGSQL_HOME / 'server.log'}."
-    )
+    print(f"dev.py: cluster not accepting connections after {CLUSTER_START_TIMEOUT}s. See {PGSQL_HOME / 'server.log'}.")
     return 1
 
 
@@ -181,18 +181,27 @@ def prepare():
 
 
 def lint(extra):
-    """Errors fail the build; warnings, refactors and conventions only print.
+    """ruff check, ruff format --check, then pylint; all three run, any can fail.
 
-    pylint's exit status is a bitfield, one bit per message class, so a plain
-    run returns non-zero for a missing docstring. --fail-under=0 drops that
-    score-based failure and --fail-on=E puts back the one that matters, which
-    leaves a single pass that reports everything and fails on errors alone.
+    ruff fails on any finding of the rules ruff.toml selects, and on a file
+    the formatter would change (`python -m ruff format` fixes those, `ruff
+    check --fix` most of the rest).
 
-    Configuration -- the Django plugin, the settings module, the migration
-    exclusion -- lives in .pylintrc so that a bare `pylint shop/` agrees with
-    this task.
+    pylint's errors fail the build; its warnings, refactors and conventions
+    only print. Its exit status is a bitfield, one bit per message class, so a
+    plain run returns non-zero for a missing docstring. --fail-under=0 drops
+    that score-based failure and --fail-on=E puts back the one that matters.
+    `extra` goes to pylint, as it always has.
+
+    Configuration lives in ruff.toml and .pylintrc, so a bare `ruff check` or
+    `pylint shop/` agrees with this task.
     """
-    return run("-m", "pylint", "--fail-under=0", "--fail-on=E", *LINT_TARGETS, *extra)
+    codes = [
+        run("-m", "ruff", "check", *LINT_TARGETS),
+        run("-m", "ruff", "format", "--check", *LINT_TARGETS),
+        run("-m", "pylint", "--fail-under=0", "--fail-on=E", *LINT_TARGETS, *extra),
+    ]
+    return next((code for code in codes if code), 0)
 
 
 def lint_workflows(extra):
@@ -206,9 +215,7 @@ def lint_workflows(extra):
     missing one fails the task instead of narrowing it.
     """
     binaries = Path.home() / "Binaries"
-    search = os.pathsep.join(
-        [os.environ.get("PATH", ""), *(str(binaries / d) for d in WORKFLOW_TOOLS.values())]
-    )
+    search = os.pathsep.join([os.environ.get("PATH", ""), *(str(binaries / d) for d in WORKFLOW_TOOLS.values())])
     found = {name: shutil.which(name, path=search) for name in WORKFLOW_TOOLS}
     missing = [name for name, path in found.items() if path is None]
     if missing:
@@ -249,8 +256,8 @@ def pytest_suite(task, extra):
 
 def main(argv):
     """Run the named task and return its exit code."""
-    extra = argv[argv.index("--") + 1:] if "--" in argv else []
-    tasks = argv[:argv.index("--")] if "--" in argv else argv
+    extra = argv[argv.index("--") + 1 :] if "--" in argv else []
+    tasks = argv[: argv.index("--")] if "--" in argv else argv
 
     if not tasks:
         print(__doc__)

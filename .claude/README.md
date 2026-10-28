@@ -9,14 +9,13 @@ AGENTS.md              engineering contract — architecture, testing, security,
                         completion standards. Always relevant.
 CLAUDE.md               Claude Code operating model — always loaded by the extension/CLI
 .claude/
-├── rules/              domain reference docs — NOT auto-loaded; CLAUDE.md tells the
-│                        agent which one to open for a given task
+├── rules/              domain reference docs — frontend/backend/database are
+│                        path-scoped (`paths:` frontmatter), the rest load at launch
 ├── skills/              reusable procedures invoked as slash commands
-│                        (/code-review, /night-run)
+│                        (/code-review)
 ├── docs/                 supporting human-readable process docs — workflow narrative,
 │                          a task-request template, and ready-to-paste prompt patterns
-└── settings.example.json       copy to settings.json and adjust permissions/hooks
-                                 (not yet done here — settings.json does not exist)
+└── settings.json               shared permissions: allow-list and deny rules, no hooks
 ```
 
 This repository has **no single validation entry point.** `scripts/validate`,
@@ -26,9 +25,9 @@ commands, plus a fourth when workflows changed, run separately:
 
 ```text
 python scripts/dev.py test        # migrations + full suite + coverage
-python scripts/dev.py lint        # pylint; errors fail, the rest is advisory
+python scripts/dev.py lint        # ruff check + format --check, then pylint
 python scripts/dev.py lint:workflows  # only if .github/workflows/ changed or a workflow failed
-python scripts/adr_guards.py      # ADR 0003 / 0005 guards, no deps, seconds
+python scripts/adr_guards.py      # ADR 0003 guard, no deps, seconds
 ```
 
 `scripts/dev.py` is the task runner for everything else (`run`, `test:unit`,
@@ -36,37 +35,26 @@ python scripts/adr_guards.py      # ADR 0003 / 0005 guards, no deps, seconds
 starting the local PostgreSQL cluster first if it is down (skipped under CI).
 `lint` is the exception: source-only, so it needs no database.
 
-There is no type checker, formatter or build step here. Lint is pylint with the
-Django plugin (`.pylintrc`, `requirements-dev.txt`), gated on the error class
-only — warnings print without failing, so a zero exit is not an empty report.
+There is no type checker or build step here. Lint is ruff (`ruff.toml`: any
+finding or unformatted file fails) followed by pylint with the Django plugin
+(`.pylintrc`), gated on the error class only. pylint's warnings print without
+failing, so a zero exit is not an empty report.
 
-CI (`.github/workflows/ci.yml`) runs three jobs on push to `master`, `dev` and
-`night-**`: the ADR guards, lint, and the suite — plus a `makemigrations
+CI (`.github/workflows/ci.yml`) runs three jobs on push to `master` and `dev`:
+the ADR guards, lint, and the suite — plus a `makemigrations
 --check` drift gate that `dev.py` deliberately omits.
 
-### Why rules aren't auto-loaded
+### How rules load
 
-Only `CLAUDE.md` (and nested per-directory `CLAUDE.md` files, which *are* scoped by
-location) load automatically. There's no built-in mechanism that opens a file based on
-a glob match against whatever's being edited, so the rules in `.claude/rules/` are
-reference material Claude opens on demand — `CLAUDE.md` §2 lists which file to read for
-which kind of task (frontend, backend, database, testing, debugging, architecture,
-review, security-review).
+A rule file in `.claude/rules/` with no `paths:` frontmatter loads at launch, like
+`CLAUDE.md`. One with `paths:` loads only when Claude reads a matching file. Here,
+`frontend.md`, `backend.md` and `database.md` are path-scoped; the other five load
+every session. `CLAUDE.md` §2 lists which file covers which kind of task.
 
 If a real project has stable directory boundaries (e.g. `src/frontend/`,
 `src/backend/`), prefer dropping the matching rule file into a nested `CLAUDE.md`
 there instead — Claude Code loads those automatically based on which files are being
 touched, which scopes guidance by location more precisely than a flat `rules/` folder.
-
-### Unattended operation
-
-`.claude/skills/night-run/SKILL.md` is the protocol for running with no human
-available — preflight, a branch per task merged onto a run branch and pushed as
-each one finishes, durable state under `docs/ai/<branch>/`, forbidden
-operations, and stop conditions. It is invoked
-(`/night-run`) rather than auto-loaded, so it costs nothing during ordinary
-supervised work. Unattended sessions run with permission prompts bypassed, which
-means its guardrails are honoured by instruction, not enforced by the harness.
 
 ### Code review
 
@@ -78,28 +66,23 @@ diff.
 ## Setting this up in a new repo
 
 1. Copy `AGENTS.md`, `CLAUDE.md`, and this `.claude/` folder into the repo root.
-2. Give the repo a real verification command and name it in `CLAUDE.md` §9 —
-   that table is what `AGENTS.md` §13 expects agents to run for "verification."
+2. Give the repo a real verification command and name it in `CLAUDE.md` §3 —
+   that table is what `AGENTS.md` §10 expects agents to run for "verification."
    Whether it is one script or two commands matters less than that every stage
    runs a real check. A stage that echoes a heading and prints success without
    checking anything is worse than no stage at all: it manufactures the evidence
    those sections exist to require. (This repo learned that the other way round
    too — a `validate` wrapper was removed and three documents went on citing it
    for weeks.)
-3. Copy `.claude/settings.example.json` to `.claude/settings.json` only if you
-   want to pre-approve specific commands/permissions; otherwise omit it and let
-   the extension prompt as usual. Note that a `deny` list there does **not**
-   protect an unattended run started with permissions bypassed — in that mode
-   nothing in `settings.json` is consulted, which is why `night-run`'s forbidden
-   operations are written as instructions instead.
+3. Adapt `.claude/settings.json` to the new repo: pre-approve the commands
+   agents run constantly and deny dangerous ones (force-pushes, `rm -rf`,
+   reading `.env`). A `deny` rule is enforced by the harness, unlike a sentence
+   in `CLAUDE.md`, so put anything that must never happen there.
 4. Trim `.claude/rules/*.md` and `.claude/docs/*.md` down to what the project
    actually needs — delete the domains that don't apply (e.g. `database.md` for
    a repo with no persistence layer).
 5. Update the curated list in `CLAUDE.md`'s "Start With Repository Context"
    section if you remove or rename any rule file.
-6. Rewrite `.claude/skills/night-run/SKILL.md`'s **Preflight** section for the
-   new project. Everything else in that skill is portable; the preflight is not
-   — it names this repository's PostgreSQL cluster, paths and commands.
-7. Commit all of it — `CLAUDE.md`/`AGENTS.md` are meant to be checked into the
+6. Commit all of it — `CLAUDE.md`/`AGENTS.md` are meant to be checked into the
    repo so every contributor's agent sees the same contract, the same way a
    project's `CLAUDE.md` already works in this machine's other repos.

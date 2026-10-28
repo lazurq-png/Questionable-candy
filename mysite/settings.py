@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.csp import CSP
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -35,18 +37,16 @@ def _env_bool(name, default=False):
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
-    raise ImproperlyConfigured(
-        'DJANGO_SECRET_KEY is not set. Copy .env.example to .env and fill it in.'
-    )
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY is not set. Copy .env.example to .env and fill it in.')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
-    if host.strip()
-]
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if host.strip()]
+# Render sets this to the service's own <name>.onrender.com, which is also the
+# Host its health checks send; the name is only known once the service exists.
+if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
 
 # Application definition
@@ -61,7 +61,8 @@ INSTALLED_APPS = [
     # ArrayField, for User.allergies and the planned Candy.allergens
     # (docs/data-model.md section 3).
     'django.contrib.postgres',
-
+    # Login throttling, see AXES_* below.
+    'axes',
     # Local apps
     'accounts.apps.AccountsConfig',
     'shop.apps.ShopConfig',
@@ -73,13 +74,23 @@ AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Last, as django-axes requires: it turns a locked-out login into a 429.
+    'axes.middleware.AxesMiddleware',
 ]
+# WhiteNoise serves STATIC_ROOT in production, where nothing else does (see
+# STORAGES), and goes straight after SecurityMiddleware. Only with DEBUG off:
+# with it on, runserver and the tests' live_server serve the apps' static
+# files themselves, and WhiteNoise would only warn that STATIC_ROOT has not
+# been collected. tests/integration/test_static_files.py covers it.
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'mysite.urls'
 
@@ -91,6 +102,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.csp',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'shop.context_processors.shoppingcart',
@@ -115,8 +127,8 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 if not os.getenv('DATABASE_URL'):
     raise ImproperlyConfigured(
         'DATABASE_URL is not set. Copy .env.example to .env and fill it in, '
-        'then start your PostgreSQL cluster -- scripts/dev.py does not start '
-        'it. See .env.example for the pg_ctl command.'
+        'then run through scripts/dev.py, which starts the local PostgreSQL '
+        'cluster if it is down. See .env.example for the pg_ctl command.'
     )
 
 DATABASES = {
@@ -171,6 +183,92 @@ SESSION_COOKIE_SECURE = _env_bool('DJANGO_SECURE_COOKIES', not DEBUG)
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 
+# HTTPS transport
+# https://docs.djangoproject.com/en/6.1/topics/security/#ssl-https
+#
+# docs/requirements.md section 3 requires authentication and payment over HTTPS.
+# Derived from DEBUG like the cookies above, so development stays on plain HTTP.
+# DJANGO_SECURE_SSL_REDIRECT=False is for a staging box behind plain HTTP.
+# HSTS starts at an hour so a mistake can be undone; raise it once HTTPS is
+# known to work. A proxy that terminates TLS must set the header named by
+# DJANGO_PROXY_SSL_HEADER or the redirect loops.
+
+SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', not DEBUG)
+SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0' if DEBUG else '3600'))
+# Whenever HSTS is on. The site's own host is the only one under its name: on
+# Render that is <name>.onrender.com, which has no subdomains of its own.
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+# Preload (security.W021) is deliberately off and its check silenced: the
+# browsers' preload list takes only a registrable domain, and onrender.com is
+# shared with every other Render service. Revisit with a custom domain.
+SILENCED_SYSTEM_CHECKS = ['security.W021']
+
+if _env_bool('DJANGO_PROXY_SSL_HEADER'):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
+]
+
+
+# Login throttling
+# https://django-axes.readthedocs.io/
+#
+# Five wrong passwords for one username from one address locks that pair for
+# fifteen minutes, on both /accounts/login/ and /admin/login/. Keyed on the
+# pair so an attacker cannot lock a customer out from elsewhere, and a
+# customer who mistypes is not locked out for everyone.
+#
+# Behind a proxy REMOTE_ADDR is the proxy's, so every visitor would share one
+# address and five wrong passwords from anyone would lock that username for
+# all. DJANGO_CLIENT_IP_HEADER names the header that carries the visitor's own
+# address instead (mysite/client_ip.py). It must be one the proxy *overwrites*:
+# on Render that is CF-Connecting-IP, which Cloudflare sets on every request to
+# a public web service. Not X-Forwarded-For, which is appended to, so its first
+# entry is whatever the visitor sent. Unset, REMOTE_ADDR is used, which is right
+# with no proxy in front -- and the only safe choice there, since any visitor
+# could send the header themselves.
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [['ip_address', 'username']]
+AXES_RESET_ON_SUCCESS = True
+CLIENT_IP_HEADER = os.getenv('DJANGO_CLIENT_IP_HEADER', '').strip()
+if CLIENT_IP_HEADER:
+    AXES_CLIENT_IP_CALLABLE = 'mysite.client_ip.client_ip'
+
+
+# Content Security Policy
+# https://docs.djangoproject.com/en/6.1/ref/csp/
+#
+# Enforced since 2026-10-27, after a click-through under report-only left the
+# console clean: a browser now refuses anything outside these sources. A new
+# inline script needs {% csp_nonce_attr %}, or a static file where no request
+# is available (500.html). tests/e2e/test_csp.py fails on any violation.
+#
+# 'unsafe-eval' is there because the standard Alpine build evaluates the
+# expressions in x-data / x-on attributes; the @alpinejs/csp build removes the
+# need. unpkg.com is the CDN base.html loads htmx and Alpine from (ADR 0006),
+# each pinned by SRI hash. htmx injects a small <style> for its request
+# indicator, hence 'unsafe-inline' for styles. The one inline script in
+# base.html carries the nonce.
+
+SECURE_CSP = {
+    'default-src': [CSP.SELF],
+    'script-src': [CSP.SELF, CSP.NONCE, 'https://unpkg.com', CSP.UNSAFE_EVAL],
+    'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
+    'img-src': [CSP.SELF, 'data:'],
+    'object-src': [CSP.NONE],
+    'base-uri': [CSP.SELF],
+    'form-action': [CSP.SELF],
+    'frame-ancestors': [CSP.NONE],
+}
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
@@ -187,6 +285,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# `collectstatic` gathers every app's static files here for WhiteNoise to serve
+# (gitignored). With DEBUG off they get content-hashed names and compressed
+# copies, so browsers may cache them for good; that needs collectstatic to have
+# run first, as the deploy's build command does. With DEBUG on, which includes
+# the test suite, runserver and live_server serve them from the apps directly.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        if DEBUG
+        else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    },
+}
 
 
 # Email
@@ -194,8 +306,25 @@ STATIC_URL = 'static/'
 
 # MAILERS replaces the EMAIL_* settings, which Django 7.0 removes. The 'default'
 # alias is the one django.core.mail uses when no 'using' argument is passed.
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+#
+# Console in development; with DEBUG off the default is SMTP, configured from
+# the environment, because Django's deploy check rejects the console backend.
+if DEBUG:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
+else:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': os.getenv('DJANGO_EMAIL_HOST', 'localhost'),
+                'port': int(os.getenv('DJANGO_EMAIL_PORT', '587')),
+                'username': os.getenv('DJANGO_EMAIL_USER', ''),
+                'password': os.getenv('DJANGO_EMAIL_PASSWORD', ''),
+                'use_tls': _env_bool('DJANGO_EMAIL_USE_TLS', True),
+            },
+        },
+    }

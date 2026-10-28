@@ -2,43 +2,59 @@ name: CI
 
 on:
   push:
-    # night-** covers an unattended run's integration branch and every task
-    # branch under it (.claude/skills/night-run/SKILL.md §1.3). Without it those
-    # pushes land unchecked: nobody is awake to read a failure, so CI is the
-    # only thing that can catch one before morning.
-    #
-    # A finished task is pushed twice -- its own branch, then the run branch it
-    # fast-forwards onto -- so the same tree is built twice. That is accepted
-    # rather than optimised away: matching only the run branch would leave
-    # provisional task branches unchecked, and those are deliberately never
-    # merged (SKILL.md §4). Narrow this pattern if Actions minutes start to
-    # matter.
-    branches: [master, dev, 'night-**']
+    branches: [master, dev]
   pull_request:
     branches: [master, dev]
+
+# Nothing here writes to the repository or the API, so the token is read-only.
+permissions:
+  contents: read
 
 # A newer push to the same branch makes an in-flight run irrelevant.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Actions are pinned to a commit, not a tag: a tag can be moved to other code,
+# a commit cannot. The comment names the release; Dependabot updates both.
 jobs:
   # Deliberately separate from, and not a dependency of, the test job: it needs
   # no database and installs nothing, so it can fail in seconds on its own.
   adr-guards:
     name: ADR guards
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       # docs/adr/0003-backend.md (no DRF) names this as its enforcement. It also
       # fails when a record in docs/ has changed since docs/overview.html was.
       - name: Check ADR 0003 and the docs overview
         run: python scripts/adr_guards.py
+
+  # Audits the pinned versions in requirements.lock: it fails when any of them
+  # has a known advisory.
+  # Needs no database or settings, and is separate so an advisory published
+  # tomorrow does not read as a broken test.
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.lock
 
   # pylint-django calls django.setup(), so this needs the runtime dependencies
   # and the two settings.py demands -- but no database: dj_database_url only
@@ -46,6 +62,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       # Never connected to. Present only so mysite/settings.py imports.
@@ -53,25 +70,51 @@ jobs:
       DJANGO_SECRET_KEY: lint-only-not-a-real-key-00000000000000000000
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
-          python-version: '3.13'
+          python-version: "3.13"
           cache: pip
 
-      # requirements.txt as well, because the plugin imports Django itself.
+      # The lock holds the runtime packages too, because the plugin imports
+      # Django itself.
       - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: pip install -r requirements.lock
 
-      # Errors fail; warnings, refactors and conventions print without failing.
-      # See scripts/dev.py lint() for why that is one pass and not two.
-      - name: pylint
+      # ruff check and ruff format --check, then pylint. Any ruff finding fails;
+      # for pylint only errors do. See scripts/dev.py lint().
+      - name: ruff and pylint
         run: python scripts/dev.py lint
+
+      # The settings a deploy loads, checked as Django's deployment checklist
+      # would: render.yaml's values, a real-looking host, a long random key
+      # (security.W009 refuses the placeholder above). Warnings fail too;
+      # the one deliberate exception, security.W021, is silenced in settings.py
+      # with its reason. Keep these values in step with render.yaml.
+      - name: Deploy checks
+        env:
+          DJANGO_DEBUG: "False"
+          RENDER_EXTERNAL_HOSTNAME: questionable-candy.onrender.com
+          DJANGO_PROXY_SSL_HEADER: "True"
+          DJANGO_CLIENT_IP_HEADER: CF-Connecting-IP
+        run: |
+          DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')" \
+            python manage.py check --deploy --fail-level WARNING
 
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Playwright's own image ships the browser and the libraries it needs, so no
+    # step downloads them. Its version must equal playwright== in
+    # requirements.lock -- the browser build is tied to it -- and Dependabot
+    # does not bump container images, so the "Playwright matches the image"
+    # step fails when the two drift. Pinned by digest, like the actions above.
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.64.1-noble@sha256:330d401ae23c905896a0c26c66c36fc971b621519e7b11b435a8328d7bf6e031
+      env:
+        PLAYWRIGHT_IMAGE_VERSION: "1.64.1"
 
     services:
       postgres:
@@ -83,8 +126,6 @@ jobs:
           # nothing here may ever be reused for a deployed database.
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: questionable_candy
-        ports:
-          - 5432:5432
         # The container being started is not the same as it accepting
         # connections -- without this, migrate can win the race and fail.
         options: >-
@@ -95,37 +136,52 @@ jobs:
 
     env:
       # settings.py raises ImproperlyConfigured without these two, and CI has no
-      # .env to read them from -- that file is gitignored.
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/questionable_candy
+      # .env to read them from -- that file is gitignored. The job runs in a
+      # container, so the service is reached by its name, not localhost.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/questionable_candy
       DJANGO_SECRET_KEY: ci-only-not-a-real-key-0000000000000000000000
       # Matches local development, where this suite is known to pass. Django's
       # test runner forces DEBUG off during tests anyway; what this avoids is
       # the secure-cookie defaults that DEBUG=False would switch on, which the
       # plain-HTTP test client cannot satisfy.
-      DJANGO_DEBUG: 'True'
+      DJANGO_DEBUG: "True"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
       # DJANGO_SECURE_COOKIES is deliberately unset: tests/unit/test_settings.py
       # sets it per-test, and a value here would override those cases.
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@v7
+      # Not setup-python, as the other jobs use: its prebuilt Pythons are
+      # compiled to live at /opt/hostedtoolcache, a container job mounts that
+      # at /__t, and they do not run from there. The image's own Python is the
+      # distribution's 3.12. uv's managed Pythons run from any path, so uv
+      # provides 3.13 in a venv that later steps find first on PATH.
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
         with:
-          python-version: '3.13'
-          cache: pip
+          version: "0.13.0"
+          python-version: "3.13"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: requirements.lock
 
+      # The venv has no pip; uv installs into it, checking every hash.
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: uv pip install --require-hashes -r requirements.lock
 
-      # pytest-playwright is a pip package; the browser it drives is not, and
-      # the runner image does not ship one. Until tests/e2e/ had tests in it the
-      # browser fixture was never instantiated and this was invisible -- an
-      # empty suite needs no browser. --with-deps pulls the shared libraries
-      # chromium needs on the ubuntu image; chromium alone, because that is the
-      # only browser the suite parametrises over.
-      - name: Install Playwright browser
-        run: python -m playwright install --with-deps chromium
+      # The browser comes from the image's /ms-playwright. A different
+      # playwright version would look for a browser build that is not there,
+      # so stop here and say what to bump.
+      - name: Playwright matches the image
+        shell: python
+        run: |
+          import os, sys
+          from importlib.metadata import version
+
+          locked, image = version("playwright"), os.environ["PLAYWRIGHT_IMAGE_VERSION"]
+          if locked != image:
+              sys.exit(f"requirements.lock has playwright {locked}, the container image {image}: "
+                       "bump the image tag, digest and PLAYWRIGHT_IMAGE_VERSION in ci.yml.")
 
       # scripts/dev.py runs makemigrations, which would quietly *write* a
       # missing migration and let the suite pass green. Fail here first: a model

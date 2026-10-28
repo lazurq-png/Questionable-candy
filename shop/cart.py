@@ -13,13 +13,19 @@ and writes it back -- so the rules live in one place rather than in each view:
 Functions return the messages to show rather than writing them anywhere, so a
 view can hand them to an htmx partial or to the messages framework alike.
 """
+
 from dataclasses import dataclass
 from decimal import Decimal
+
+from django.http import HttpRequest
 
 from .checkout import SESSION_KEY as CHECKOUT_SESSION_KEY
 from .models import Candy
 
 SESSION_KEY = "shoppingcart"
+
+# What the session holds: candy primary key, as a string, to a quantity >= 1.
+Stored = dict[str, int]
 
 # What the stepper says when nothing more of a candy can go in the cart --
 # whether none is left or the cart already holds every one. Shown in a bubble
@@ -35,22 +41,22 @@ class Line:
     quantity: int
 
     @property
-    def total(self):
+    def total(self) -> Decimal:
         """The line's price: unit price times quantity."""
         return self.candy.price * self.quantity
 
 
-def _stored(request):
+def _stored(request: HttpRequest) -> Stored:
     """The session mapping, dropping anything that is not a positive count."""
     raw = request.session.get(SESSION_KEY, {})
-    clean = {}
+    clean: Stored = {}
     for key, value in raw.items() if isinstance(raw, dict) else ():
         if str(key).isdigit() and isinstance(value, int) and value > 0:
             clean[str(key)] = value
     return clean
 
 
-def _save(request, stored):
+def _save(request: HttpRequest, stored: Stored) -> None:
     """Write the cart back -- and forget any checkout progress made for the old one.
 
     The health warning (UC-07) and the confirmations after it were for the
@@ -62,12 +68,12 @@ def _save(request, stored):
     request.session.modified = True
 
 
-def count(request):
+def count(request: HttpRequest) -> int:
     """Total number of items, for the header. Reads only; checks nothing."""
     return sum(_stored(request).values())
 
 
-def add_one(request, candy):
+def add_one(request: HttpRequest, candy: Candy) -> tuple[bool, str]:
     """Add a single `candy`. Returns (added, message).
 
     Rejected -- not capped -- when the cart already holds every one in stock,
@@ -83,7 +89,7 @@ def add_one(request, candy):
     return True, ""
 
 
-def set_quantity(request, candy, quantity):
+def set_quantity(request: HttpRequest, candy: Candy, quantity: int) -> str:
     """Set the quantity of a candy already in the cart. Returns a message or "".
 
     `quantity` is an already-validated whole number of at least 1. Only a candy
@@ -107,7 +113,7 @@ def set_quantity(request, candy, quantity):
     return message
 
 
-def set_or_add(request, candy, quantity):
+def set_or_add(request: HttpRequest, candy: Candy, quantity: int) -> tuple[bool, str]:
     """Set a candy's quantity from its stepper. Returns (changed, message).
 
     Unlike set_quantity(), the candy need not be in the cart yet -- the stepper
@@ -141,7 +147,7 @@ def set_or_add(request, candy, quantity):
     return changed, message
 
 
-def quantities(request):
+def quantities(request: HttpRequest) -> dict[int, int]:
     """Each candy's quantity by primary key, for the add-to-cart steppers.
 
     Reads only and checks nothing, like count(): the stepper shows what the
@@ -150,19 +156,19 @@ def quantities(request):
     return {int(key): value for key, value in _stored(request).items()}
 
 
-def remove(request, pk):
+def remove(request: HttpRequest, pk: int) -> None:
     """Take a candy out of the cart, whether or not it still exists."""
     stored = _stored(request)
     if stored.pop(str(pk), None) is not None:
         _save(request, stored)
 
 
-def clear(request):
+def clear(request: HttpRequest) -> None:
     """Empty the cart, once its order has been placed (UC-05 step 7)."""
     _save(request, {})
 
 
-def remove_one(request, pk):
+def remove_one(request: HttpRequest, pk: int) -> bool:
     """Take one of a candy out of the cart. Returns whether anything changed.
 
     Taking the last one removes the entry, so the cart never holds a zero.
@@ -180,7 +186,7 @@ def remove_one(request, pk):
     return True
 
 
-def lines(request):
+def lines(request: HttpRequest) -> tuple[list[Line], Decimal, list[str]]:
     """The cart's lines and total, after bringing it back in line with the shop.
 
     Returns (lines, total, messages). Entries whose candy was deleted or
@@ -189,7 +195,8 @@ def lines(request):
     """
     stored = _stored(request)
     candies = Candy.objects.published().in_bulk([int(pk) for pk in stored])
-    result, messages = [], []
+    result: list[Line] = []
+    messages: list[str] = []
     unavailable = 0
     for key, quantity in list(stored.items()):
         candy = candies.get(int(key))
@@ -203,9 +210,7 @@ def lines(request):
             continue
         if quantity > candy.stock:
             quantity = stored[key] = candy.stock
-            messages.append(
-                f"Only {candy.stock} of {candy.name} left in stock, so the quantity is {candy.stock}."
-            )
+            messages.append(f"Only {candy.stock} of {candy.name} left in stock, so the quantity is {candy.stock}.")
         result.append(Line(candy, quantity))
     if unavailable:
         noun = "item is" if unavailable == 1 else "items are"

@@ -1,4 +1,5 @@
 """The custom user model -- docs/adr/0007-custom-user-model.md."""
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction

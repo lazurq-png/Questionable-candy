@@ -4,6 +4,7 @@
 and names unique. Two names that slugify alike must still come out with
 different slugs, or 0014 could not add the unique constraint.
 """
+
 import pytest
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
@@ -41,6 +42,8 @@ def test_candy_older_than_slugs_gets_a_distinct_slug_each():
     new_candy = executor.loader.project_state(AFTER).apps.get_model("shop", "Candy")
     slugs = dict(new_candy.objects.values_list("name", "slug"))
     assert slugs == {
-        "Sour Bricks": "sour-bricks", "Sour-Bricks": "sour-bricks-2", "!!!": "candy",
+        "Sour Bricks": "sour-bricks",
+        "Sour-Bricks": "sour-bricks-2",
+        "!!!": "candy",
         "123": "candy-123",  # digits alone would read as the old /candy/<pk>/ address
     }

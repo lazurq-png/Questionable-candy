@@ -1,4 +1,5 @@
 """Views for the catalog, the cart, checkout and orders."""
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import F
@@ -8,7 +9,8 @@ from django.utils.cache import patch_vary_headers
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from . import cart, checkout as checkout_state
+from . import cart
+from . import checkout as checkout_state
 from .forms import ConfirmOrderForm, HealthWarningForm, QuantityForm, StepperQuantityForm
 from .models import Candy, Order, OrderChanged
 
@@ -55,11 +57,15 @@ def candy_list(request):
         sort = DEFAULT_SORT
     candies = list(Candy.objects.published().order_by(*CATALOG_SORTS[sort][1]))
     _mark_in_cart(request, candies)
-    return render(request, "shop/candy_list.html", {
-        "candies": candies,
-        "sort": sort,
-        "sorts": [(key, label) for key, (label, _) in CATALOG_SORTS.items()],
-    })
+    return render(
+        request,
+        "shop/candy_list.html",
+        {
+            "candies": candies,
+            "sort": sort,
+            "sorts": [(key, label) for key, (label, _) in CATALOG_SORTS.items()],
+        },
+    )
 
 
 def candy_detail(request, slug):
@@ -275,12 +281,16 @@ def checkout_warning(request):
                 checkout_state.acknowledge(request, warning)
                 return redirect("checkout_confirm")
 
-    return render(request, "shop/checkout_warning.html", {
-        "warning": warning,
-        "form": form,
-        "notices": notices,
-        "acknowledged": checkout_state.is_acknowledged(request, warning),
-    })
+    return render(
+        request,
+        "shop/checkout_warning.html",
+        {
+            "warning": warning,
+            "form": form,
+            "notices": notices,
+            "acknowledged": checkout_state.is_acknowledged(request, warning),
+        },
+    )
 
 
 @never_cache
@@ -330,8 +340,12 @@ def checkout_confirm(request):
     form = ConfirmOrderForm(total=total)
     if request.method == "POST":
         token = checkout_state.confirmation_token(request)
-        if (checkout_state.shown_for_confirmation(request) != snapshot or request.POST.get("shown") != shown
-                or token is None or request.POST.get("token") != token):
+        if (
+            checkout_state.shown_for_confirmation(request) != snapshot
+            or request.POST.get("shown") != shown
+            or token is None
+            or request.POST.get("token") != token
+        ):
             notices.append("Your order changed while you were confirming it. Check it again below.")
         else:
             form = ConfirmOrderForm(request.POST, total=total)
@@ -339,15 +353,19 @@ def checkout_confirm(request):
                 return _place_order(request, snapshot, token)
     token = checkout_state.show_for_confirmation(request, snapshot)
 
-    return render(request, "shop/checkout_confirm.html", {
-        "lines": lines,
-        "total": total,
-        "items": sum(line.quantity for line in lines),
-        "form": form,
-        "notices": notices,
-        "shown": shown,
-        "token": token,
-    })
+    return render(
+        request,
+        "shop/checkout_confirm.html",
+        {
+            "lines": lines,
+            "total": total,
+            "items": sum(line.quantity for line in lines),
+            "form": form,
+            "notices": notices,
+            "shown": shown,
+            "token": token,
+        },
+    )
 
 
 def _place_order(request, snapshot, token):

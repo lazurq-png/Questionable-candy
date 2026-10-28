@@ -144,15 +144,6 @@ is wrong and you are now editing code at random.
 Supervised, that means: state the failure, what you tried, and what each attempt
 ruled out — then ask.
 
-Unattended, there is nobody to ask, so the count is a hard stop for that task:
-
-1. `git checkout --` / `git restore` the task's changes, leaving the tree at the
-   last verified-green commit. A half-repaired failure is worse than none.
-2. Record in `progress.md`: the exact failure output, each of the three
-   hypotheses, and what each attempt eliminated.
-3. Move to the next independent task. Do not retry this one later in the same
-   run under a different description.
-
 The three attempts are worth more as a documented elimination than as a fourth
 guess. Count cycles against one failure — a *different* failure surfacing after a
 genuine fix resets the count.

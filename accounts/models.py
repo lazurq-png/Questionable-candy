@@ -1,4 +1,5 @@
 """The shop's user model."""
+
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -25,6 +26,4 @@ class User(AbstractUser):
     #
     # Keys from shop.allergens, the same vocabulary as Candy.allergens, so the
     # UC-07 warning can match them exactly. Checked by full_clean() and forms.
-    allergies = ArrayField(
-        models.CharField(max_length=100, choices=allergens.ALLERGENS), blank=True, default=list
-    )
+    allergies = ArrayField(models.CharField(max_length=100, choices=allergens.ALLERGENS), blank=True, default=list)

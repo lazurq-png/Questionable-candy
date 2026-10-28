@@ -23,12 +23,14 @@ docs/ai/
 A supervised task that spans many files or sessions may use the same layout
 under its own branch name. Most supervised work needs none of this.
 
-An unattended run works on several branches — one per task, plus the run's
-integration branch (`night-run` §1.4) — but keeps **one** directory, named after
-the integration branch. Each task commits its updates to these files on its own
-branch, and they reach the run branch when that task merges. Do not create a
-directory per task branch: the point of this record is that a reader finds the
-whole run in one place.
+The `night-*` directories come from unattended runs, driven by a night-run
+skill that was removed in `21cd14d` (`git show 21cd14d^:.claude/skills/night-run/SKILL.md`
+to read it). Such a run worked on several branches — one per task, plus its
+integration branch `night-<YYYY-MM-DD>` — but kept **one** directory, named
+after the integration branch. Each task committed its updates to these files on
+its own branch, and they reached the run branch when that task merged. Keep
+that shape for any run of this kind: the point of this record is that a reader
+finds the whole run in one place, not one directory per task branch.
 
 ## What each file is for
 
@@ -37,10 +39,10 @@ list, what is explicitly out of scope, and the acceptance criteria for each task
 If the run is interrupted, this is what lets the next agent resume without
 re-deriving the goal.
 
-For an unattended run, a **human** writes `plan.md` beforehand. It goes in
-`docs/ai/night-<YYYY-MM-DD>/`, dated the day the run starts. The run reads the
-plan and does not author it (`night-run` §1.0). With no plan there, the run
-stops without doing anything.
+For an unattended run, a **human** wrote `plan.md` beforehand, in
+`docs/ai/night-<YYYY-MM-DD>/`, dated the day the run started. The run read the
+plan and never edited it; with no plan there, it stopped without doing
+anything.
 
 **progress.md** — appended as work completes. For each task: what changed, the
 commit SHA, the exact verification commands run and their real outcome, and any
@@ -55,12 +57,12 @@ does not belong here.
 **lint-baseline.txt** — the raw `python scripts/dev.py lint` report from before
 the first code change. Its purpose is to be diffed: the lint gate only fails on
 errors, so warnings introduced during a run are invisible without something to
-compare against. Written by unattended runs (`night-run` §1.3); a supervised
-task needs it only if it expects to churn a lot of code.
+compare against. The unattended runs wrote one before their first change; a
+supervised task needs it only if it expects to churn a lot of code.
 
 **questions.md** — the queue for a human. Each entry states the ambiguity, the
-options, a recommendation, and what was done in the meantime. An unattended run
-parks questions here rather than stopping (`AGENTS.md` §18).
+options, a recommendation, and what was done in the meantime. The unattended
+runs parked questions here rather than stopping (`AGENTS.md` §15).
 
 ## Lifecycle
 

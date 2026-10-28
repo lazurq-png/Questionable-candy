@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/dev.py test*)",
+      "Bash(python scripts/dev.py lint)",
+      "Bash(python scripts/adr_guards.py*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * --delete*)",
+      "Bash(git push --delete*)",
+      "Bash(rm -rf*)",
+      "Read(./.env)"
+    ]
+  }
+}
