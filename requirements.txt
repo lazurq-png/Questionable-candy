@@ -1,8 +1,8 @@
 # Runtime
-Django~=6.1.1
+Django~=6.1.2
 psycopg[binary]~=3.2          # PostgreSQL driver -- docs/adr/0004-database.md
 python-dotenv~=1.1            # loads .env into the environment
-dj-database-url~=3.0          # DATABASE_URL -> Django DATABASES
+dj-database-url~=3.1          # DATABASE_URL -> Django DATABASES
 django-axes~=8.3            # login throttling, audit finding S3
 gunicorn~=26.2                # WSGI server on Render -- docs/adr/0009-deployment.md
 whitenoise~=6.12              # serves static files in production -- same ADR
@@ -11,7 +11,7 @@ whitenoise~=6.12              # serves static files in production -- same ADR
 # Faker arrives transitively via factory_boy and is not counted.
 pytest~=9.1
 pytest-django~=4.14
-pytest-cov~=7.0
+pytest-cov~=7.1
 factory_boy~=3.3
 pytest-playwright~=0.7        # unblocked by ADR 0006; drives tests/e2e/
 
