@@ -215,6 +215,30 @@ def test_a_refusal_pops_up_over_the_page_without_moving_any_bar(live_server, pag
     assert bubble.evaluate("el => getComputedStyle(el).position") == "absolute"
 
 
+def test_a_refusal_goes_away_by_itself(live_server, page, wait_for_htmx_to_settle):
+    """The bubble covers the price, so it must not stay until the next change.
+
+    Both refusals use the same bubble: "Only 2 in stock" for a typed number
+    above stock, and "Out of stock" for plus with every one already in the cart.
+    """
+    CandyFactory(name="Cola Bottles", stock=2)
+    page.goto(live_server.url)
+    bubble = page.get_by_test_id("add-to-cart-message")
+
+    quantity = page.get_by_test_id("cart-stepper-quantity")
+    quantity.fill("9")
+    quantity.press("Enter")
+    expect(bubble).to_have_text("Only 2 in stock")
+    expect(bubble).to_be_visible()
+    expect(bubble).to_be_hidden(timeout=6000)
+
+    wait_for_htmx_to_settle(page)
+    page.get_by_role("button", name="Add to cart").click(force=True)
+    expect(bubble).to_have_text("Out of stock")
+    expect(bubble).to_be_visible()
+    expect(bubble).to_be_hidden(timeout=6000)
+
+
 def test_candy_pictures_load_in_the_catalog_and_in_the_detail_popup(live_server, page, assert_page_is_fully_rendered):
     """An <img> with a wrong static path still renders -- as a broken icon.
 

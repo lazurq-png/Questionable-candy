@@ -1344,9 +1344,28 @@ input[type="number"] {
   transform: rotate(45deg);
 }
 
+/* It goes by itself after 3 seconds, rather than covering the price until
+   the next change: it is a few words, not a page of the admin's messages
+   (order_lines.js gives those 5). Each change renders a new bubble, so the
+   3 seconds start again. Hidden, not
+   only transparent, so it stops covering anything; the live region has
+   already read it out. With reduced motion it simply goes, with no fade. */
+.cart-message {
+  animation: cart-message-out 1ms 3s forwards;
+}
+
+@keyframes cart-message-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .cart-message {
-    animation: cart-message-in 150ms ease-out;
+    animation:
+      cart-message-in 150ms ease-out,
+      cart-message-out 300ms ease-in 3s forwards;
   }
 
   @keyframes cart-message-in {

@@ -84,8 +84,16 @@ What the code needed for it, and has:
 - `tests/integration/test_login_throttling.py` shows two visitors behind the
   same proxy locked separately, and a forged `CF-Connecting-IP` ignored when no
   header is configured.
-- **Not verified by anything here:** the deploy itself. Render and Neon run
-  only on their own platforms; the first deploy is the check.
+- **The first deploy, 2026-10-28,** from `master` at `883c8fe`,
+  with `DATABASE_URL` set to Neon's pooled string. The build ran `migrate`
+  through the pooler, and `createsuperuser`, run from a laptop, gave a
+  working admin login. On the live site the shop page
+  and `/admin/login/` answered 200, `site.css` was served under its hashed
+  name, and the responses carried HSTS (`max-age=3600; includeSubDomains`) and
+  the enforced CSP.
+- **Not verified by anything here, from now on:** later deploys. Render and
+  Neon run only on their own platforms, and nothing in CI reaches them; each
+  deploy's own build log is the check.
 
 ## Pros and Cons of the Options
 
