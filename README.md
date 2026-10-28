@@ -126,8 +126,12 @@ passed on a commit.
    Frankfurt (`eu-central-1`), next to the Render service. Keep it separate from
    any other app's project: the free limits are per project, and a second
    database inside another project would share its quota and suspend with it.
-   Copy its **pooled** connection string: the host ends in `-pooler`, and it
-   carries `?sslmode=require`.
+   If **New project** is greyed out, the organization you are in is managed by
+   Vercel, which creates Neon projects only from its own dashboard: choose
+   **Create organization** in Neon's organization switcher and make the project
+   there. Copy its **pooled** connection string (Neon labels it
+   `DATABASE_URL_POOLED`): the host ends in `-pooler`, and it carries
+   `?sslmode=require`. On Render it still goes under the name `DATABASE_URL`.
 2. **Service.** In Render, choose **New → Blueprint** and connect this
    repository. Render reads `render.yaml`, generates `DJANGO_SECRET_KEY`, and
    asks once for `DATABASE_URL`: paste the Neon string.

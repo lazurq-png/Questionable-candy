@@ -9,6 +9,6 @@ f467f14a16da3216  adr/0002-middleware.md
 c1e7f09e8e114206  adr/0006-frontend-htmx-alpine.md
 aff6216842f2e39c  adr/0007-custom-user-model.md
 154fe963a3b4c975  adr/0008-hand-written-css-themes.md
-64a205e964ba0636  adr/0009-deployment.md
+7b5e6e1921689b25  adr/0009-deployment.md
 68465ea662dbecd6  requirements.md
 561c10b6b0128617  data-model.md
