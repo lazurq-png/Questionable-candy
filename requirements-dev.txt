@@ -8,7 +8,7 @@
 
 # Lint -- errors fail, warnings are advisory. Config in .pylintrc,
 # invocation in scripts/dev.py (`lint`) and .github/workflows/ci.yml.
-pylint~=4.0
+pylint~=4.1
 
 # Teaches pylint about Django's dynamic attributes. Without it, every
 # `Model.objects` access is reported as E1101, which is error class and would
