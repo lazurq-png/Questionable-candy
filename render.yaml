@@ -1,0 +1,43 @@
+# Render Blueprint for the shop's web service (docs/adr/0009-deployment.md).
+# The database is a Neon project, not a Render one: Render's free Postgres is
+# deleted after 30 days. README "Deploying" walks through the first deploy.
+services:
+  - type: web
+    name: questionable-candy
+    runtime: python
+    plan: free
+    # Frankfurt, next to Neon's aws-eu-central-1: every request queries it.
+    region: frankfurt
+    branch: master
+    # Deploy a commit only once CI has passed on it.
+    autoDeployTrigger: checksPass
+    # Migrations run here because the free plan has no pre-deploy command. The
+    # build has the service's environment, DATABASE_URL included. Python
+    # itself is pinned by .python-version.
+    buildCommand: >-
+      pip install --require-hashes -r requirements.lock &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate --noinput
+    # gunicorn binds 0.0.0.0:$PORT on its own and reads WEB_CONCURRENCY.
+    startCommand: gunicorn mysite.wsgi
+    healthCheckPath: /
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      # Neon's pooled connection string (README "Deploying"); entered once,
+      # when the Blueprint is first applied.
+      - key: DATABASE_URL
+        sync: false
+      - key: DJANGO_DEBUG
+        value: "False"
+      # Render terminates TLS and says so in X-Forwarded-Proto; without this
+      # the HTTPS redirect loops.
+      - key: DJANGO_PROXY_SSL_HEADER
+        value: "True"
+      # Cloudflare overwrites this one on every request (settings.py, "Login
+      # throttling"); X-Forwarded-For would let a visitor pick their address.
+      - key: DJANGO_CLIENT_IP_HEADER
+        value: CF-Connecting-IP
+      # Two workers fit the free instance's 512 MB.
+      - key: WEB_CONCURRENCY
+        value: "2"

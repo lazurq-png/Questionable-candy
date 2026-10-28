@@ -120,3 +120,19 @@ def test_the_admin_rejects_sugar_above_100_per_100g(admin_client):
 
     assert response.status_code == 200
     assert not Candy.objects.exists()
+
+
+def test_an_image_path_with_no_static_file_is_refused(admin_client):
+    """In production a missing file is a 500 on every page that shows the candy."""
+    response = admin_client.post(reverse("admin:shop_candy_add"), candy_form(image="shop/candy/no-such-file.svg"))
+
+    assert response.status_code == 200
+    assert "No static file named" in response.content.decode()
+    assert not Candy.objects.exists()
+
+
+def test_an_image_path_to_a_shipped_file_is_kept(admin_client):
+    response = admin_client.post(reverse("admin:shop_candy_add"), candy_form(image=" shop/candy/placeholder.svg "))
+
+    assert response.status_code == 302
+    assert Candy.objects.get(name="Sour Bricks").image == "shop/candy/placeholder.svg"

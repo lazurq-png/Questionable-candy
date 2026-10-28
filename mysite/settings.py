@@ -43,6 +43,10 @@ if not SECRET_KEY:
 DEBUG = _env_bool('DJANGO_DEBUG')
 
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if host.strip()]
+# Render sets this to the service's own <name>.onrender.com, which is also the
+# Host its health checks send; the name is only known once the service exists.
+if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
 
 # Application definition
@@ -80,6 +84,13 @@ MIDDLEWARE = [
     # Last, as django-axes requires: it turns a locked-out login into a 429.
     'axes.middleware.AxesMiddleware',
 ]
+# WhiteNoise serves STATIC_ROOT in production, where nothing else does (see
+# STORAGES), and goes straight after SecurityMiddleware. Only with DEBUG off:
+# with it on, runserver and the tests' live_server serve the apps' static
+# files themselves, and WhiteNoise would only warn that STATIC_ROOT has not
+# been collected. tests/integration/test_static_files.py covers it.
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 ROOT_URLCONF = 'mysite.urls'
 
@@ -184,6 +195,13 @@ CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', not DEBUG)
 SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0' if DEBUG else '3600'))
+# Whenever HSTS is on. The site's own host is the only one under its name: on
+# Render that is <name>.onrender.com, which has no subdomains of its own.
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+# Preload (security.W021) is deliberately off and its check silenced: the
+# browsers' preload list takes only a registrable domain, and onrender.com is
+# shared with every other Render service. Revisit with a custom domain.
+SILENCED_SYSTEM_CHECKS = ['security.W021']
 
 if _env_bool('DJANGO_PROXY_SSL_HEADER'):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -199,10 +217,17 @@ CSRF_TRUSTED_ORIGINS = [
 # Five wrong passwords for one username from one address locks that pair for
 # fifteen minutes, on both /accounts/login/ and /admin/login/. Keyed on the
 # pair so an attacker cannot lock a customer out from elsewhere, and a
-# customer who mistypes is not locked out for everyone. Behind a proxy the
-# address is the proxy's unless django-axes is told which header to trust
-# (AXES_IPWARE_META_PRECEDENCE_ORDER); set that together with
-# DJANGO_PROXY_SSL_HEADER when deploying.
+# customer who mistypes is not locked out for everyone.
+#
+# Behind a proxy REMOTE_ADDR is the proxy's, so every visitor would share one
+# address and five wrong passwords from anyone would lock that username for
+# all. DJANGO_CLIENT_IP_HEADER names the header that carries the visitor's own
+# address instead (mysite/client_ip.py). It must be one the proxy *overwrites*:
+# on Render that is CF-Connecting-IP, which Cloudflare sets on every request to
+# a public web service. Not X-Forwarded-For, which is appended to, so its first
+# entry is whatever the visitor sent. Unset, REMOTE_ADDR is used, which is right
+# with no proxy in front -- and the only safe choice there, since any visitor
+# could send the header themselves.
 
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
@@ -212,6 +237,9 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_LOCKOUT_PARAMETERS = [['ip_address', 'username']]
 AXES_RESET_ON_SUCCESS = True
+CLIENT_IP_HEADER = os.getenv('DJANGO_CLIENT_IP_HEADER', '').strip()
+if CLIENT_IP_HEADER:
+    AXES_CLIENT_IP_CALLABLE = 'mysite.client_ip.client_ip'
 
 
 # Content Security Policy
@@ -257,6 +285,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# `collectstatic` gathers every app's static files here for WhiteNoise to serve
+# (gitignored). With DEBUG off they get content-hashed names and compressed
+# copies, so browsers may cache them for good; that needs collectstatic to have
+# run first, as the deploy's build command does. With DEBUG on, which includes
+# the test suite, runserver and live_server serve them from the apps directly.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        if DEBUG
+        else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    },
+}
 
 
 # Email

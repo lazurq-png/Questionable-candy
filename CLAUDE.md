@@ -81,7 +81,8 @@ runs there too. It triggers on pull requests to `master` and `dev`, and on
 pushes to `master` and `dev`. It runs on GitHub, not on your machine — you
 cannot observe its result from here, so never report a CI run as evidence.
 CI also checks migration drift with `makemigrations --check`, which `dev.py`
-deliberately does not.
+deliberately does not, and runs `check --deploy --fail-level WARNING` against
+the production values in `render.yaml` (ADR 0009).
 
 Browser verification is not interchangeable with the test suite: `django.test.Client`
 does not enforce CSRF, so a green suite has already coexisted with a page that

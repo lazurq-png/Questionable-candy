@@ -87,6 +87,21 @@ jobs:
       - name: ruff and pylint
         run: python scripts/dev.py lint
 
+      # The settings a deploy loads, checked as Django's deployment checklist
+      # would: render.yaml's values, a real-looking host, a long random key
+      # (security.W009 refuses the placeholder above). Warnings fail too;
+      # the one deliberate exception, security.W021, is silenced in settings.py
+      # with its reason. Keep these values in step with render.yaml.
+      - name: Deploy checks
+        env:
+          DJANGO_DEBUG: "False"
+          RENDER_EXTERNAL_HOSTNAME: questionable-candy.onrender.com
+          DJANGO_PROXY_SSL_HEADER: "True"
+          DJANGO_CLIENT_IP_HEADER: CF-Connecting-IP
+        run: |
+          DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')" \
+            python manage.py check --deploy --fail-level WARNING
+
   tests:
     name: Tests
     runs-on: ubuntu-latest

@@ -115,6 +115,53 @@ that exists it fills in empty fields without overwriting anything.
 There is no SQLite fallback — a missing `DATABASE_URL` fails at startup by
 design. See [ADR 0004](docs/adr/0004-database.md).
 
+## Deploying
+
+The site runs on Render's free web service, with its data in its own Neon
+project ([ADR 0009](docs/adr/0009-deployment.md)). [`render.yaml`](render.yaml)
+describes the service; Render builds it from `master`, and only once CI has
+passed on a commit.
+
+1. **Database.** In Neon, create a **new project** for the shop, in AWS
+   Frankfurt (`eu-central-1`), next to the Render service. Keep it separate from
+   any other app's project: the free limits are per project, and a second
+   database inside another project would share its quota and suspend with it.
+   Copy its **pooled** connection string: the host ends in `-pooler`, and it
+   carries `?sslmode=require`.
+2. **Service.** In Render, choose **New → Blueprint** and connect this
+   repository. Render reads `render.yaml`, generates `DJANGO_SECRET_KEY`, and
+   asks once for `DATABASE_URL`: paste the Neon string.
+3. **First build.** It installs `requirements.lock`, runs `collectstatic`, and
+   runs `migrate` against Neon. The free plan has no pre-deploy step, so
+   migrations run in the build, before the new code goes live.
+4. **Admin user and candy.** The free plan has no shell either, so run these from
+   your own machine, against the Neon database:
+
+   ```sh
+   DATABASE_URL='<the Neon string>' python manage.py createsuperuser
+   DATABASE_URL='<the Neon string>' python manage.py seed_candy
+   ```
+
+   An environment variable wins over `.env`, so these reach Neon, not your local
+   database. Use `manage.py`, not `dev.py`, which would also run
+   `makemigrations` and `migrate` against it.
+
+Once it is up:
+
+- **It sleeps.** After 15 minutes without a visit, the next request takes about
+  a minute while the service starts.
+- **Behind Render's proxy**, `render.yaml` turns on `DJANGO_PROXY_SSL_HEADER`, so
+  the HTTPS redirect does not loop. It also sets `DJANGO_CLIENT_IP_HEADER=CF-Connecting-IP`,
+  so login throttling keys on each visitor's own address rather than the
+  proxy's. CI's Lint job runs `manage.py check --deploy --fail-level WARNING`
+  with those values. Change one, and change the other to match.
+- **No mail is sent.** Nothing in the shop sends any yet; when something does,
+  set the `DJANGO_EMAIL_*` variables (`.env.example`).
+- **A custom domain** goes in `DJANGO_ALLOWED_HOSTS`. The service's own
+  `onrender.com` host is added automatically.
+- If `migrate` ever fails on the pooled connection, run it once against Neon's
+  direct (non-`-pooler`) string, from your machine as in step 4.
+
 ## Tasks
 
 `scripts/dev.py` is the task runner (`dev.cmd` wraps it on Windows):
@@ -205,6 +252,7 @@ plain-language summary, was last brought up to date. Everything else in
 - [ADR 0006 — htmx and Alpine.js](docs/adr/0006-frontend-htmx-alpine.md)
 - [ADR 0007 — Custom user model](docs/adr/0007-custom-user-model.md)
 - [ADR 0008 — Hand-written CSS with light and dark themes](docs/adr/0008-hand-written-css-themes.md)
+- [ADR 0009 — Deploying on Render, with the database on Neon](docs/adr/0009-deployment.md)
 
 New decisions start from [the ADR template](docs/adr/0000-adr-template.md).
 

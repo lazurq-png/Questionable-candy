@@ -5,6 +5,7 @@ from collections import Counter
 
 from django import forms
 from django.contrib import admin
+from django.contrib.staticfiles import finders
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
 
@@ -38,6 +39,22 @@ class CandyAdminForm(forms.ModelForm):
         fields = "__all__"
         error_messages = {"flaw": {"required": FLAW_REQUIRED}}
         help_texts = {"flaw": "Required. A specific, honest downside, shown on the candy's page."}
+
+    def clean_image(self):
+        """A path with no static file behind it is refused here, not shown later.
+
+        In production static names are looked up in collectstatic's manifest
+        (settings.py, "Static files"), which raises for a file that does not
+        exist, so one mistyped path would turn every page showing that candy
+        into a 500 -- there only, never in development or the tests.
+        """
+        image = self.cleaned_data["image"].strip()
+        if image and not finders.find(image):
+            raise ValidationError(
+                f"No static file named “{image}”. Use a path under a static/ folder, "
+                "like shop/candy/sour-bricks.svg, or leave this blank for the placeholder picture."
+            )
+        return image
 
 
 @admin.register(Candy)

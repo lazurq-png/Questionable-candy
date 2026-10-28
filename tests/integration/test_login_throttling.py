@@ -69,3 +69,44 @@ def test_the_admin_login_is_throttled_too(client):
         attempt(client, "boss", "wrong", url="admin:login")
 
     assert attempt(client, "boss", "right-password-3", url="admin:login").status_code == 429
+
+
+# --- Behind a proxy (DJANGO_CLIENT_IP_HEADER) -----------------------------------
+#
+# On Render every request arrives from the proxy, so REMOTE_ADDR is the same for
+# all visitors; CF-Connecting-IP carries each one's own address.
+
+PROXY = "10.9.9.9"
+
+
+@pytest.fixture(name="behind_render")
+def fixture_behind_render(settings):
+    """settings.py as DJANGO_CLIENT_IP_HEADER=CF-Connecting-IP leaves it."""
+    settings.CLIENT_IP_HEADER = "CF-Connecting-IP"
+    settings.AXES_CLIENT_IP_CALLABLE = "mysite.client_ip.client_ip"
+
+
+def through_proxy(client, username, password, visitor):
+    return client.post(
+        reverse("accounts:login"),
+        {"username": username, "password": password},
+        REMOTE_ADDR=PROXY,
+        HTTP_CF_CONNECTING_IP=visitor,
+    )
+
+
+def test_behind_the_proxy_one_visitors_failures_do_not_lock_out_another(client, ada, behind_render):
+    """Without the header every visitor shares the proxy's address -- and its lock."""
+    for _ in range(LIMIT):
+        through_proxy(client, "ada", "wrong", visitor="198.51.100.7")
+
+    assert through_proxy(client, "ada", "right-password-1", visitor="198.51.100.7").status_code == 429
+    assert through_proxy(client, "ada", "right-password-1", visitor="203.0.113.4").status_code == 302
+
+
+def test_without_the_setting_a_forged_header_is_ignored(client, ada):
+    """With no proxy configured, anyone could send CF-Connecting-IP themselves."""
+    for visitor in ("198.51.100.1", "198.51.100.2", "198.51.100.3", "198.51.100.4", "198.51.100.5"):
+        through_proxy(client, "ada", "wrong", visitor=visitor)
+
+    assert through_proxy(client, "ada", "right-password-1", visitor="198.51.100.6").status_code == 429

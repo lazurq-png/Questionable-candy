@@ -111,3 +111,45 @@ def test_proxy_header_and_trusted_origins_come_from_the_environment():
 def test_mail_uses_smtp_when_debug_is_off_and_console_otherwise():
     assert load_settings(DJANGO_DEBUG="False").MAILERS["default"]["BACKEND"].endswith("smtp.EmailBackend")
     assert load_settings(DJANGO_DEBUG="True").MAILERS["default"]["BACKEND"].endswith("console.EmailBackend")
+
+
+def test_renders_hostname_is_allowed_alongside_the_configured_ones():
+    settings = load_settings(DJANGO_ALLOWED_HOSTS="a.example", RENDER_EXTERNAL_HOSTNAME="shop.onrender.com")
+
+    assert settings.ALLOWED_HOSTS == ["a.example", "shop.onrender.com"]
+
+
+def test_hsts_covers_subdomains_only_while_it_is_on():
+    assert load_settings(DJANGO_DEBUG="False").SECURE_HSTS_INCLUDE_SUBDOMAINS is True
+    assert load_settings(DJANGO_DEBUG="True").SECURE_HSTS_INCLUDE_SUBDOMAINS is False
+
+
+def test_login_throttling_reads_the_client_ip_header_only_when_configured():
+    """Trusting the header with no proxy in front would let a visitor pick an address."""
+    configured = load_settings(DJANGO_CLIENT_IP_HEADER="CF-Connecting-IP")
+    unconfigured = load_settings(DJANGO_CLIENT_IP_HEADER="")
+
+    assert configured.AXES_CLIENT_IP_CALLABLE == "mysite.client_ip.client_ip"
+    assert configured.CLIENT_IP_HEADER == "CF-Connecting-IP"
+    assert not hasattr(unconfigured, "AXES_CLIENT_IP_CALLABLE")
+
+
+def test_static_files_get_hashed_names_only_with_debug_off():
+    """Hashed names need collectstatic's manifest, which only a deploy builds."""
+    production = load_settings(DJANGO_DEBUG="False").STORAGES["staticfiles"]["BACKEND"]
+    development = load_settings(DJANGO_DEBUG="True").STORAGES["staticfiles"]["BACKEND"]
+
+    assert production == "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    assert development == "django.contrib.staticfiles.storage.StaticFilesStorage"
+
+
+def test_whitenoise_serves_static_files_only_with_debug_off():
+    """With DEBUG on Django serves them itself, and STATIC_ROOT is never collected."""
+    production = load_settings(DJANGO_DEBUG="False").MIDDLEWARE
+    development = load_settings(DJANGO_DEBUG="True").MIDDLEWARE
+
+    assert production[:2] == [
+        "django.middleware.security.SecurityMiddleware",
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+    ]
+    assert "whitenoise.middleware.WhiteNoiseMiddleware" not in development
