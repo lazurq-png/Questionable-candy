@@ -4,9 +4,10 @@ Themes: with no stored choice the system setting decides (CSS alone); the
 toggle stores an override that wins until toggled again. Playwright's colour-
 scheme emulation stands in for the operating system.
 
-Measured on every page, in both themes (night-run §9.4): no horizontal overflow
-at phone width, controls at least 44x44, body text at 4.5:1 against the colour
-actually painted behind it. None of this says the pages look good.
+Measured on every page, in both themes: no horizontal overflow at phone width
+(docs/requirements.md §3, usable on a phone), controls at least 44x44, body
+text at 4.5:1 against the colour actually painted behind it. None of this says
+the pages look good.
 """
 
 from decimal import Decimal
@@ -24,8 +25,7 @@ PHONE = {"width": 375, "height": 812}
 # Every element that holds text directly, and the colour it is painted on.
 # The background is found by compositing each ancestor's background colour
 # until an opaque one is reached; an element with no opaque ancestor at all is
-# reported, because a ratio against "transparent" would pass meaninglessly --
-# the trap night-run §9.4 records.
+# reported, because a ratio against "transparent" would pass meaninglessly.
 CONTRAST_FAILURES = """
 () => {
   const parse = (value) => {
@@ -311,7 +311,7 @@ def test_the_toggle_icon_is_not_part_of_its_name(live_server, page):
 
 
 def test_the_contrast_check_refuses_text_with_nothing_painted_behind_it(live_server, page):
-    """The §9.4 trap: against "transparent" any ratio would pass meaninglessly.
+    """Against "transparent", any contrast ratio would pass meaninglessly.
 
     Guards the checker itself -- if it is ever loosened to treat transparent as
     white, this fails instead of every page silently passing.
