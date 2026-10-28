@@ -2,7 +2,7 @@
 Django~=6.1.1
 psycopg[binary]~=3.2          # PostgreSQL driver -- docs/adr/0004-database.md
 python-dotenv~=1.1            # loads .env into the environment
-dj-database-url~=3.0          # DATABASE_URL -> Django DATABASES
+dj-database-url~=3.1          # DATABASE_URL -> Django DATABASES
 django-axes~=8.3            # login throttling, audit finding S3
 gunicorn~=26.2                # WSGI server on Render -- docs/adr/0009-deployment.md
 whitenoise~=6.12              # serves static files in production -- same ADR
