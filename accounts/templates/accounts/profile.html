@@ -5,7 +5,7 @@
 <h1>My profile</h1>
 {% comment %}
 "Your profile was saved." and the like fade out after 5 seconds. Without Alpine
-(its CDN unreachable) they simply stay, as they did before.
+(its script blocked) they simply stay, as they did before.
 {% endcomment %}
 <div class="notices" data-testid="account-messages"
      x-data="{ shown: true }" x-init="setTimeout(() => shown = false, 5000)"
@@ -27,5 +27,11 @@
 </form>
 
 <button type="submit" form="profile-form">Save profile</button>
+
+{% comment %}
+Outside the form and after Save: leaving for good is not part of editing a
+profile, and must not be the control a hurried Enter or Tab lands on first.
+{% endcomment %}
+<p class="page-actions"><a href="{% url 'accounts:privacy' %}" data-testid="privacy-link">What the shop stores about you</a> <a href="{% url 'accounts:delete' %}" data-testid="delete-account-link">Delete my account</a></p>
 
 {% endblock %}

@@ -13,5 +13,6 @@ allergies. Signing up logs the customer straight in and returns them to `next`.
   <input type="hidden" name="next" value="{{ next }}">
   <button type="submit">Create account</button>
 </form>
+<p class="page-actions"><a href="{% url 'accounts:privacy' %}">What the shop stores about you</a></p>
 <p class="page-actions">Already have an account? <a href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Log in</a></p>
 {% endblock %}
