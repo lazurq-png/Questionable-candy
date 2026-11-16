@@ -2,6 +2,7 @@
 
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from django.views.generic import TemplateView
 
 from . import views
 
@@ -16,4 +17,7 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("orders/", views.orders, name="orders"),
     path("password/", views.PasswordChangeView.as_view(), name="password_change"),
+    path("delete/", views.delete_account, name="delete"),
+    path("deleted/", TemplateView.as_view(template_name="accounts/deleted.html"), name="deleted"),
+    path("privacy/", TemplateView.as_view(template_name="accounts/privacy.html"), name="privacy"),
 ]

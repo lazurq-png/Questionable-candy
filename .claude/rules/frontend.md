@@ -138,7 +138,7 @@ version of that: a real browser, driven by a test. It supplements step 4 and
 does not replace it, and it is not `django.test.Client`, which is the thing
 that let the 403 through.
 
-`pytest-playwright` is already in `requirements.txt` (ADR 0006 unblocked it) and
+`pytest-playwright` is already in `requirements-dev.txt` (ADR 0006 unblocked it) and
 the browser binaries are installed. `tests/e2e/` holds the catalog and detail
 tests; follow their shape rather than inventing a second one.
 

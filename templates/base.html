@@ -25,22 +25,22 @@
     <link rel="stylesheet" href="{% static 'shop/site.css' %}">
     <script defer src="{% static 'shop/theme.js' %}"></script>
     {% comment %}
-    Pinned to one exact file each, with the hash of that file: the browser
-    refuses a script whose contents do not match, so a tampered or swapped
-    CDN response cannot run here (ADR 0006 named this gap). htmx's URL is the
-    file unpkg redirects the bare package URL to -- a redirect target could
-    change, a hash cannot. crossorigin="anonymous" is required for the check
-    on a cross-origin script; unpkg answers with Access-Control-Allow-Origin.
+    htmx and Alpine are served from this site (shop/static/shop/vendor/), not a
+    CDN: the Content-Security-Policy then needs no other origin in script-src,
+    and the page does not depend on unpkg being up (ADR 0006, amended
+    2026-11-10). Each file is the published one, byte for byte, named by its
+    version; the hash is the same sha384 the CDN tag carried, so the browser
+    still refuses a file that was altered -- by a careless edit or a
+    line-ending conversion (.gitattributes keeps them binary).
 
-    Replacing a version means replacing its hash, which means fetching the new
-    file and hashing it (docs/ai/night-2026-09-17/decisions.md D17).
+    Replacing a version: fetch the new file, add it under its new name, and
+    replace the name and the hash here
+    (tests/integration/test_script_integrity.py checks hash against file).
     {% endcomment %}
-    <script src="https://unpkg.com/htmx.org@2.0.11/dist/htmx.min.js"
-            integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg"
-            crossorigin="anonymous"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.15.12/dist/cdn.min.js"
-            integrity="sha384-pb6hrQvo4s23cEUFtj0CZkzGE3jyK3pj26RIupXXxhSrrcUA/Cn0lZgcCrGH0t6L"
-            crossorigin="anonymous"></script>
+    <script src="{% static 'shop/vendor/htmx-2.0.11.min.js' %}"
+            integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg"></script>
+    <script defer src="{% static 'shop/vendor/alpine-3.15.12.min.js' %}"
+            integrity="sha384-pb6hrQvo4s23cEUFtj0CZkzGE3jyK3pj26RIupXXxhSrrcUA/Cn0lZgcCrGH0t6L"></script>
 </head>
 {% comment %}
 hx-headers is inherited by every htmx request on the page, so each hx-post

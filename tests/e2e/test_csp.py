@@ -5,7 +5,8 @@ console; the page may still look fine if what was blocked was small (the 500
 page's theme script, say). So each test walks real pages, does what a visitor
 or an administrator does there, and fails on any CSP message.
 
-Needs unpkg.com, where base.html loads htmx and Alpine from.
+htmx and Alpine come from the site itself (shop/static/shop/vendor/), so
+these need no other host.
 """
 
 import pytest

@@ -59,7 +59,9 @@ What the code needed for it, and has:
   overwrites that header; `X-Forwarded-For` is appended to, so its first entry
   is whatever the visitor sent. Unset, `REMOTE_ADDR` is used, which is the only
   safe reading when there is no proxy to overwrite the header.
-- **HSTS covers subdomains**; **preload stays off**, with `security.W021`
+- **HSTS is a year** (raised from the first deploy's hour on 2026-11-10, once
+  the site had been answering over HTTPS for two weeks) and **covers
+  subdomains**; **preload stays off**, with `security.W021`
   silenced, because the preload list takes only a registrable domain and
   `onrender.com` is shared.
 - **Migrations run in the build command**: the free plan has no pre-deploy
@@ -109,7 +111,9 @@ What the code needed for it, and has:
 - Bad, because there is no shell and no pre-deploy step: migrations run at
   build time, before the new code is live, and admin tasks run from a laptop.
 - Bad, because `requirements.lock` holds the test and lint tools too, so the
-  build installs them; a runtime-only lock would trim it.
+  build installs them; a runtime-only lock would trim it. (Done 2026-11-10:
+  `requirements.lock` is now the runtime alone, 11 packages, and
+  `requirements-dev.lock` is what CI and a laptop install.)
 
 ### Vercel (serverless Python) + Neon
 
@@ -139,6 +143,12 @@ What the code needed for it, and has:
   [Blueprint spec](https://render.com/docs/blueprint-spec),
   [health checks](https://render.com/docs/health-checks). Neon:
   [plans](https://neon.com/docs/introduction/plans).
+- **Amended 2026-11-10.** The build command also runs `clearsessions`: carts
+  live in database sessions, Django never deletes expired ones itself, and
+  the free plan has no cron job, so each deploy clears them. The deployment
+  installs a runtime-only `requirements.lock`. HSTS is a year. One address
+  may create `DJANGO_SIGNUP_MAX_PER_DAY` accounts a day (default 5), counted
+  by the same client address as login throttling.
 - **Revisit** when: a custom domain is added (`ALLOWED_HOSTS`, and preload
   becomes possible); traffic or the database outgrows a free tier; payments are
   connected (they will need a webhook endpoint and a real mail backend); or the

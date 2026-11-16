@@ -33,7 +33,7 @@ The stack is adopted as one decision but not installed all at once: `pytest-djan
 
 Keeping the stack small is a judgement made when a package is proposed, not a number anything checks. **Amended 2026-09-23:** `scripts/adr_guards.py` used to fail CI at a sixth test package, which read the simplicity driver as a hard cap it was never meant to be. That check was removed; the script still enforces [ADR 0003](0003-backend.md)'s exclusion of DRF.
 
-The stack itself is pinned in `requirements.txt`, and `pytest.ini` sets `DJANGO_SETTINGS_MODULE`, so the runner choice is a config invariant rather than a convention.
+The stack itself is pinned in `requirements-dev.txt` (moved there from `requirements.txt` on 2026-11-10, so a deployment no longer installs it), and `pytest.ini` sets `DJANGO_SETTINGS_MODULE`, so the runner choice is a config invariant rather than a convention.
 
 Tests now run against PostgreSQL, because `pytest-django` derives the test database from the same `DATABASE_URL` the application uses and [ADR 0004](0004-database.md) leaves no SQLite fallback to fall into.
 

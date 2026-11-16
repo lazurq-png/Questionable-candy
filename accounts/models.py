@@ -27,3 +27,18 @@ class User(AbstractUser):
     # Keys from shop.allergens, the same vocabulary as Candy.allergens, so the
     # UC-07 warning can match them exactly. Checked by full_clean() and forms.
     allergies = ArrayField(models.CharField(max_length=100, choices=allergens.ALLERGENS), blank=True, default=list)
+
+
+class SignUpCount(models.Model):
+    """How many accounts one address has made in its current day.
+
+    For accounts/signup_limit.py, which is the only code that reads or writes
+    it. `key` is a keyed hash of the address, never the address itself.
+    """
+
+    key = models.CharField(max_length=64, unique=True)
+    count = models.PositiveIntegerField()
+    window_start = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.count} since {self.window_start:%Y-%m-%d %H:%M}"

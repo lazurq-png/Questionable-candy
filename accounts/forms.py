@@ -70,3 +70,24 @@ class ProfileForm(forms.ModelForm):
             if name in cleaned and not cleaned[name]:
                 cleaned[name] = getattr(self.instance, name)
         return cleaned
+
+
+class DeleteAccountForm(forms.Form):
+    """The customer's current password, to confirm deleting their account."""
+
+    password = forms.CharField(
+        label="Your password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_password(self):
+        """Refuse anything but the account's own password."""
+        password = self.cleaned_data["password"]
+        if not self.user.check_password(password):
+            raise forms.ValidationError("That is not your password.")
+        return password

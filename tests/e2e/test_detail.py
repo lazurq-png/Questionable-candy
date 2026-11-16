@@ -85,8 +85,8 @@ def test_adding_to_the_cart_from_the_popup_updates_the_catalog_behind_it(
 
     page.goto(live_server.url)
     assert page.evaluate("typeof window.htmx") == "object", (
-        "htmx did not load from the CDN; the cart assertions below cannot mean "
-        "anything. This is a network problem, not a regression in the view."
+        "htmx did not load; the cart assertions below cannot mean anything. "
+        "Look at the script tag and its hash in base.html before the view."
     )
     popup = open_popup(page, "Hollow Humbug")
 

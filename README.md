@@ -19,7 +19,9 @@ payment (UC-05 steps 1-4, and step 7 in part: the order is created and the cart
 cleared, but as `pending` and with nothing to track it from).
 
 Also built: a **My orders** page at `/accounts/orders/` listing the signed-in
-customer's past orders.
+customer's past orders; **Delete my account** at `/accounts/delete/`, which
+removes the account and its orders after asking for the password; and a page
+at `/accounts/privacy/` saying what the shop stores.
 
 Not built: **payment**, so an order stays `pending` and nothing is ever
 charged; and Google sign-in (UC-02).
@@ -34,7 +36,7 @@ at 0.2.
 | Layer    | Choice                                                             |
 | -------- | ------------------------------------------------------------------ |
 | Backend  | Django 6.1 monolith, server-rendered (MVT, no API layer)           |
-| Frontend | Django Templates + htmx + Alpine.js via CDN, no build step         |
+| Frontend | Django Templates + htmx + Alpine.js, self-hosted, no build step    |
 | Auth     | Django built-in session authentication                             |
 | Database | PostgreSQL                                                         |
 | Tests    | pytest + pytest-django, factory_boy, pytest-cov, pytest-playwright |
@@ -55,7 +57,7 @@ Requires Python 3.13 and a PostgreSQL 17 server.
 ```sh
 python -m venv .venv
 .venv\Scripts\activate                # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.lock
+pip install -r requirements-dev.lock
 python -m playwright install chromium   # the browser tests/e2e/ drives
 cp .env.example .env          # then fill in DJANGO_SECRET_KEY and DATABASE_URL
 createdb -h localhost -U postgres questionable_candy
@@ -84,24 +86,33 @@ DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/questionable_candy
 `dev.py` applies migrations itself before every task, so no separate
 `manage.py migrate` step is needed.
 
-`requirements.lock` pins every package, with hashes, so a laptop and CI install
-the same versions. `requirements.txt` and `requirements-dev.txt` stay the
-inputs; after changing either, regenerate it, then install it again and rerun
-`playwright install chromium` — a new Playwright needs its matching browser:
+Two lock files pin every package, with hashes. `requirements.lock` is the
+runtime alone, and is what the deployment installs. `requirements-dev.lock` adds
+the test stack and the lint tools, and is what a laptop and CI install; it takes
+the runtime packages at exactly the versions in `requirements.lock`.
+`requirements.txt` and `requirements-dev.txt` stay the inputs. After changing
+either, regenerate both, in this order, then install the dev lock again and
+rerun `playwright install chromium` — a new Playwright needs its matching
+browser:
 
 ```sh
 pip install pip-tools
-pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.txt requirements-dev.txt
+pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.txt
+pip-compile --generate-hashes --strip-extras -o requirements-dev.lock requirements-dev.txt
 ```
 
+To take newer versions inside the ranges, add `--upgrade` (everything) or
+`--upgrade-package django` (one package) to both commands.
+
 CI's test job runs in Playwright's container image, which carries the browser
-for one Playwright version. If the lock's `playwright==` changes, update the
+for one Playwright version. If the dev lock's `playwright==` changes, update the
 image tag, its digest and `PLAYWRIGHT_IMAGE_VERSION` in
 [`ci.yml`](.github/workflows/ci.yml) to match. Until then the job stops at its
 "Playwright matches the image" step.
 
-Dependabot bumps the ranges in the two inputs but does not regenerate the lock,
-so after merging one of its PRs, run the command above and commit the result.
+Dependabot bumps the ranges in the two inputs but does not regenerate the locks,
+so after merging one of its PRs, run both commands above and commit the result.
+Until then the PR has changed nothing that is installed.
 
 To fill an empty catalog with the shop's candy, pictures included:
 
@@ -132,11 +143,13 @@ passed on a commit.
    there. Copy its **pooled** connection string (Neon labels it
    `DATABASE_URL_POOLED`): the host ends in `-pooler`, and it carries
    `?sslmode=require`. On Render it still goes under the name `DATABASE_URL`.
+   Neon recommends the stricter `sslmode=verify-full`, which also checks that
+   the certificate is the host's own; see `.env.example` before switching.
 2. **Service.** In Render, choose **New → Blueprint** and connect this
    repository. Render reads `render.yaml`, generates `DJANGO_SECRET_KEY`, and
    asks once for `DATABASE_URL`: paste the Neon string.
-3. **First build.** It installs `requirements.lock`, runs `collectstatic`, and
-   runs `migrate` against Neon. The free plan has no pre-deploy step, so
+3. **First build.** It installs `requirements.lock` (the runtime only), runs
+   `collectstatic`, runs `migrate` against Neon, and clears expired sessions. The free plan has no pre-deploy step, so
    migrations run in the build, before the new code goes live.
 4. **Admin user and candy.** The free plan has no shell either, so run these from
    your own machine, against the Neon database:
@@ -188,7 +201,7 @@ Verification is three commands, plus a fourth when workflows are involved, run s
 
 ```sh
 python scripts/dev.py test        # migrations + full suite + coverage
-python scripts/dev.py lint        # ruff + pylint; installed by requirements.lock
+python scripts/dev.py lint        # ruff + pylint; installed by requirements-dev.lock
 python scripts/dev.py lint:workflows  # only when .github/workflows/ changed or a workflow failed
 python scripts/adr_guards.py      # ADR guards; no database, no dependencies
 ```

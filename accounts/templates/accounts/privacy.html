@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Your data — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+What the shop stores, where and for how long. Keep it true: when a field, a
+cookie or a host changes, this page changes with it.
+{% endcomment %}
+<h1>Your data</h1>
+<p>This page says what the shop stores about you, and how to remove it.</p>
+
+<h2>What is stored</h2>
+<ul>
+  <li><strong>Your account:</strong> your username and a scrambled form of your password that cannot be turned back into it. Your name and e-mail address, if you add them.</li>
+  <li><strong>Your allergies,</strong> if you tick any. They are health information. They are used for one thing: the warning at checkout when an order contains something you are allergic to.</li>
+  <li><strong>Your orders:</strong> what you ordered, when, the prices, and when you acknowledged the health warning.</li>
+  <li><strong>Log-ins:</strong> for every log-in, log-out and wrong password, the username, the address it came from, your browser's name and the time, so repeated wrong passwords can be stopped. Deleting your account removes the records kept under your username.</li>
+  <li><strong>Sign-ups per address:</strong> a count, kept for one day, under a code made from the address. The address itself is not kept.</li>
+</ul>
+
+<h2>In your browser</h2>
+<ul>
+  <li>One cookie that keeps you logged in and remembers your cart, and one that protects the forms. Neither follows you to other sites.</li>
+  <li>Your choice of light or dark theme, which stays in your browser and is never sent to the shop.</li>
+</ul>
+<p>The shop loads nothing from other sites: no adverts, no trackers, no analytics.</p>
+
+<h2>Where it is kept</h2>
+<p>The site runs on Render and its database on Neon, both in Frankfurt, Germany. Requests pass through Cloudflare on the way.</p>
+
+<h2>Seeing, changing and deleting it</h2>
+<ul>
+  <li>{% if user.is_authenticated %}<a href="{% url 'accounts:profile' %}">My profile</a>{% else %}My profile{% endif %} shows your details and allergies, and lets you change them.</li>
+  <li>{% if user.is_authenticated %}<a href="{% url 'accounts:orders' %}">Orders</a>{% else %}Orders{% endif %} lists every order you placed.</li>
+  <li>{% if user.is_authenticated %}<a href="{% url 'accounts:delete' %}">Delete my account</a>{% else %}Delete my account, on your profile,{% endif %} removes your account and your orders for good.</li>
+</ul>
+<p class="page-actions"><a href="{% url 'candy_list' %}">Back to the candy</a></p>
+{% endblock %}
