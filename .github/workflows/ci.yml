@@ -36,8 +36,9 @@ jobs:
       - name: Check ADR 0003 and the docs overview
         run: python scripts/adr_guards.py
 
-  # Audits the pinned versions in requirements.lock: it fails when any of them
-  # has a known advisory.
+  # Audits the pinned versions in requirements-dev.lock: it fails when any of
+  # them has a known advisory. That lock holds the deployed packages too, at
+  # the versions requirements.lock gives the deployment.
   # Needs no database or settings, and is separate so an advisory published
   # tomorrow does not read as a broken test.
   dependency-audit:
@@ -54,7 +55,7 @@ jobs:
       - name: pip-audit
         run: |
           pip install pip-audit
-          pip-audit -r requirements.lock
+          pip-audit -r requirements-dev.lock
 
   # pylint-django calls django.setup(), so this needs the runtime dependencies
   # and the two settings.py demands -- but no database: dj_database_url only
@@ -77,10 +78,10 @@ jobs:
           python-version: "3.13"
           cache: pip
 
-      # The lock holds the runtime packages too, because the plugin imports
+      # The dev lock holds the runtime packages too, because the plugin imports
       # Django itself.
       - name: Install dependencies
-        run: pip install -r requirements.lock
+        run: pip install -r requirements-dev.lock
 
       # ruff check and ruff format --check, then pylint. Any ruff finding fails;
       # for pylint only errors do. See scripts/dev.py lint().
@@ -108,7 +109,7 @@ jobs:
     timeout-minutes: 25
     # Playwright's own image ships the browser and the libraries it needs, so no
     # step downloads them. Its version must equal playwright== in
-    # requirements.lock -- the browser build is tied to it -- and Dependabot
+    # requirements-dev.lock -- the browser build is tied to it -- and Dependabot
     # does not bump container images, so the "Playwright matches the image"
     # step fails when the two drift. Pinned by digest, like the actions above.
     container:
@@ -163,11 +164,11 @@ jobs:
           python-version: "3.13"
           activate-environment: true
           enable-cache: true
-          cache-dependency-glob: requirements.lock
+          cache-dependency-glob: requirements-dev.lock
 
       # The venv has no pip; uv installs into it, checking every hash.
       - name: Install dependencies
-        run: uv pip install --require-hashes -r requirements.lock
+        run: uv pip install --require-hashes -r requirements-dev.lock
 
       # The browser comes from the image's /ms-playwright. A different
       # playwright version would look for a browser build that is not there,
@@ -180,7 +181,7 @@ jobs:
 
           locked, image = version("playwright"), os.environ["PLAYWRIGHT_IMAGE_VERSION"]
           if locked != image:
-              sys.exit(f"requirements.lock has playwright {locked}, the container image {image}: "
+              sys.exit(f"requirements-dev.lock has playwright {locked}, the container image {image}: "
                        "bump the image tag, digest and PLAYWRIGHT_IMAGE_VERSION in ci.yml.")
 
       # scripts/dev.py runs makemigrations, which would quietly *write* a

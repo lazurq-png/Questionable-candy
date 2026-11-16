@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Account deleted — Candy shop{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+{% comment %}
+Where accounts.views.delete_account lands. A page of its own, not a message:
+the catalog shows no messages, and this must be said once and plainly.
+{% endcomment %}
+<h1>Account deleted</h1>
+<p data-testid="account-deleted">Your account and your orders were deleted.</p>
+<p class="page-actions"><a href="{% url 'candy_list' %}">Back to the candy</a></p>
+{% endblock %}

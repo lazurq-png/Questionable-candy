@@ -91,6 +91,24 @@ def test_https_is_enforced_when_debug_is_off():
     assert settings.SECURE_HSTS_SECONDS > 0
 
 
+def test_hsts_is_a_year_unless_the_environment_says_otherwise():
+    """An hour was for the first deploy; a new host can still start lower."""
+    assert load_settings(DJANGO_DEBUG="False").SECURE_HSTS_SECONDS == 31536000
+    assert load_settings(DJANGO_DEBUG="False", DJANGO_HSTS_SECONDS="3600").SECURE_HSTS_SECONDS == 3600
+
+
+def test_the_sign_up_limit_comes_from_the_environment():
+    assert load_settings().SIGNUP_MAX_PER_DAY == 5
+    assert load_settings(DJANGO_SIGNUP_MAX_PER_DAY="2").SIGNUP_MAX_PER_DAY == 2
+
+
+def test_the_script_policy_names_no_other_origin():
+    """htmx and Alpine are served from the site itself (ADR 0006, amended 2026-11-10)."""
+    sources = load_settings().SECURE_CSP["script-src"]
+
+    assert not [source for source in sources if "//" in str(source)]
+
+
 def test_https_is_not_enforced_in_development():
     settings = load_settings(DJANGO_DEBUG="True")
 

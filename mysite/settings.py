@@ -189,12 +189,14 @@ CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 # docs/requirements.md section 3 requires authentication and payment over HTTPS.
 # Derived from DEBUG like the cookies above, so development stays on plain HTTP.
 # DJANGO_SECURE_SSL_REDIRECT=False is for a staging box behind plain HTTP.
-# HSTS starts at an hour so a mistake can be undone; raise it once HTTPS is
-# known to work. A proxy that terminates TLS must set the header named by
+# HSTS is a year: it started at an hour so a mistake could be undone, and was
+# raised on 2026-11-10 once the deployed site was seen answering over HTTPS.
+# Set DJANGO_HSTS_SECONDS lower for a new host until its HTTPS is known to
+# work. A proxy that terminates TLS must set the header named by
 # DJANGO_PROXY_SSL_HEADER or the redirect loops.
 
 SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', not DEBUG)
-SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0' if DEBUG else '3600'))
+SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0' if DEBUG else '31536000'))
 # Whenever HSTS is on. The site's own host is the only one under its name: on
 # Render that is <name>.onrender.com, which has no subdomains of its own.
 SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
@@ -242,6 +244,14 @@ if CLIENT_IP_HEADER:
     AXES_CLIENT_IP_CALLABLE = 'mysite.client_ip.client_ip'
 
 
+# Sign-up throttling
+#
+# At most this many accounts a day from one address (accounts/signup_limit.py),
+# so a script cannot fill the users table. The address is the one login
+# throttling uses (CLIENT_IP_HEADER above), kept only as a keyed hash.
+SIGNUP_MAX_PER_DAY = int(os.getenv('DJANGO_SIGNUP_MAX_PER_DAY', '5'))
+
+
 # Content Security Policy
 # https://docs.djangoproject.com/en/6.1/ref/csp/
 #
@@ -251,15 +261,17 @@ if CLIENT_IP_HEADER:
 # is available (500.html). tests/e2e/test_csp.py fails on any violation.
 #
 # 'unsafe-eval' is there because the standard Alpine build evaluates the
-# expressions in x-data / x-on attributes; the @alpinejs/csp build removes the
-# need. unpkg.com is the CDN base.html loads htmx and Alpine from (ADR 0006),
-# each pinned by SRI hash. htmx injects a small <style> for its request
-# indicator, hence 'unsafe-inline' for styles. The one inline script in
-# base.html carries the nonce.
+# expressions in x-data / x-on attributes, and htmx does the same for hx-on;
+# removing it means the @alpinejs/csp build and moving those handlers into
+# static files. No other origin is named: htmx and Alpine are served from this
+# site (shop/static/shop/vendor/, ADR 0006 as amended 2026-11-10), so a script
+# tag pointing anywhere else is refused. htmx injects a small <style> for its
+# request indicator, hence 'unsafe-inline' for styles. The one inline script
+# in base.html carries the nonce.
 
 SECURE_CSP = {
     'default-src': [CSP.SELF],
-    'script-src': [CSP.SELF, CSP.NONCE, 'https://unpkg.com', CSP.UNSAFE_EVAL],
+    'script-src': [CSP.SELF, CSP.NONCE, CSP.UNSAFE_EVAL],
     'style-src': [CSP.SELF, CSP.UNSAFE_INLINE],
     'img-src': [CSP.SELF, 'data:'],
     'object-src': [CSP.NONE],

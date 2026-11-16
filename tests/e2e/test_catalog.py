@@ -60,12 +60,12 @@ def test_the_stepper_adds_and_takes_out_in_the_browser(live_server, page, assert
 
     page.goto(live_server.url)
 
-    # htmx comes from unpkg (ADR 0006 accepted the no-offline-story cost). If
-    # the CDN is unreachable, nothing below can work -- checked here so the
+    # htmx is served from the site itself (ADR 0006, amended 2026-11-10). If
+    # it did not load, nothing below can work -- checked here so the
     # failure says "htmx did not load" rather than pointing at the cart.
     assert page.evaluate("typeof window.htmx") == "object", (
-        "htmx did not load from the CDN; the cart assertions below cannot mean "
-        "anything. This is a network problem, not a regression in the view."
+        "htmx did not load; the cart assertions below cannot mean anything. "
+        "Look at the script tag and its hash in base.html before the view."
     )
 
     # The bar is the whole control, from the start.

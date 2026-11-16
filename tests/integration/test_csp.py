@@ -27,7 +27,9 @@ def test_the_policy_allows_only_the_origins_the_page_loads_from(client):
     policy = client.get(reverse("candy_list")).headers["Content-Security-Policy"]
 
     assert "default-src 'self'" in policy
-    assert "https://unpkg.com" in policy
+    # htmx and Alpine are served from this site (ADR 0006, amended 2026-11-10).
+    assert "unpkg.com" not in policy
+    assert "https:" not in policy
     assert "object-src 'none'" in policy
     assert "frame-ancestors 'none'" in policy
 

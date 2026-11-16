@@ -13,11 +13,18 @@ services:
     autoDeployTrigger: checksPass
     # Migrations run here because the free plan has no pre-deploy command. The
     # build has the service's environment, DATABASE_URL included. Python
-    # itself is pinned by .python-version.
+    # itself is pinned by .python-version. requirements.lock holds only what
+    # the running site needs; the test and lint tools are in
+    # requirements-dev.lock, which CI installs.
+    #
+    # clearsessions last: carts live in sessions and sessions in the database,
+    # and Django never deletes expired ones itself. The free plan has no cron
+    # job, so every deploy clears them.
     buildCommand: >-
       pip install --require-hashes -r requirements.lock &&
       python manage.py collectstatic --noinput &&
-      python manage.py migrate --noinput
+      python manage.py migrate --noinput &&
+      python manage.py clearsessions
     # gunicorn binds 0.0.0.0:$PORT on its own and reads WEB_CONCURRENCY.
     startCommand: gunicorn mysite.wsgi
     healthCheckPath: /

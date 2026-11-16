@@ -349,7 +349,9 @@ class Order(models.Model):
         FULFILLED = "fulfilled", "Fulfilled"
 
     # PROTECT: an order is a record of what happened, so a customer with
-    # orders cannot be deleted out from under them.
+    # orders cannot be deleted out from under them. A customer deleting their
+    # own account deletes their orders first, on purpose
+    # (accounts.views.delete_account).
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="orders")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
