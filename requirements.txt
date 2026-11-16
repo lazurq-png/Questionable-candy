@@ -1,4 +1,6 @@
-# Runtime
+# Runtime: what the deployed site needs, and nothing else. Compiled into
+# requirements.lock, which render.yaml installs. The test stack and the lint
+# tools are in requirements-dev.txt, so a deployment installs neither.
 Django~=6.1.2
 psycopg[binary]~=3.2          # PostgreSQL driver -- docs/adr/0004-database.md
 python-dotenv~=1.1            # loads .env into the environment
@@ -6,14 +8,6 @@ dj-database-url~=3.1          # DATABASE_URL -> Django DATABASES
 django-axes~=8.3            # login throttling, audit finding S3
 gunicorn~=26.2                # WSGI server on Render -- docs/adr/0009-deployment.md
 whitenoise~=6.12              # serves static files in production -- same ADR
-
-# Test stack -- docs/adr/0005-testing.md. Nothing counts packages.
-# Faker arrives transitively via factory_boy and is not counted.
-pytest~=9.1
-pytest-django~=4.14
-pytest-cov~=7.1
-factory_boy~=3.3
-pytest-playwright~=0.7        # unblocked by ADR 0006; drives tests/e2e/
 
 # Django REST Framework is deliberately absent -- docs/adr/0003-backend.md
 # defers it. scripts/adr_guards.py fails if it appears here.
