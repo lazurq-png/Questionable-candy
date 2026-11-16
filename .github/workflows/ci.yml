@@ -113,9 +113,9 @@ jobs:
     # does not bump container images, so the "Playwright matches the image"
     # step fails when the two drift. Pinned by digest, like the actions above.
     container:
-      image: mcr.microsoft.com/playwright/python:v1.64.1-noble@sha256:330d401ae23c905896a0c26c66c36fc971b621519e7b11b435a8328d7bf6e031
+      image: mcr.microsoft.com/playwright/python:v1.65.2-noble@sha256:38dd67fc654b56b3cba611e4c8eb71cd33750e1cd29eea2a5dc00b484817a75f
       env:
-        PLAYWRIGHT_IMAGE_VERSION: "1.64.1"
+        PLAYWRIGHT_IMAGE_VERSION: "1.65.2"
 
     services:
       postgres:
