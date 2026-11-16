@@ -143,8 +143,9 @@ passed on a commit.
    there. Copy its **pooled** connection string (Neon labels it
    `DATABASE_URL_POOLED`): the host ends in `-pooler`, and it carries
    `?sslmode=require`. On Render it still goes under the name `DATABASE_URL`.
-   Neon recommends the stricter `sslmode=verify-full`, which also checks that
-   the certificate is the host's own; see `.env.example` before switching.
+   The deployed site uses the stricter `sslmode=verify-full`, which also checks
+   that the certificate is the host's own; `.env.example` has the exact value
+   and the one that did not work on Render.
 2. **Service.** In Render, choose **New → Blueprint** and connect this
    repository. Render reads `render.yaml`, generates `DJANGO_SECRET_KEY`, and
    asks once for `DATABASE_URL`: paste the Neon string.
