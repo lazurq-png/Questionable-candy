@@ -71,6 +71,23 @@ were byte-identical, and each tarball matched the npm registry's published
 breaking change for the `hx-*` attributes or Alpine directives the templates
 use. The decision itself is unchanged.
 
+**Amended 2026-11-10 — the scripts are vendored.** The audit of 2026-11-10
+(finding S1) pointed out what allowing a CDN costs the Content-Security-Policy:
+`script-src` had to name `https://unpkg.com`, and unpkg serves every package on
+npm, so one injected `<script src="https://unpkg.com/...">` tag would have run.
+The fallback this ADR kept in reserve was taken: the same two files, byte for
+byte, are now in `shop/static/shop/vendor/` under names that carry their
+versions (`htmx-2.0.11.min.js`, `alpine-3.15.12.min.js`), `base.html` loads them
+from there, and `SECURE_CSP` names no other origin. The `sha384` hashes stay on
+the tags, now guarding the committed files against an edit or a line-ending
+conversion (`.gitattributes` marks them binary).
+`tests/integration/test_script_integrity.py` checks that no script comes from
+another site and that each file matches its hash. Still no build step, and no
+`package.json`. Updating a version is: fetch the new file, add it under its new
+name, change the name and the hash in `base.html`, delete the old file.
+`'unsafe-eval'` stays in the policy, because the standard Alpine build and
+htmx's `hx-on` evaluate attribute text; removing it is a separate change.
+
 ## Pros and Cons of the Options
 
 ### Adopt htmx + Alpine.js via CDN and supersede ADR 0001
