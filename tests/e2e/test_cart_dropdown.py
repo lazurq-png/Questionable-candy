@@ -115,7 +115,7 @@ def test_the_dropdown_follows_the_window_and_leaves_the_content_uncovered(live_s
     assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
 
     page.mouse.wheel(0, 2000)
-    page.wait_for_function("window.scrollY > 1000")
+    page.wait_for_function("() => window.scrollY > 1000")
     scrolled = panel.bounding_box()
     header = page.locator(".site-header").bounding_box()
     assert scrolled["y"] >= header["y"] + header["height"], (header, scrolled)

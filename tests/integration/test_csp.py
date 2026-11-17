@@ -8,8 +8,10 @@ page loads from, the one inline script carries the matching nonce, and the
 """
 
 import re
+from pathlib import Path
 
 import pytest
+from django.conf import settings
 from django.test import Client
 from django.urls import reverse
 
@@ -32,6 +34,32 @@ def test_the_policy_allows_only_the_origins_the_page_loads_from(client):
     assert "https:" not in policy
     assert "object-src 'none'" in policy
     assert "frame-ancestors 'none'" in policy
+
+
+def test_the_policy_does_not_let_scripts_evaluate_strings(client):
+    """No 'unsafe-eval' (ADR 0006, amended 2026-11-17): an injected attribute is not run."""
+    policy = client.get(reverse("candy_list")).headers["Content-Security-Policy"]
+
+    assert "'unsafe-eval'" not in policy
+
+
+TEMPLATE_DIRS = [Path(settings.BASE_DIR) / name for name in ("templates", "shop", "accounts")]
+
+
+def template_sources():
+    for directory in TEMPLATE_DIRS:
+        for path in directory.rglob("*.html"):
+            yield path, path.read_text(encoding="utf-8")
+
+
+def test_no_template_asks_htmx_to_evaluate_code():
+    """hx-on handlers and hx-trigger filters need eval, which the policy refuses.
+
+    They would fail silently in a browser; components.js is where such code goes.
+    """
+    for path, source in template_sources():
+        assert "hx-on" not in source, path
+        assert not re.search(r'hx-trigger="[^"]*\[', source), path
 
 
 def test_the_inline_theme_script_carries_the_nonce_from_the_header(client):
