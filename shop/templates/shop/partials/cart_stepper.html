@@ -42,7 +42,6 @@ server's message (and its stock cap) from ever showing.
 {% if candy and candy.stock %}
   <form class="cart-stepper" data-testid="cart-stepper"
         hx-post="{% url 'set_in_shoppingcart' id %}" hx-swap="none"
-        hx-on:htmx:before-request="if (event.detail.elt === this) this.elements.quantity.focus()"
         x-data="{ saved: '{{ candy.in_cart }}', value: '{{ candy.in_cart }}' }">
     <button type="button" id="{{ where }}-remove-one-{{ id }}" class="cart-stepper-button"
             hx-post="{% url 'remove_one_from_shoppingcart' id %}"

@@ -12,7 +12,7 @@ about to be hidden.
 <div class="cart-panel-header">
   <h2>Cart</h2>
   <button type="button" class="button-secondary" aria-label="Close cart"
-          x-on:click="cartOpen = false; document.getElementById('shoppingcart-link').focus()"><span aria-hidden="true">&times;</span></button>
+          x-on:click="closeCart"><span aria-hidden="true">&times;</span></button>
 </div>
 <div class="notices">{% for notice in cart_notices %}<p>{{ notice }}</p>{% endfor %}</div>
 {% if lines %}

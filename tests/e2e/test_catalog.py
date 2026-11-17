@@ -275,7 +275,7 @@ def test_the_cdn_scripts_pass_their_integrity_check_and_run(live_server, page, a
     page.goto(live_server.url)
 
     assert page.evaluate("typeof window.htmx") == "object"
-    page.wait_for_function("window.Alpine !== undefined")
+    page.wait_for_function("() => window.Alpine !== undefined")
     # This change added a comment block to base.html's head, and a mis-written
     # one would be printed to the page rather than swallowed.
     assert_page_is_fully_rendered(page)

@@ -6,13 +6,13 @@
 {% comment %}
 The detail popup can change a quantity while this page is behind it, so when a
 change comes from inside the popup the cart is fetched again and swapped in.
-Changes made on this page already return the cart themselves, which is what
-the filter excludes -- which must be a boolean: htmx only lets an event
-through a filter that is exactly true, and closest() returns an element.
+Changes made on this page already return the cart themselves, so only those
+from the popup count: components.js turns them into shoppingcart-changed-in-popup,
+because the policy refuses the hx-trigger filter that used to tell them apart.
 hx-disinherit keeps these attributes off the forms inside.
 {% endcomment %}
 <div hx-get="{% url 'shoppingcart' %}" hx-select="#cart" hx-target="#cart" hx-swap="outerHTML"
-     hx-trigger="shoppingcart-changed[!!event.target.closest('#candy-popup')] from:body" hx-disinherit="*">
+     hx-trigger="shoppingcart-changed-in-popup from:body" hx-disinherit="*">
 {% include "shop/partials/shoppingcart_contents.html" %}
 </div>
 {% endblock %}

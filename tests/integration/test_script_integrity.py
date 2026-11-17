@@ -41,7 +41,7 @@ def test_the_page_loads_exactly_the_two_scripts_adr_0006_chose(client):
 
     assert len(vendored) == 2
     assert vendored[0].endswith("htmx-2.0.11.min.js")
-    assert vendored[1].endswith("alpine-3.15.12.min.js")
+    assert vendored[1].endswith("alpine-csp-3.15.12.min.js")
 
 
 def test_each_vendored_script_matches_the_hash_on_its_tag(client):

@@ -6,7 +6,7 @@ f467f14a16da3216  adr/0002-middleware.md
 4af59b3c4bdb1319  adr/0003-backend.md
 46840324217a701d  adr/0004-database.md
 be3309961168321d  adr/0005-testing.md
-52a17c679d382923  adr/0006-frontend-htmx-alpine.md
+af748e82ef9ba69c  adr/0006-frontend-htmx-alpine.md
 aff6216842f2e39c  adr/0007-custom-user-model.md
 154fe963a3b4c975  adr/0008-hand-written-css-themes.md
 b7987c451f79d7c5  adr/0009-deployment.md
