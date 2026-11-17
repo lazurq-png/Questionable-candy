@@ -109,6 +109,11 @@ def test_the_script_policy_names_no_other_origin():
     assert not [source for source in sources if "//" in str(source)]
 
 
+def test_the_script_policy_does_not_allow_eval():
+    """Alpine is its CSP build and htmx runs with allowEval off (ADR 0006, amended 2026-11-17)."""
+    assert "'unsafe-eval'" not in load_settings().SECURE_CSP["script-src"]
+
+
 def test_https_is_not_enforced_in_development():
     settings = load_settings(DJANGO_DEBUG="True")
 

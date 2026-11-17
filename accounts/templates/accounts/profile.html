@@ -8,7 +8,7 @@
 (its script blocked) they simply stay, as they did before.
 {% endcomment %}
 <div class="notices" data-testid="account-messages"
-     x-data="{ shown: true }" x-init="setTimeout(() => shown = false, 5000)"
+     x-data="flash"
      x-show="shown" x-transition:leave.opacity.duration.300ms>{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
 <form method="post" action="{% url 'accounts:profile' %}" class="account-form" id="profile-form" data-testid="profile-form">
   {% csrf_token %}

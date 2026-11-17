@@ -9,5 +9,5 @@ so the dropdown shows the cart as it is now rather than as it was last opened.
 {% endcomment %}
 <a href="{% url 'shoppingcart' %}" id="shoppingcart-link" class="site-cart" data-testid="shoppingcart-link"
    aria-controls="cart-panel" x-bind:role="'button'" x-bind:aria-expanded="cartOpen"
-   x-on:click.prevent="cartOpen = !cartOpen; cartOpen && $dispatch('shoppingcart-refresh')"
-   x-on:keydown.space.prevent="$el.click()">Cart ({% include "shop/partials/shoppingcart_count.html" %})</a>
+   x-on:click.prevent="toggleCart"
+   x-on:keydown.space.prevent="pressWithSpace">Cart ({% include "shop/partials/shoppingcart_count.html" %})</a>

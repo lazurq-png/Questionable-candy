@@ -88,6 +88,22 @@ name, change the name and the hash in `base.html`, delete the old file.
 `'unsafe-eval'` stays in the policy, because the standard Alpine build and
 htmx's `hx-on` evaluate attribute text; removing it is a separate change.
 
+**Amended 2026-11-17 — no `'unsafe-eval'`.** The second half of audit finding
+S1. With `'unsafe-eval'` allowed, any attribute an attacker managed to inject,
+`x-init="..."` or `hx-on:...`, would have run as code. Alpine is now its CSP
+build (`alpine-csp-3.15.12.min.js`, the same version, `@alpinejs/csp` on npm),
+which parses simple expressions itself: names, literals, `!`, `&&`, `===`, a
+call to a component's method. Everything more -- function definitions,
+`document`, `setTimeout`, statements joined with `;` -- moved into named
+components (`Alpine.data`) in `shop/static/shop/components.js`. htmx runs with
+`allowEval` off (a `htmx-config` meta tag); its two `hx-on` handlers and one
+`hx-trigger` filter became listeners in the same file. `SECURE_CSP` has no
+`'unsafe-eval'`, and tests keep it, `hx-on` and trigger filters out. Rejected:
+keeping the standard build and allowing eval for it only (CSP cannot scope
+`'unsafe-eval'` to one script), and a bundler that compiles the expressions
+(a build step this ADR has avoided from the start). The file count is
+unchanged at two vendored scripts; `components.js` is the site's own.
+
 ## Pros and Cons of the Options
 
 ### Adopt htmx + Alpine.js via CDN and supersede ADR 0001

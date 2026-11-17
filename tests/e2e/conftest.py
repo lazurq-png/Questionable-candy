@@ -69,8 +69,12 @@ def wait_for_htmx_to_settle():
     Call this after a swap and before any of those on what it brought in.
     """
 
+    # A predicate given as a function, not a bare expression: Playwright evaluates
+    # a bare string with eval inside the page, which the policy refuses (no
+    # 'unsafe-eval', ADR 0006 amended 2026-11-17). The same goes for every
+    # wait_for_function in these tests.
     def wait(page):
-        page.wait_for_function("!document.querySelector('.htmx-swapping, .htmx-settling')")
+        page.wait_for_function("() => !document.querySelector('.htmx-swapping, .htmx-settling')")
 
     return wait
 

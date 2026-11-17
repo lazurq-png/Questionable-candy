@@ -28,8 +28,10 @@ is not a form field; it points at its message only when there is one.
 refuses a confirmation of any other. `token` names this showing of the page, so
 submitting it twice places one order (Order.objects.place).
 
-`matches()` repeats the server's reading of a typed total (a leading $ and a
-decimal comma allowed) only to decide when to unlock the button.
+`matches()` (the confirmOrder component, components.js) repeats the server's
+reading of a typed total (a leading $ and a decimal comma allowed) only to
+decide when to unlock the button. Its starting values come in data-*
+attributes, escaped like any other HTML, not written into a script.
 {% endcomment %}
 <h1>Confirm your order</h1>
 <div class="notices" data-testid="confirm-notices">{% for notice in notices %}<p>{{ notice }}</p>{% endfor %}</div>
@@ -46,15 +48,8 @@ decimal comma allowed) only to decide when to unlock the button.
 <p class="cart-total">Total: <span data-testid="confirm-total">${{ total }}</span></p>
 
 <form method="post" action="{% url 'checkout_confirm' %}" class="account-form confirm-form" data-testid="confirm-form"
-      x-data="{
-        checked: {{ form.checked_order.value|yesno:'true,false' }},
-        typed: '{{ form.typed_total.value|default_if_none:''|escapejs }}',
-        total: '{{ total }}',
-        matches() {
-          const typed = this.typed.trim().replace(/^\$/, '').trim().replace(',', '.');
-          return typed !== '' && !Number.isNaN(Number(typed)) && Number(typed) === Number(this.total);
-        },
-      }">
+      x-data="confirmOrder" data-checked="{{ form.checked_order.value|yesno:'true,false' }}"
+      data-typed="{{ form.typed_total.value|default_if_none:'' }}" data-total="{{ total }}">
   {% csrf_token %}
   <input type="hidden" name="shown" value="{{ shown }}">
   <input type="hidden" name="token" value="{{ token }}">
