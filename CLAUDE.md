@@ -77,8 +77,8 @@ There is still **no** type checker or build step. Do not claim to have run one.
 
 CI exists as of 2026-09-15 (`.github/workflows/ci.yml`): ADR-guards, lint, and a
 test job with a PostgreSQL service and a Playwright browser, so `tests/e2e/`
-runs there too. It triggers on pull requests to `master` and `dev`, and on
-pushes to `master` and `dev`. It runs on GitHub, not on your machine — you
+runs there too. It triggers on pull requests to `main` and `dev`, and on
+pushes to `main` and `dev`. It runs on GitHub, not on your machine — you
 cannot observe its result from here, so never report a CI run as evidence.
 CI also checks migration drift with `makemigrations --check`, which `dev.py`
 deliberately does not, and runs `check --deploy --fail-level WARNING` against
