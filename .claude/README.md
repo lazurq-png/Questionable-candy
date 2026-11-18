@@ -40,7 +40,7 @@ finding or unformatted file fails) followed by pylint with the Django plugin
 (`.pylintrc`), gated on the error class only. pylint's warnings print without
 failing, so a zero exit is not an empty report.
 
-CI (`.github/workflows/ci.yml`) runs three jobs on push to `master` and `dev`:
+CI (`.github/workflows/ci.yml`) runs three jobs on push to `main` and `dev`:
 the ADR guards, lint, and the suite — plus a `makemigrations
 --check` drift gate that `dev.py` deliberately omits.
 

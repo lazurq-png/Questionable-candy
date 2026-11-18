@@ -8,7 +8,7 @@ services:
     plan: free
     # Frankfurt, next to Neon's aws-eu-central-1: every request queries it.
     region: frankfurt
-    branch: master
+    branch: main
     # Deploy a commit only once CI has passed on it.
     autoDeployTrigger: checksPass
     # Migrations run here because the free plan has no pre-deploy command. The

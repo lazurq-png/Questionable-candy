@@ -47,7 +47,7 @@ a real browser over every customer-facing page.
 Styling is one hand-written stylesheet, `shop/static/shop/site.css`, with light
 and dark themes that follow the system setting and a toggle to override it;
 no CSS framework or build step. CI runs the ADR guards, lint and the test suite
-on every pull request to `master` and `dev`, and on every push to `master` and
+on every pull request to `main` and `dev`, and on every push to `main` and
 `dev` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Running it
@@ -130,7 +130,7 @@ design. See [ADR 0004](docs/adr/0004-database.md).
 
 The site runs on Render's free web service, with its data in its own Neon
 project ([ADR 0009](docs/adr/0009-deployment.md)). [`render.yaml`](render.yaml)
-describes the service; Render builds it from `master`, and only once CI has
+describes the service; Render builds it from `main`, and only once CI has
 passed on a commit.
 
 1. **Database.** In Neon, create a **new project** for the shop, in AWS
